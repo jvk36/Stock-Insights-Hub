@@ -168,6 +168,26 @@ export const GetStockFinancialsResponse = zod.object({
 });
 
 /**
+ * @summary Get historical quarterly EPS data for earnings overlay
+ */
+export const GetEarningsHistoryParams = zod.object({
+  symbol: zod.coerce.string(),
+});
+
+export const GetEarningsHistoryResponse = zod.object({
+  symbol: zod.string(),
+  peMultiple: zod.number(),
+  history: zod.array(
+    zod.object({
+      date: zod.string(),
+      epsActual: zod.number().nullish(),
+      epsEstimate: zod.number().nullish(),
+      ttmEps: zod.number().nullish(),
+    }),
+  ),
+});
+
+/**
  * @summary Get SEC filings for a company
  */
 export const GetSecFilingsParams = zod.object({

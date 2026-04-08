@@ -9,6 +9,7 @@ import {
   GetStockFinancialsParams,
   GetStockFinancialsQueryParams,
   GetSecFilingsParams,
+  GetEarningsHistoryParams,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -350,6 +351,116 @@ router.get("/stock/:symbol/financials", async (req, res): Promise<void> => {
   } catch (err: unknown) {
     req.log.error({ err, symbol }, "Failed to fetch financials");
     res.status(500).json({ error: "server_error", message: "Failed to fetch financials" });
+  }
+});
+
+router.get("/stock/:symbol/earnings-history", async (req, res): Promise<void> => {
+  const params = GetEarningsHistoryParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "bad_request", message: params.error.message });
+    return;
+  }
+
+  const symbol = getSymbol(params.data.symbol);
+  const PE_MULTIPLE = 15;
+
+  try {
+    // 1. Fetch recent quarterly EPS from yahoo-finance earningsHistory (last ~4 quarters)
+    const result = await yahooFinance.quoteSummary(symbol, {
+      modules: ["earningsHistory", "price"],
+    });
+
+    const earningsHistoryRaw = result.earningsHistory?.history ?? [];
+    // Note: fields are epsActual/epsEstimate on earningsHistory (not actual/estimate)
+    const recentEps = earningsHistoryRaw
+      .map((item) => ({
+        date: item.quarter instanceof Date ? item.quarter.toISOString().split("T")[0] : null,
+        epsActual: typeof item.epsActual === "number" ? item.epsActual : null,
+        epsEstimate: typeof item.epsEstimate === "number" ? item.epsEstimate : null,
+      }))
+      .filter((e): e is { date: string; epsActual: number; epsEstimate: number | null } =>
+        e.date !== null && e.epsActual !== null
+      );
+
+    // 2. Try SEC EDGAR for extended historical quarterly EPS (diluted EPS)
+    // First find the CIK for this symbol
+    let secEps: { date: string; epsActual: number; epsEstimate: null }[] = [];
+    try {
+      const cikSearch = await fetch(
+        `https://efts.sec.gov/LATEST/search-index?q=%22${encodeURIComponent(symbol)}%22&forms=10-K&dateRange=custom&startdt=2022-01-01`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+      if (cikSearch.ok) {
+        const cikData = await cikSearch.json() as { hits?: { hits?: Array<{ _source?: { entity_id?: string } }> } };
+        const cik = cikData?.hits?.hits?.[0]?._source?.entity_id;
+
+        if (cik) {
+          const factsUrl = `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik.padStart(10, "0")}/us-gaap/EarningsPerShareDiluted.json`;
+          const factsResp = await fetch(factsUrl, { signal: AbortSignal.timeout(5000) });
+          if (factsResp.ok) {
+            const factsData = await factsResp.json() as {
+              units?: {
+                "USD/shares"?: Array<{
+                  end: string;
+                  val: number;
+                  form: string;
+                  frame?: string;
+                  accn: string;
+                }>;
+              };
+            };
+            const sharesData = factsData?.units?.["USD/shares"] ?? [];
+            // Get quarterly 10-Q and 10-K data - prefer entries with a frame (quarterly)
+            const quarterly = sharesData
+              .filter((e) => (e.form === "10-Q" || e.form === "10-K") && e.frame && /^CY\d{4}Q\d$/.test(e.frame))
+              .map((e) => ({
+                date: e.end,
+                epsActual: e.val,
+                epsEstimate: null as null,
+              }));
+
+            // Deduplicate by date, keep latest accession
+            const qMap = new Map<string, { date: string; epsActual: number; epsEstimate: null }>();
+            for (const q of quarterly) {
+              qMap.set(q.date, q);
+            }
+            secEps = Array.from(qMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+          }
+        }
+      }
+    } catch {
+      // SEC EDGAR lookup is best-effort; proceed with Yahoo data only
+    }
+
+    // 3. Merge: SEC EDGAR provides the base; Yahoo earningsHistory overrides recent quarters
+    const dateMap = new Map<string, { date: string; epsActual: number; epsEstimate: number | null }>();
+    for (const e of [...secEps, ...recentEps]) {
+      dateMap.set(e.date, e);
+    }
+
+    const sorted = Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+
+    // 4. Compute TTM EPS (trailing twelve months = rolling sum of last 4 quarters)
+    const history = sorted.map((item, idx) => {
+      const windowItems = sorted.slice(Math.max(0, idx - 3), idx + 1);
+      const ttmEps = windowItems.length === 4
+        ? parseFloat(windowItems.reduce((sum, q) => sum + q.epsActual, 0).toFixed(4))
+        : windowItems.length > 0
+          // Partial TTM: annualize what we have (useful for early history)
+          ? parseFloat((windowItems.reduce((sum, q) => sum + q.epsActual, 0) * (4 / windowItems.length)).toFixed(4))
+          : null;
+      return {
+        date: item.date,
+        epsActual: item.epsActual,
+        epsEstimate: item.epsEstimate,
+        ttmEps,
+      };
+    });
+
+    res.json({ symbol, peMultiple: PE_MULTIPLE, history });
+  } catch (err: unknown) {
+    req.log.error({ err, symbol }, "Failed to fetch earnings history");
+    res.status(500).json({ error: "server_error", message: "Failed to fetch earnings history" });
   }
 });
 

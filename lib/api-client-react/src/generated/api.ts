@@ -17,6 +17,7 @@ import type {
   ApiError,
   ChartData,
   CompanyProfile,
+  EarningsHistoryResponse,
   FinancialStatements,
   GetStockChartParams,
   GetStockFinancialsParams,
@@ -593,6 +594,97 @@ export function useGetStockFinancials<
     params,
     options,
   );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get historical quarterly EPS data for earnings overlay
+ */
+export const getGetEarningsHistoryUrl = (symbol: string) => {
+  return `/api/stock/${symbol}/earnings-history`;
+};
+
+export const getEarningsHistory = async (
+  symbol: string,
+  options?: RequestInit,
+): Promise<EarningsHistoryResponse> => {
+  return customFetch<EarningsHistoryResponse>(
+    getGetEarningsHistoryUrl(symbol),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetEarningsHistoryQueryKey = (symbol: string) => {
+  return [`/api/stock/${symbol}/earnings-history`] as const;
+};
+
+export const getGetEarningsHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getEarningsHistory>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getEarningsHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetEarningsHistoryQueryKey(symbol);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getEarningsHistory>>
+  > = ({ signal }) => getEarningsHistory(symbol, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!symbol,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getEarningsHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetEarningsHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getEarningsHistory>>
+>;
+export type GetEarningsHistoryQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get historical quarterly EPS data for earnings overlay
+ */
+
+export function useGetEarningsHistory<
+  TData = Awaited<ReturnType<typeof getEarningsHistory>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getEarningsHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetEarningsHistoryQueryOptions(symbol, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

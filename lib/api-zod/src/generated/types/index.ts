@@ -10,6 +10,8 @@ export * from "./apiError";
 export * from "./chartData";
 export * from "./chartDataPoint";
 export * from "./companyProfile";
+export * from "./earningsHistoryItem";
+export * from "./earningsHistoryResponse";
 export * from "./financialPeriod";
 export * from "./financialPeriodData";
 export * from "./financialStatements";

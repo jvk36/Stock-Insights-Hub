@@ -107,6 +107,19 @@ export interface FinancialStatements {
   cashFlow: FinancialPeriod[];
 }
 
+export interface EarningsHistoryItem {
+  date: string;
+  epsActual?: number | null;
+  epsEstimate?: number | null;
+  ttmEps?: number | null;
+}
+
+export interface EarningsHistoryResponse {
+  symbol: string;
+  peMultiple: number;
+  history: EarningsHistoryItem[];
+}
+
 export interface SecFiling {
   id: string;
   type: string;

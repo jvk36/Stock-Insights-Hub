@@ -131,8 +131,13 @@ router.get("/stock/:symbol/chart", async (req, res): Promise<void> => {
       interval: interval as "1m" | "2m" | "5m" | "15m" | "30m" | "60m" | "90m" | "1h" | "1d" | "5d" | "1wk" | "1mo" | "3mo",
     });
 
+    // For intraday ranges (1d/5d) preserve the full timestamp so the frontend
+    // can display accurate times. For daily+ ranges return date-only strings.
+    const isIntraday = interval === "5m" || interval === "15m";
     const data = (result.quotes ?? []).map((q) => ({
-      date: q.date instanceof Date ? q.date.toISOString().split("T")[0] : String(q.date),
+      date: q.date instanceof Date
+        ? (isIntraday ? q.date.toISOString() : q.date.toISOString().split("T")[0])
+        : String(q.date),
       open: q.open ?? null,
       high: q.high ?? null,
       low: q.low ?? null,
@@ -240,57 +245,57 @@ router.get("/stock/:symbol/profile", async (req, res): Promise<void> => {
   }
 });
 
+// Maps fundamentalsTimeSeries "financials" module keys → display labels
 const incomeStatementKeyMap: Record<string, string> = {
   totalRevenue: "Total Revenue",
-  costOfRevenue: "Cost of Revenue",
+  reconciledCostOfRevenue: "Cost of Revenue",
   grossProfit: "Gross Profit",
-  operatingExpenses: "Operating Expenses",
   operatingIncome: "Operating Income",
-  ebitda: "EBITDA",
+  EBITDA: "EBITDA",
+  EBIT: "EBIT",
+  pretaxIncome: "Pre-tax Income",
+  taxProvision: "Income Tax",
   netIncome: "Net Income",
-  basicEPS: "Basic EPS",
-  dilutedEPS: "Diluted EPS",
+  netIncomeCommonStockholders: "Net Income (Common)",
   researchAndDevelopment: "Research & Development",
-  sellingGeneralAndAdministrative: "SG&A",
-  totalOperatingExpenses: "Total Operating Expenses",
-  interestExpense: "Interest Expense",
-  incomeTaxExpense: "Income Tax Expense",
-  netIncomeFromContinuingOperations: "Net Income (Continuing Ops)",
+  totalOperatingIncomeAsReported: "Total Operating Income",
+  normalizedEBITDA: "Normalized EBITDA",
 };
 
+// Maps fundamentalsTimeSeries "balance-sheet" module keys → display labels
 const balanceSheetKeyMap: Record<string, string> = {
   totalAssets: "Total Assets",
-  totalLiabilities: "Total Liabilities",
-  totalStockholderEquity: "Stockholder Equity",
-  cash: "Cash & Equivalents",
-  shortTermInvestments: "Short-term Investments",
-  netReceivables: "Net Receivables",
+  totalLiabilitiesNetMinorityInterest: "Total Liabilities",
+  stockholdersEquity: "Stockholder Equity",
+  commonStockEquity: "Common Equity",
+  cashAndCashEquivalents: "Cash & Equivalents",
+  cashCashEquivalentsAndShortTermInvestments: "Cash & ST Investments",
   inventory: "Inventory",
-  totalCurrentAssets: "Total Current Assets",
-  longTermInvestments: "Long-term Investments",
-  propertyPlantEquipment: "PP&E (Net)",
-  goodwill: "Goodwill",
-  intangibleAssets: "Intangible Assets",
-  totalCurrentLiabilities: "Total Current Liabilities",
-  shortLongTermDebt: "Short-term Debt",
+  accountsReceivable: "Accounts Receivable",
+  currentAssets: "Current Assets",
+  currentLiabilities: "Current Liabilities",
   longTermDebt: "Long-term Debt",
+  currentDebt: "Current Debt",
   totalDebt: "Total Debt",
+  netDebt: "Net Debt",
+  netPPE: "PP&E (Net)",
   retainedEarnings: "Retained Earnings",
-  commonStock: "Common Stock",
+  workingCapital: "Working Capital",
 };
 
+// Maps fundamentalsTimeSeries "cash-flow" module keys → display labels
 const cashFlowKeyMap: Record<string, string> = {
-  totalCashFromOperatingActivities: "Operating Cash Flow",
-  capitalExpenditures: "Capital Expenditures",
-  totalCashFromInvestingActivities: "Investing Cash Flow",
-  totalCashFromFinancingActivities: "Financing Cash Flow",
-  changeInCash: "Change in Cash",
+  operatingCashFlow: "Operating Cash Flow",
+  capitalExpenditure: "Capital Expenditures",
   freeCashFlow: "Free Cash Flow",
-  dividendsPaid: "Dividends Paid",
-  repurchaseOfStock: "Stock Repurchase",
-  netBorrowings: "Net Borrowings",
-  issuanceOfStock: "Stock Issuance",
-  depreciation: "Depreciation & Amortization",
+  investingCashFlow: "Investing Cash Flow",
+  financingCashFlow: "Financing Cash Flow",
+  depreciationAndAmortization: "Depreciation & Amortization",
+  stockBasedCompensation: "Stock-based Compensation",
+  repurchaseOfCapitalStock: "Stock Repurchases",
+  commonStockDividendPaid: "Dividends Paid",
+  netIssuancePaymentsOfDebt: "Net Debt Issuance",
+  changesInCash: "Change in Cash",
 };
 
 function mapKeys(raw: Record<string, unknown>, keyMap: Record<string, string>): Record<string, number | null> {
@@ -312,40 +317,45 @@ router.get("/stock/:symbol/financials", async (req, res): Promise<void> => {
   const query = GetStockFinancialsQueryParams.safeParse(req.query);
   const period = query.success ? (query.data.period ?? "quarterly") : "quarterly";
   const symbol = getSymbol(params.data.symbol);
+  const tsType = period === "annual" ? "annual" : "quarterly";
+  const period1 = "2019-01-01";
 
   try {
-    const modules = period === "annual"
-      ? ["incomeStatementHistory", "balanceSheetHistory", "cashflowStatementHistory"] as const
-      : ["incomeStatementHistoryQuarterly", "balanceSheetHistoryQuarterly", "cashflowStatementHistoryQuarterly"] as const;
+    // Use fundamentalsTimeSeries — the quoteSummary statement modules have been
+    // mostly empty since late 2024 per yahoo-finance2 changelog.
+    const [incomeRaw, balanceRaw, cashRaw] = await Promise.all([
+      yahooFinance.fundamentalsTimeSeries(symbol, { type: tsType, module: "financials", period1 }),
+      yahooFinance.fundamentalsTimeSeries(symbol, { type: tsType, module: "balance-sheet", period1 }),
+      yahooFinance.fundamentalsTimeSeries(symbol, { type: tsType, module: "cash-flow", period1 }),
+    ]);
 
-    const result = await yahooFinance.quoteSummary(symbol, { modules: [...modules] });
+    // Sort descending (most recent first) and limit to 8 periods
+    const toDate = (item: { date?: Date | string }) =>
+      item.date instanceof Date ? item.date.toISOString().split("T")[0] : String(item.date ?? "");
 
-    const incomeHistory = period === "annual"
-      ? result.incomeStatementHistory?.incomeStatementHistory ?? []
-      : result.incomeStatementHistoryQuarterly?.incomeStatementHistory ?? [];
+    const incomeStatement = [...incomeRaw]
+      .sort((a, b) => toDate(b).localeCompare(toDate(a)))
+      .slice(0, 8)
+      .map((item) => ({
+        date: toDate(item),
+        data: mapKeys(item as unknown as Record<string, unknown>, incomeStatementKeyMap),
+      }));
 
-    const balanceHistory = period === "annual"
-      ? result.balanceSheetHistory?.balanceSheetStatements ?? []
-      : result.balanceSheetHistoryQuarterly?.balanceSheetStatements ?? [];
+    const balanceSheet = [...balanceRaw]
+      .sort((a, b) => toDate(b).localeCompare(toDate(a)))
+      .slice(0, 8)
+      .map((item) => ({
+        date: toDate(item),
+        data: mapKeys(item as unknown as Record<string, unknown>, balanceSheetKeyMap),
+      }));
 
-    const cashHistory = period === "annual"
-      ? result.cashflowStatementHistory?.cashflowStatements ?? []
-      : result.cashflowStatementHistoryQuarterly?.cashflowStatements ?? [];
-
-    const incomeStatement = incomeHistory.map((item) => ({
-      date: item.endDate instanceof Date ? item.endDate.toISOString().split("T")[0] : String(item.endDate ?? ""),
-      data: mapKeys(item as unknown as Record<string, unknown>, incomeStatementKeyMap),
-    }));
-
-    const balanceSheet = balanceHistory.map((item) => ({
-      date: item.endDate instanceof Date ? item.endDate.toISOString().split("T")[0] : String(item.endDate ?? ""),
-      data: mapKeys(item as unknown as Record<string, unknown>, balanceSheetKeyMap),
-    }));
-
-    const cashFlow = cashHistory.map((item) => ({
-      date: item.endDate instanceof Date ? item.endDate.toISOString().split("T")[0] : String(item.endDate ?? ""),
-      data: mapKeys(item as unknown as Record<string, unknown>, cashFlowKeyMap),
-    }));
+    const cashFlow = [...cashRaw]
+      .sort((a, b) => toDate(b).localeCompare(toDate(a)))
+      .slice(0, 8)
+      .map((item) => ({
+        date: toDate(item),
+        data: mapKeys(item as unknown as Record<string, unknown>, cashFlowKeyMap),
+      }));
 
     res.json({ symbol, period, incomeStatement, balanceSheet, cashFlow });
   } catch (err: unknown) {
@@ -391,8 +401,10 @@ router.get("/stock/:symbol/earnings-history", async (req, res): Promise<void> =>
         { signal: AbortSignal.timeout(5000) }
       );
       if (cikSearch.ok) {
-        const cikData = await cikSearch.json() as { hits?: { hits?: Array<{ _source?: { entity_id?: string } }> } };
-        const cik = cikData?.hits?.hits?.[0]?._source?.entity_id;
+        const cikData = await cikSearch.json() as { hits?: { hits?: Array<{ _source?: { ciks?: string[]; entity_id?: string } }> } };
+        const rawCik = cikData?.hits?.hits?.[0]?._source?.ciks?.[0]
+          ?? cikData?.hits?.hits?.[0]?._source?.entity_id;
+        const cik = rawCik ? rawCik.replace(/^0+/, "") : undefined;
 
         if (cik) {
           const factsUrl = `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik.padStart(10, "0")}/us-gaap/EarningsPerShareDiluted.json`;
@@ -492,6 +504,7 @@ router.get("/stock/:symbol/sec-filings", async (req, res): Promise<void> => {
         hits?: {
           hits?: Array<{
             _source?: {
+              ciks?: string[];
               entity_id?: string;
               file_date?: string;
               form_type?: string;
@@ -505,8 +518,9 @@ router.get("/stock/:symbol/sec-filings", async (req, res): Promise<void> => {
         };
       };
       const hits = searchData?.hits?.hits ?? [];
-      if (hits.length > 0 && hits[0]._source?.entity_id) {
-        cik = hits[0]._source.entity_id;
+      if (hits.length > 0) {
+        const rawCik = hits[0]._source?.ciks?.[0] ?? hits[0]._source?.entity_id;
+        if (rawCik) cik = rawCik.replace(/^0+/, "");
       }
     }
 
@@ -549,12 +563,14 @@ router.get("/stock/:symbol/sec-filings", async (req, res): Promise<void> => {
             .map((f) => {
               const accFormatted = f.accession.replace(/-/g, "");
               const baseUrl = `https://www.sec.gov/Archives/edgar/data/${cik}/${accFormatted}`;
+              // url = filing index page (lists all documents in this filing)
+              // documentUrl = direct link to the primary document (the actual filing)
               return {
                 id: f.id,
                 type: f.type,
                 description: f.description,
                 filedAt: f.filedAt,
-                url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&type=${encodeURIComponent(f.type)}&dateb=&owner=include&count=40`,
+                url: `${baseUrl}/`,
                 documentUrl: f.doc ? `${baseUrl}/${f.doc}` : null,
               };
             });

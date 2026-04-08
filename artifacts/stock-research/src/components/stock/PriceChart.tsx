@@ -246,13 +246,18 @@ export default function PriceChart({ symbol }: { symbol: string }) {
                     borderRadius: "6px",
                   }}
                   labelStyle={{ color: "hsl(var(--muted-foreground))", marginBottom: "6px", fontFamily: "monospace" }}
-                  labelFormatter={(label) =>
-                    new Date(label).toLocaleDateString([], {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })
-                  }
+                  labelFormatter={(label) => {
+                    const d = new Date(label);
+                    if (range === "1d" || range === "5d") {
+                      return d.toLocaleString([], {
+                        month: "short", day: "numeric",
+                        hour: "2-digit", minute: "2-digit",
+                      });
+                    }
+                    return d.toLocaleDateString([], {
+                      month: "short", day: "numeric", year: "numeric",
+                    });
+                  }}
                   formatter={(value: number, name: string) => {
                     if (name === "close") return [`$${value.toFixed(2)}`, "Price"];
                     if (name === "fairValue")

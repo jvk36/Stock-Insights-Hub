@@ -3,13 +3,15 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Stock Research Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: stock
+    description: Stock data operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,171 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /stock/{symbol}/quote:
+    get:
+      operationId: getStockQuote
+      tags: [stock]
+      summary: Get stock quote and summary stats
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Stock quote data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockQuote"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /stock/{symbol}/chart:
+    get:
+      operationId: getStockChart
+      tags: [stock]
+      summary: Get stock price chart data
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: range
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, max]
+            default: 1y
+      responses:
+        "200":
+          description: Chart data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChartData"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /stock/{symbol}/news:
+    get:
+      operationId: getStockNews
+      tags: [stock]
+      summary: Get news for a stock
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: News items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewsResponse"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /stock/{symbol}/profile:
+    get:
+      operationId: getStockProfile
+      tags: [stock]
+      summary: Get company profile
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Company profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyProfile"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /stock/{symbol}/financials:
+    get:
+      operationId: getStockFinancials
+      tags: [stock]
+      summary: Get financial statements
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [quarterly, annual]
+            default: quarterly
+      responses:
+        "200":
+          description: Financial statements
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialStatements"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /stock/{symbol}/sec-filings:
+    get:
+      operationId: getSecFilings
+      tags: [stock]
+      summary: Get SEC filings for a company
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: SEC filings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecFilingsResponse"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +201,305 @@ components:
       required:
         - status
 
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message
+
+    StockQuote:
+      type: object
+      properties:
+        symbol:
+          type: string
+        shortName:
+          type: string
+        longName:
+          type: string
+        currentPrice:
+          type: number
+          nullable: true
+        previousClose:
+          type: number
+          nullable: true
+        open:
+          type: number
+          nullable: true
+        dayHigh:
+          type: number
+          nullable: true
+        dayLow:
+          type: number
+          nullable: true
+        fiftyTwoWeekHigh:
+          type: number
+          nullable: true
+        fiftyTwoWeekLow:
+          type: number
+          nullable: true
+        volume:
+          type: number
+          nullable: true
+        averageVolume:
+          type: number
+          nullable: true
+        marketCap:
+          type: number
+          nullable: true
+        enterpriseValue:
+          type: number
+          nullable: true
+        trailingPE:
+          type: number
+          nullable: true
+        forwardPE:
+          type: number
+          nullable: true
+        dividendYield:
+          type: number
+          nullable: true
+        beta:
+          type: number
+          nullable: true
+        priceToBook:
+          type: number
+          nullable: true
+        netDebt:
+          type: number
+          nullable: true
+        totalDebt:
+          type: number
+          nullable: true
+        totalCash:
+          type: number
+          nullable: true
+        revenueGrowth:
+          type: number
+          nullable: true
+        earningsGrowth:
+          type: number
+          nullable: true
+        profitMargins:
+          type: number
+          nullable: true
+        changePercent:
+          type: number
+          nullable: true
+        change:
+          type: number
+          nullable: true
+        currency:
+          type: string
+          nullable: true
+        exchange:
+          type: string
+          nullable: true
+      required:
+        - symbol
+        - shortName
+
+    ChartDataPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        open:
+          type: number
+          nullable: true
+        high:
+          type: number
+          nullable: true
+        low:
+          type: number
+          nullable: true
+        close:
+          type: number
+          nullable: true
+        volume:
+          type: number
+          nullable: true
+      required:
+        - date
+
+    ChartData:
+      type: object
+      properties:
+        symbol:
+          type: string
+        range:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartDataPoint"
+      required:
+        - symbol
+        - range
+        - data
+
+    NewsItem:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        publisher:
+          type: string
+        link:
+          type: string
+        publishedAt:
+          type: string
+        thumbnail:
+          type: string
+          nullable: true
+        summary:
+          type: string
+          nullable: true
+      required:
+        - id
+        - title
+        - publisher
+        - link
+        - publishedAt
+
+    NewsResponse:
+      type: object
+      properties:
+        symbol:
+          type: string
+        news:
+          type: array
+          items:
+            $ref: "#/components/schemas/NewsItem"
+      required:
+        - symbol
+        - news
+
+    CompanyProfile:
+      type: object
+      properties:
+        symbol:
+          type: string
+        longName:
+          type: string
+        sector:
+          type: string
+          nullable: true
+        industry:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        state:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        website:
+          type: string
+          nullable: true
+        employees:
+          type: number
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        logoUrl:
+          type: string
+          nullable: true
+      required:
+        - symbol
+        - longName
+
+    FinancialPeriod:
+      type: object
+      properties:
+        date:
+          type: string
+        data:
+          type: object
+          additionalProperties:
+            type: number
+            nullable: true
+      required:
+        - date
+        - data
+
+    FinancialStatements:
+      type: object
+      properties:
+        symbol:
+          type: string
+        period:
+          type: string
+        incomeStatement:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinancialPeriod"
+        balanceSheet:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinancialPeriod"
+        cashFlow:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinancialPeriod"
+      required:
+        - symbol
+        - period
+        - incomeStatement
+        - balanceSheet
+        - cashFlow
+
+    SecFiling:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        filedAt:
+          type: string
+        url:
+          type: string
+        documentUrl:
+          type: string
+          nullable: true
+      required:
+        - id
+        - type
+        - description
+        - filedAt
+        - url
+
+    SecFilingsResponse:
+      type: object
+      properties:
+        symbol:
+          type: string
+        cik:
+          type: string
+          nullable: true
+        filings:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecFiling"
+      required:
+        - symbol
+        - filings

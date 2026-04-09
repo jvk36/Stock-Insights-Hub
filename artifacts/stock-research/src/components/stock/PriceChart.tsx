@@ -100,7 +100,8 @@ export default function PriceChart({ symbol }: { symbol: string }) {
 
   const hasFairValueData = mergedData.some((p) => p.fairValue !== null);
 
-  const isLoading = isLoadingChart || isLoadingEarnings;
+  // Chart renders as soon as price data is ready; earnings overlay loads separately
+  const isLoading = isLoadingChart;
 
   return (
     <Card className="bg-card border-border w-full">

@@ -15,6 +15,28 @@ import {
 const router: IRouter = Router();
 const yahooFinance = new YahooFinance();
 
+// Simple in-process CIK cache (symbol → CIK string) to avoid repeat EDGAR lookups
+const cikCache = new Map<string, string>();
+
+async function lookupCik(symbol: string): Promise<string | null> {
+  if (cikCache.has(symbol)) return cikCache.get(symbol)!;
+  try {
+    const resp = await fetch(
+      `https://efts.sec.gov/LATEST/search-index?q=%22${encodeURIComponent(symbol)}%22&forms=10-K&dateRange=custom&startdt=2023-01-01`,
+      { signal: AbortSignal.timeout(6000) }
+    );
+    if (!resp.ok) return null;
+    const data = await resp.json() as { hits?: { hits?: Array<{ _source?: { ciks?: string[]; entity_id?: string } }> } };
+    const rawCik = data?.hits?.hits?.[0]?._source?.ciks?.[0]
+      ?? data?.hits?.hits?.[0]?._source?.entity_id;
+    const cik = rawCik ? rawCik.replace(/^0+/, "") : null;
+    if (cik) cikCache.set(symbol, cik);
+    return cik;
+  } catch {
+    return null;
+  }
+}
+
 function getSymbol(param: string | string[]): string {
   return (Array.isArray(param) ? param[0] : param).toUpperCase();
 }
@@ -393,51 +415,40 @@ router.get("/stock/:symbol/earnings-history", async (req, res): Promise<void> =>
       );
 
     // 2. Try SEC EDGAR for extended historical quarterly EPS (diluted EPS)
-    // First find the CIK for this symbol
+    // Run Yahoo fetch and CIK lookup in parallel for speed
     let secEps: { date: string; epsActual: number; epsEstimate: null }[] = [];
     try {
-      const cikSearch = await fetch(
-        `https://efts.sec.gov/LATEST/search-index?q=%22${encodeURIComponent(symbol)}%22&forms=10-K&dateRange=custom&startdt=2022-01-01`,
-        { signal: AbortSignal.timeout(5000) }
-      );
-      if (cikSearch.ok) {
-        const cikData = await cikSearch.json() as { hits?: { hits?: Array<{ _source?: { ciks?: string[]; entity_id?: string } }> } };
-        const rawCik = cikData?.hits?.hits?.[0]?._source?.ciks?.[0]
-          ?? cikData?.hits?.hits?.[0]?._source?.entity_id;
-        const cik = rawCik ? rawCik.replace(/^0+/, "") : undefined;
-
-        if (cik) {
-          const factsUrl = `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik.padStart(10, "0")}/us-gaap/EarningsPerShareDiluted.json`;
-          const factsResp = await fetch(factsUrl, { signal: AbortSignal.timeout(5000) });
-          if (factsResp.ok) {
-            const factsData = await factsResp.json() as {
-              units?: {
-                "USD/shares"?: Array<{
-                  end: string;
-                  val: number;
-                  form: string;
-                  frame?: string;
-                  accn: string;
-                }>;
-              };
+      const cik = await lookupCik(symbol);
+      if (cik) {
+        const factsUrl = `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik.padStart(10, "0")}/us-gaap/EarningsPerShareDiluted.json`;
+        const factsResp = await fetch(factsUrl, { signal: AbortSignal.timeout(8000) });
+        if (factsResp.ok) {
+          const factsData = await factsResp.json() as {
+            units?: {
+              "USD/shares"?: Array<{
+                end: string;
+                val: number;
+                form: string;
+                frame?: string;
+                accn: string;
+              }>;
             };
-            const sharesData = factsData?.units?.["USD/shares"] ?? [];
-            // Get quarterly 10-Q and 10-K data - prefer entries with a frame (quarterly)
-            const quarterly = sharesData
-              .filter((e) => (e.form === "10-Q" || e.form === "10-K") && e.frame && /^CY\d{4}Q\d$/.test(e.frame))
-              .map((e) => ({
-                date: e.end,
-                epsActual: e.val,
-                epsEstimate: null as null,
-              }));
+          };
+          const sharesData = factsData?.units?.["USD/shares"] ?? [];
+          // Only take entries with a quarterly frame tag (CY2024Q1, CY2023Q3, etc.)
+          const quarterly = sharesData
+            .filter((e) => (e.form === "10-Q" || e.form === "10-K") && e.frame && /^CY\d{4}Q\d$/.test(e.frame))
+            .map((e) => ({
+              date: e.end,
+              epsActual: e.val,
+              epsEstimate: null as null,
+            }));
 
-            // Deduplicate by date, keep latest accession
-            const qMap = new Map<string, { date: string; epsActual: number; epsEstimate: null }>();
-            for (const q of quarterly) {
-              qMap.set(q.date, q);
-            }
-            secEps = Array.from(qMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+          const qMap = new Map<string, { date: string; epsActual: number; epsEstimate: null }>();
+          for (const q of quarterly) {
+            qMap.set(q.date, q);
           }
+          secEps = Array.from(qMap.values()).sort((a, b) => a.date.localeCompare(b.date));
         }
       }
     } catch {
@@ -492,37 +503,8 @@ router.get("/stock/:symbol/sec-filings", async (req, res): Promise<void> => {
 
     const longName = searchResult.price?.longName ?? symbol;
 
-    const edgarSearchUrl = `https://efts.sec.gov/LATEST/search-index?q=%22${encodeURIComponent(symbol)}%22&dateRange=custom&startdt=2020-01-01&forms=10-K,10-Q,8-K,DEF%2014A,S-1,4`;
-    const cikLookupUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${encodeURIComponent(longName)}&type=&dateb=&owner=include&count=10&search_text=&action=getcompany`;
-
-    const cikResponse = await fetch(`https://efts.sec.gov/LATEST/search-index?q=%22${encodeURIComponent(symbol)}%22&forms=10-K&dateRange=custom&startdt=2023-01-01`);
-    let cik: string | null = null;
+    const cik = await lookupCik(symbol);
     let filings: {id: string; type: string; description: string; filedAt: string; url: string; documentUrl: string | null}[] = [];
-
-    if (cikResponse.ok) {
-      const searchData = await cikResponse.json() as {
-        hits?: {
-          hits?: Array<{
-            _source?: {
-              ciks?: string[];
-              entity_id?: string;
-              file_date?: string;
-              form_type?: string;
-              display_date_filed?: string;
-              period_of_report?: string;
-              file_num?: string;
-              entity_name?: string;
-            };
-            _id?: string;
-          }>;
-        };
-      };
-      const hits = searchData?.hits?.hits ?? [];
-      if (hits.length > 0) {
-        const rawCik = hits[0]._source?.ciks?.[0] ?? hits[0]._source?.entity_id;
-        if (rawCik) cik = rawCik.replace(/^0+/, "");
-      }
-    }
 
     if (cik) {
       const filingsUrl = `https://data.sec.gov/submissions/CIK${cik.padStart(10, "0")}.json`;

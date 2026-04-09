@@ -26,6 +26,7 @@ A Bloomberg-lite stock research platform built as a pnpm monorepo. Users enter a
 - SEC filings list via EDGAR API
 - Company profile (sector, industry, employees, description, website)
 - Financial statements: Income Statement, Balance Sheet, Cash Flow — quarterly/annual toggle
+- Insider Transactions tab: Form 4 data via Yahoo Finance, signal-filtered (Open Market buys/sells), role badges (Officer/Director), transaction type inference
 
 ## Key Commands
 

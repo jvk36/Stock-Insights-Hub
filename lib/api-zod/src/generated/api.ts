@@ -188,6 +188,40 @@ export const GetEarningsHistoryResponse = zod.object({
 });
 
 /**
+ * @summary Get insider transactions (Form 4) for a company
+ */
+export const GetInsiderTransactionsParams = zod.object({
+  symbol: zod.coerce.string(),
+});
+
+export const GetInsiderTransactionsResponse = zod.object({
+  symbol: zod.string(),
+  cik: zod.string().nullish(),
+  transactions: zod.array(
+    zod.object({
+      id: zod.string(),
+      date: zod.string(),
+      insiderName: zod.string(),
+      title: zod.string().nullish(),
+      isDirector: zod.boolean(),
+      isOfficer: zod.boolean(),
+      isTenPercentOwner: zod.boolean(),
+      transactionCode: zod.string(),
+      transactionType: zod.string(),
+      signalLevel: zod.string(),
+      shares: zod.number().nullish(),
+      pricePerShare: zod.number().nullish(),
+      totalValue: zod.number().nullish(),
+      ownership: zod.string(),
+      natureOfOwnership: zod.string().nullish(),
+      is10b51Plan: zod.boolean(),
+      accessionNumber: zod.string(),
+      formUrl: zod.string(),
+    }),
+  ),
+});
+
+/**
  * @summary Get SEC filings for a company
  */
 export const GetSecFilingsParams = zod.object({

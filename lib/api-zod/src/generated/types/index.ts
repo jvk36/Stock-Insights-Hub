@@ -20,6 +20,8 @@ export * from "./getStockChartRange";
 export * from "./getStockFinancialsParams";
 export * from "./getStockFinancialsPeriod";
 export * from "./healthStatus";
+export * from "./insiderTransaction";
+export * from "./insiderTransactionsResponse";
 export * from "./newsItem";
 export * from "./newsResponse";
 export * from "./secFiling";

@@ -22,6 +22,7 @@ import type {
   GetStockChartParams,
   GetStockFinancialsParams,
   HealthStatus,
+  InsiderTransactionsResponse,
   NewsResponse,
   SecFilingsResponse,
   StockQuote,
@@ -685,6 +686,98 @@ export function useGetEarningsHistory<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetEarningsHistoryQueryOptions(symbol, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get insider transactions (Form 4) for a company
+ */
+export const getGetInsiderTransactionsUrl = (symbol: string) => {
+  return `/api/stock/${symbol}/insider-transactions`;
+};
+
+export const getInsiderTransactions = async (
+  symbol: string,
+  options?: RequestInit,
+): Promise<InsiderTransactionsResponse> => {
+  return customFetch<InsiderTransactionsResponse>(
+    getGetInsiderTransactionsUrl(symbol),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetInsiderTransactionsQueryKey = (symbol: string) => {
+  return [`/api/stock/${symbol}/insider-transactions`] as const;
+};
+
+export const getGetInsiderTransactionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getInsiderTransactions>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getInsiderTransactions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetInsiderTransactionsQueryKey(symbol);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getInsiderTransactions>>
+  > = ({ signal }) =>
+    getInsiderTransactions(symbol, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!symbol,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getInsiderTransactions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetInsiderTransactionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getInsiderTransactions>>
+>;
+export type GetInsiderTransactionsQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get insider transactions (Form 4) for a company
+ */
+
+export function useGetInsiderTransactions<
+  TData = Awaited<ReturnType<typeof getInsiderTransactions>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getInsiderTransactions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetInsiderTransactionsQueryOptions(symbol, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

@@ -10,6 +10,7 @@ import {
   GetStockFinancialsQueryParams,
   GetSecFilingsParams,
   GetEarningsHistoryParams,
+  GetInsiderTransactionsParams,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -259,7 +260,7 @@ router.get("/stock/:symbol/profile", async (req, res): Promise<void> => {
       website: profile?.website ?? null,
       employees: profile?.fullTimeEmployees ?? null,
       description: profile?.longBusinessSummary ?? null,
-      logoUrl: `https://logo.clearbit.com/${profile?.website?.replace(/^https?:\/\//, "").replace(/\/$/, "")}` ?? null,
+      logoUrl: profile?.website ? `https://logo.clearbit.com/${profile.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}` : null,
     });
   } catch (err: unknown) {
     req.log.error({ err, symbol }, "Failed to fetch profile");
@@ -484,6 +485,375 @@ router.get("/stock/:symbol/earnings-history", async (req, res): Promise<void> =>
   } catch (err: unknown) {
     req.log.error({ err, symbol }, "Failed to fetch earnings history");
     res.status(500).json({ error: "server_error", message: "Failed to fetch earnings history" });
+  }
+});
+
+// ─── Helpers for Form 4 XML parsing ────────────────────────────────────────
+
+function xmlTagValue(xml: string, tag: string): string | null {
+  const m = xml.match(new RegExp(`<${tag}[^>]*>\\s*([^<]*)\\s*<\\/${tag}>`, "i"));
+  return m ? m[1].trim() : null;
+}
+
+function xmlBlocks(xml: string, tag: string): string[] {
+  const blocks: string[] = [];
+  const re = new RegExp(`<${tag}>[\\s\\S]*?<\\/${tag}>`, "gi");
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml)) !== null) blocks.push(m[0]);
+  return blocks;
+}
+
+const TX_CODE_MAP: Record<string, { type: string; signal: string }> = {
+  P: { type: "Open Market Purchase", signal: "high" },
+  S: { type: "Open Market Sale", signal: "moderate" },
+  M: { type: "Option Exercise", signal: "low" },
+  A: { type: "Grant / Award", signal: "none" },
+  G: { type: "Gift", signal: "none" },
+  F: { type: "Tax Withholding", signal: "none" },
+  D: { type: "Sale Back to Issuer", signal: "low" },
+  C: { type: "Conversion", signal: "none" },
+  E: { type: "Expiration Short", signal: "none" },
+  H: { type: "Expiration Long", signal: "none" },
+  I: { type: "Discretionary Transaction", signal: "low" },
+  J: { type: "Other Acquisition/Disposition", signal: "none" },
+  K: { type: "Equity Swap", signal: "none" },
+  L: { type: "Small Acquisition", signal: "none" },
+  O: { type: "Option Exercise (OTM)", signal: "low" },
+  U: { type: "Tender of Shares", signal: "none" },
+  W: { type: "Will/Inheritance", signal: "none" },
+  X: { type: "Option Exercise (ITM)", signal: "low" },
+  Z: { type: "Deposit/Withdrawal", signal: "none" },
+};
+
+// Simple XML cache to avoid refetching the same Form 4 on repeated API calls
+const form4Cache = new Map<string, string | null>();
+
+async function fetchForm4(cik: string, accession: string): Promise<string | null> {
+  const cacheKey = `${cik}:${accession}`;
+  if (form4Cache.has(cacheKey)) return form4Cache.get(cacheKey)!;
+
+  const accFormatted = accession.replace(/-/g, "");
+  const url = `https://www.sec.gov/Archives/edgar/data/${cik}/${accFormatted}/form4.xml`;
+
+  const doFetch = async (): Promise<Response> =>
+    fetch(url, {
+      headers: { "User-Agent": "research-tool admin@example.com" },
+      signal: AbortSignal.timeout(8000),
+    });
+
+  try {
+    let resp = await doFetch();
+    // Retry once on rate-limit after a brief pause
+    if (resp.status === 429) {
+      await new Promise((r) => setTimeout(r, 1500));
+      resp = await doFetch();
+    }
+    if (!resp.ok) {
+      form4Cache.set(cacheKey, null);
+      return null;
+    }
+    const text = await resp.text();
+    if (!text.includes("<ownershipDocument>")) {
+      form4Cache.set(cacheKey, null);
+      return null;
+    }
+    form4Cache.set(cacheKey, text);
+    return text;
+  } catch {
+    form4Cache.set(cacheKey, null);
+    return null;
+  }
+}
+
+function parseForm4(xml: string, accession: string, cik: string) {
+  const accFormatted = accession.replace(/-/g, "");
+  const formUrl = `https://www.sec.gov/Archives/edgar/data/${cik}/${accFormatted}/`;
+
+  // Reporting owner details
+  const insiderName = xmlTagValue(xml, "rptOwnerName") ?? "Unknown";
+  const isDirector = xmlTagValue(xml, "isDirector") === "true" || xmlTagValue(xml, "isDirector") === "1";
+  const isOfficer = xmlTagValue(xml, "isOfficer") === "true" || xmlTagValue(xml, "isOfficer") === "1";
+  const isTenPercentOwner = xmlTagValue(xml, "isTenPercentOwner") === "true" || xmlTagValue(xml, "isTenPercentOwner") === "1";
+  const officerTitle = xmlTagValue(xml, "officerTitle") || null;
+  const is10b51Plan = xmlTagValue(xml, "aff10b5One") === "true" || xmlTagValue(xml, "aff10b5One") === "1";
+
+  // Skip if pure 10% owner with no officer/director role (passive institutional)
+  if (isTenPercentOwner && !isDirector && !isOfficer) return [];
+
+  const transactions: object[] = [];
+
+  // Parse nonDerivativeTransaction blocks
+  const nonDerivBlocks = xmlBlocks(xml, "nonDerivativeTransaction");
+  for (const [idx, block] of nonDerivBlocks.entries()) {
+    // Get date from <transactionDate><value>
+    const dateBlock = block.match(/<transactionDate>[^]*?<\/transactionDate>/i)?.[0] ?? "";
+    const date = xmlTagValue(dateBlock, "value") ?? xmlTagValue(xml, "periodOfReport") ?? "";
+
+    const codeBlock = block.match(/<transactionCoding>[^]*?<\/transactionCoding>/i)?.[0] ?? "";
+    const transactionCode = xmlTagValue(codeBlock, "transactionCode") ?? "";
+
+    const amountsBlock = block.match(/<transactionAmounts>[^]*?<\/transactionAmounts>/i)?.[0] ?? "";
+    const sharesBlock = amountsBlock.match(/<transactionShares>[^]*?<\/transactionShares>/i)?.[0] ?? "";
+    const sharesVal = xmlTagValue(sharesBlock, "value");
+    const shares = sharesVal ? parseFloat(sharesVal) : null;
+
+    const priceBlock = amountsBlock.match(/<transactionPricePerShare>[^]*?<\/transactionPricePerShare>/i)?.[0] ?? "";
+    const priceVal = xmlTagValue(priceBlock, "value");
+    const pricePerShare = priceVal ? parseFloat(priceVal) : null;
+
+    const ownershipBlock = block.match(/<ownershipNature>[^]*?<\/ownershipNature>/i)?.[0] ?? "";
+    const ownershipTypeBlock = ownershipBlock.match(/<directOrIndirectOwnership>[^]*?<\/directOrIndirectOwnership>/i)?.[0] ?? "";
+    const ownership = xmlTagValue(ownershipTypeBlock, "value") ?? "D";
+    const natureBlock = ownershipBlock.match(/<natureOfOwnership>[^]*?<\/natureOfOwnership>/i)?.[0] ?? "";
+    const natureOfOwnership = xmlTagValue(natureBlock, "value") || null;
+
+    const totalValue = shares && pricePerShare ? shares * pricePerShare : null;
+    const info = TX_CODE_MAP[transactionCode] ?? { type: `Code ${transactionCode}`, signal: "none" };
+
+    transactions.push({
+      id: `${accession}-nd-${idx}`,
+      date,
+      insiderName,
+      title: officerTitle,
+      isDirector,
+      isOfficer,
+      isTenPercentOwner,
+      transactionCode,
+      transactionType: info.type,
+      signalLevel: info.signal,
+      shares,
+      pricePerShare,
+      totalValue,
+      ownership,
+      natureOfOwnership,
+      is10b51Plan,
+      accessionNumber: accession,
+      formUrl,
+    });
+  }
+
+  // Parse derivativeTransaction blocks (options/RSUs)
+  const derivBlocks = xmlBlocks(xml, "derivativeTransaction");
+  for (const [idx, block] of derivBlocks.entries()) {
+    const dateBlock = block.match(/<transactionDate>[^]*?<\/transactionDate>/i)?.[0] ?? "";
+    const date = xmlTagValue(dateBlock, "value") ?? xmlTagValue(xml, "periodOfReport") ?? "";
+
+    const codeBlock = block.match(/<transactionCoding>[^]*?<\/transactionCoding>/i)?.[0] ?? "";
+    const transactionCode = xmlTagValue(codeBlock, "transactionCode") ?? "";
+
+    const amountsBlock = block.match(/<transactionAmounts>[^]*?<\/transactionAmounts>/i)?.[0] ?? "";
+    const sharesBlock = amountsBlock.match(/<transactionShares>[^]*?<\/transactionShares>/i)?.[0] ?? "";
+    const sharesVal = xmlTagValue(sharesBlock, "value");
+    const shares = sharesVal ? parseFloat(sharesVal) : null;
+
+    const priceBlock = amountsBlock.match(/<transactionPricePerShare>[^]*?<\/transactionPricePerShare>/i)?.[0] ?? "";
+    const priceVal = xmlTagValue(priceBlock, "value");
+    const pricePerShare = priceVal ? parseFloat(priceVal) : null;
+
+    const ownershipBlock = block.match(/<ownershipNature>[^]*?<\/ownershipNature>/i)?.[0] ?? "";
+    const ownershipTypeBlock = ownershipBlock.match(/<directOrIndirectOwnership>[^]*?<\/directOrIndirectOwnership>/i)?.[0] ?? "";
+    const ownership = xmlTagValue(ownershipTypeBlock, "value") ?? "D";
+    const natureBlock = ownershipBlock.match(/<natureOfOwnership>[^]*?<\/natureOfOwnership>/i)?.[0] ?? "";
+    const natureOfOwnership = xmlTagValue(natureBlock, "value") || null;
+
+    const totalValue = shares && pricePerShare ? shares * pricePerShare : null;
+    const info = TX_CODE_MAP[transactionCode] ?? { type: `Code ${transactionCode}`, signal: "none" };
+
+    transactions.push({
+      id: `${accession}-d-${idx}`,
+      date,
+      insiderName,
+      title: officerTitle,
+      isDirector,
+      isOfficer,
+      isTenPercentOwner,
+      transactionCode: transactionCode || "?",
+      transactionType: info.type,
+      signalLevel: info.signal,
+      shares,
+      pricePerShare,
+      totalValue,
+      ownership,
+      natureOfOwnership,
+      is10b51Plan,
+      accessionNumber: accession,
+      formUrl,
+    });
+  }
+
+  return transactions;
+}
+
+// ─── Yahoo Finance → transaction code inference ──────────────────────────────
+
+function inferTxCode(text: string): string {
+  const t = text.toLowerCase();
+  if (t.includes("option exercise")) return "M";
+  if (t.includes("automatic sale") || (t.includes("sale") && t.includes("automatic"))) return "S";
+  if (t.includes("sale") || t.includes("sold")) return "S";
+  if (t.includes("purchase") || t.includes("bought") || t.includes("buy")) return "P";
+  if (t.includes("award") || t.includes("grant") || t.includes("rsu") || t.includes("restricted")) return "A";
+  if (t.includes("gift")) return "G";
+  if (t.includes("tax") || t.includes("withholding")) return "F";
+  if (t.includes("conversion")) return "C";
+  return "J";
+}
+
+function parseRelation(rel: string): { isDirector: boolean; isOfficer: boolean; isTenPercentOwner: boolean } {
+  const r = rel.toLowerCase();
+  return {
+    isDirector: r.includes("director"),
+    isOfficer: r.includes("officer"),
+    isTenPercentOwner: r.includes("10%") || r.includes("10 percent"),
+  };
+}
+
+router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void> => {
+  const params = GetInsiderTransactionsParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "bad_request", message: params.error.message });
+    return;
+  }
+
+  const symbol = getSymbol(params.data.symbol);
+
+  try {
+    // ── Step 1: Yahoo Finance insiderTransactions (primary source, no rate limits) ──
+    const [yfResult, cik] = await Promise.all([
+      yahooFinance.quoteSummary(symbol, { modules: ["insiderTransactions"] }).catch(() => null),
+      lookupCik(symbol),
+    ]);
+
+    const yfTxs = yfResult?.insiderTransactions?.transactions ?? [];
+
+    // ── Step 2: If YF returns data, transform it ─────────────────────────────
+    if (yfTxs.length > 0) {
+      const edgarSearchBase = cik
+        ? `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&type=4&dateb=&owner=include&count=40`
+        : `https://efts.sec.gov/LATEST/search-index?q=%22${encodeURIComponent(symbol)}%22&forms=4`;
+
+      const transactions = yfTxs
+        .map((tx, idx) => {
+          const txText = String(tx.transactionText ?? "");
+          const relation = String(tx.filerRelation ?? "");
+          const { isDirector, isOfficer, isTenPercentOwner } = parseRelation(relation);
+
+          // Filter: exclude pure 10% passive owners
+          if (isTenPercentOwner && !isDirector && !isOfficer) return null;
+
+          const transactionCode = inferTxCode(txText);
+          const info = TX_CODE_MAP[transactionCode] ?? { type: txText || "Unknown", signal: "none" };
+
+          // Parse price per share from transactionText ("at price X.XX per share")
+          const priceMatch = txText.match(/at price\s+([\d,]+(?:\.\d+)?)/i);
+          const pricePerShare = priceMatch ? parseFloat(priceMatch[1].replace(/,/g, "")) : null;
+
+          const shares = typeof tx.shares === "number" ? tx.shares : null;
+          const totalValue = typeof tx.value === "number" && tx.value !== 0 ? tx.value :
+            (shares && pricePerShare ? shares * pricePerShare : null);
+
+          // Date — Yahoo Finance returns a Date object
+          let date = "";
+          if (tx.startDate) {
+            const d = new Date(tx.startDate as unknown as string | Date);
+            if (!isNaN(d.getTime())) {
+              date = d.toISOString().slice(0, 10);
+            }
+          }
+
+          // Title: Yahoo Finance gives role in filerRelation; extract a clean title
+          const title = relation || null;
+
+          // EDGAR link for this filer (filerUrl is their CIK search page)
+          const formUrl = (tx as unknown as { filerUrl?: string }).filerUrl || edgarSearchBase;
+
+          return {
+            id: `yf-${idx}-${date}`,
+            date,
+            insiderName: String(tx.filerName ?? "Unknown"),
+            title,
+            isDirector,
+            isOfficer,
+            isTenPercentOwner,
+            transactionCode,
+            transactionType: info.type,
+            signalLevel: info.signal,
+            shares,
+            pricePerShare,
+            totalValue,
+            ownership: "D",
+            natureOfOwnership: null,
+            is10b51Plan: false,
+            accessionNumber: "",
+            formUrl,
+          };
+        })
+        .filter(Boolean);
+
+      res.json({ symbol, cik, transactions });
+      return;
+    }
+
+    // ── Step 3: Fallback – attempt SEC EDGAR Form 4 XML parsing ──────────────
+    if (!cik) {
+      res.json({ symbol, cik: null, transactions: [] });
+      return;
+    }
+
+    const submissionsUrl = `https://data.sec.gov/submissions/CIK${cik.padStart(10, "0")}.json`;
+    const submResp = await fetch(submissionsUrl, {
+      headers: { "User-Agent": "research-tool admin@example.com" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!submResp.ok) {
+      res.json({ symbol, cik, transactions: [] });
+      return;
+    }
+
+    const submData = await submResp.json() as {
+      filings?: {
+        recent?: {
+          form?: string[];
+          accessionNumber?: string[];
+          filingDate?: string[];
+        };
+      };
+    };
+
+    const recent = submData?.filings?.recent ?? {};
+    const forms = recent.form ?? [];
+    const accessions = recent.accessionNumber ?? [];
+    const filingDates = recent.filingDate ?? [];
+
+    const form4Entries: Array<{ accession: string; date: string }> = [];
+    for (let i = 0; i < forms.length; i++) {
+      if (forms[i] === "4" && accessions[i]) {
+        form4Entries.push({ accession: accessions[i], date: filingDates[i] ?? "" });
+        if (form4Entries.length >= 20) break;
+      }
+    }
+
+    const CONCURRENCY = 3;
+    const allTransactions: object[] = [];
+    for (let i = 0; i < form4Entries.length; i += CONCURRENCY) {
+      if (i > 0) await new Promise((r) => setTimeout(r, 400));
+      const batch = form4Entries.slice(i, i + CONCURRENCY);
+      const xmls = await Promise.all(batch.map((e) => fetchForm4(cik, e.accession)));
+      for (let j = 0; j < batch.length; j++) {
+        const xml = xmls[j];
+        if (!xml) continue;
+        allTransactions.push(...parseForm4(xml, batch[j].accession, cik));
+      }
+    }
+
+    allTransactions.sort((a, b) =>
+      (b as { date: string }).date.localeCompare((a as { date: string }).date)
+    );
+
+    res.json({ symbol, cik, transactions: allTransactions.slice(0, 150) });
+  } catch (err: unknown) {
+    req.log.error({ err, symbol }, "Failed to fetch insider transactions");
+    res.status(500).json({ error: "server_error", message: "Failed to fetch insider transactions" });
   }
 });
 

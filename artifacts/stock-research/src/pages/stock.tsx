@@ -13,6 +13,7 @@ import NewsSection from "@/components/stock/NewsSection";
 import CompanyProfile from "@/components/stock/CompanyProfile";
 import SecFilings from "@/components/stock/SecFilings";
 import Financials from "@/components/stock/Financials";
+import InsiderTransactions from "@/components/stock/InsiderTransactions";
 
 export default function StockDetail() {
   const { symbol } = useParams();
@@ -97,6 +98,7 @@ export default function StockDetail() {
             <TabsTrigger value="news" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">News</TabsTrigger>
             <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Profile</TabsTrigger>
             <TabsTrigger value="filings" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Filings</TabsTrigger>
+            <TabsTrigger value="insiders" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Insiders</TabsTrigger>
           </TabsList>
 
           <div className="mt-6">
@@ -125,6 +127,10 @@ export default function StockDetail() {
 
             <TabsContent value="filings" className="mt-0">
               <SecFilings symbol={symbol!} />
+            </TabsContent>
+
+            <TabsContent value="insiders" className="mt-0">
+              <InsiderTransactions symbol={symbol!} />
             </TabsContent>
           </div>
         </Tabs>

@@ -86,7 +86,15 @@ export default function PriceChart({ symbol }: { symbol: string }) {
         }
       }
 
-      return { ...point, fairValue };
+      return {
+        ...point,
+        fairValue,
+        open: point.open ?? null,
+        high: point.high ?? null,
+        low: point.low ?? null,
+        close: point.close ?? null,
+        volume: point.volume ?? null,
+      };
     });
   }, [chartData, earningsData, showEarnings, peMultiple]);
 

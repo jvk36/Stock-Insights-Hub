@@ -120,6 +120,33 @@ export interface EarningsHistoryResponse {
   history: EarningsHistoryItem[];
 }
 
+export interface InsiderTransaction {
+  id: string;
+  date: string;
+  insiderName: string;
+  title?: string | null;
+  isDirector: boolean;
+  isOfficer: boolean;
+  isTenPercentOwner: boolean;
+  transactionCode: string;
+  transactionType: string;
+  signalLevel: string;
+  shares?: number | null;
+  pricePerShare?: number | null;
+  totalValue?: number | null;
+  ownership: string;
+  natureOfOwnership?: string | null;
+  is10b51Plan: boolean;
+  accessionNumber: string;
+  formUrl: string;
+}
+
+export interface InsiderTransactionsResponse {
+  symbol: string;
+  cik?: string | null;
+  transactions: InsiderTransaction[];
+}
+
 export interface SecFiling {
   id: string;
   type: string;

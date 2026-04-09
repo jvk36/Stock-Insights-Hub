@@ -191,6 +191,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /stock/{symbol}/insider-transactions:
+    get:
+      operationId: getInsiderTransactions
+      tags: [stock]
+      summary: Get insider transactions (Form 4) for a company
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Insider transactions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InsiderTransactionsResponse"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /stock/{symbol}/sec-filings:
     get:
       operationId: getSecFilings

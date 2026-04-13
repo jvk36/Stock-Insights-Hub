@@ -6,3 +6,9 @@ id = "n_30NfJ_2H8g-NkMrjpY9"
 uri = "file://summary.md"
 type = "text"
 title = "Project Summary & Code Decisions"
+
+[[outputs]]
+id = "a82O77TPx5BPHByYeIKBy"
+uri = "file://README.md"
+type = "text"
+title = "README"

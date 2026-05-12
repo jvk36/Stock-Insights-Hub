@@ -11,6 +11,7 @@ import {
   GetSecFilingsParams,
   GetEarningsHistoryParams,
   GetInsiderTransactionsParams,
+  GetStockFundamentalsParams,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -946,6 +947,312 @@ router.get("/stock/:symbol/sec-filings", async (req, res): Promise<void> => {
   } catch (err: unknown) {
     req.log.error({ err, symbol }, "Failed to fetch SEC filings");
     res.status(500).json({ error: "server_error", message: "Failed to fetch SEC filings" });
+  }
+});
+
+// ─── Fundamental Summary helpers ────────────────────────────────────────────
+
+function itemDate(item: { date?: Date | string }): string {
+  return item.date instanceof Date
+    ? item.date.toISOString().split("T")[0]
+    : String(item.date ?? "");
+}
+
+function makeMetric(
+  value: number | null,
+  unit: "%" | "x" | "d",
+  thresholds: [number, number, number],
+  higherIsBetter: boolean
+): { value: number | null; rating: string | null; formatted: string | null } {
+  const rating =
+    value == null
+      ? null
+      : (() => {
+          const [e, g, f] = thresholds;
+          if (higherIsBetter) {
+            if (value >= e) return "excellent";
+            if (value >= g) return "good";
+            if (value >= f) return "fair";
+            return "poor";
+          } else {
+            if (value <= e) return "excellent";
+            if (value <= g) return "good";
+            if (value <= f) return "fair";
+            return "poor";
+          }
+        })();
+
+  const formatted =
+    value == null
+      ? null
+      : unit === "%"
+        ? `${value.toFixed(1)}%`
+        : unit === "x"
+          ? `${value.toFixed(1)}x`
+          : `${Math.round(value)}d`;
+
+  return { value, rating, formatted };
+}
+
+router.get("/stock/:symbol/fundamentals", async (req, res): Promise<void> => {
+  const params = GetStockFundamentalsParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "bad_request", message: params.error.message });
+    return;
+  }
+
+  const symbol = getSymbol(params.data.symbol);
+  const period1 = new Date(Date.now() - 7 * 365 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0];
+
+  try {
+    const [quoteSummaryResult, incomeRaw, balanceRaw] = await Promise.all([
+      yahooFinance.quoteSummary(symbol, {
+        modules: ["defaultKeyStatistics", "financialData", "summaryDetail", "price"],
+      }),
+      yahooFinance.fundamentalsTimeSeries(symbol, {
+        type: "annual",
+        module: "financials",
+        period1,
+      }),
+      yahooFinance.fundamentalsTimeSeries(symbol, {
+        type: "annual",
+        module: "balance-sheet",
+        period1,
+      }),
+    ]);
+
+    const keyStats = quoteSummaryResult.defaultKeyStatistics;
+    const financial = quoteSummaryResult.financialData;
+    const price = quoteSummaryResult.price;
+
+    if (!price) {
+      res.status(404).json({ error: "not_found", message: `Symbol ${symbol} not found` });
+      return;
+    }
+
+    // Sort annual data oldest → newest
+    const sortedIncome = [...incomeRaw].sort((a, b) =>
+      itemDate(a).localeCompare(itemDate(b))
+    );
+    const sortedBalance = [...balanceRaw].sort((a, b) =>
+      itemDate(a).localeCompare(itemDate(b))
+    );
+
+    const num = (obj: Record<string, unknown> | null | undefined, key: string): number | null => {
+      if (!obj) return null;
+      const v = obj[key];
+      return typeof v === "number" ? v : null;
+    };
+
+    const latestIncome = sortedIncome.at(-1) as unknown as Record<string, unknown> | undefined;
+    const latestBalance = sortedBalance.at(-1) as unknown as Record<string, unknown> | undefined;
+
+    // ── Profitability ──────────────────────────────────────────────────────────
+
+    // ROE (yahoo returns decimal: 0.28 → 28%)
+    const roe = financial?.returnOnEquity != null ? financial.returnOnEquity * 100 : null;
+    const roeMetric = makeMetric(roe, "%", [20, 15, 8], true);
+
+    // ROIC = Net Income / (Stockholders Equity + Total Debt)
+    const netIncomeLatest = num(latestIncome, "netIncome");
+    const equityLatest =
+      num(latestBalance, "stockholdersEquity") ?? num(latestBalance, "commonStockEquity");
+    const debtLatest = num(latestBalance, "totalDebt");
+    const investedCapital =
+      equityLatest != null && debtLatest != null ? equityLatest + debtLatest : null;
+    const roic =
+      netIncomeLatest != null && investedCapital != null && investedCapital > 0
+        ? (netIncomeLatest / investedCapital) * 100
+        : null;
+    const roicMetric = makeMetric(roic, "%", [15, 10, 5], true);
+
+    // Gross Margin Trend (5 annual periods, oldest first)
+    const grossMarginTrend = sortedIncome.slice(-5).map((item) => {
+      const raw = item as unknown as Record<string, unknown>;
+      const gp = num(raw, "grossProfit");
+      const rev = num(raw, "totalRevenue");
+      return {
+        year: itemDate(item).substring(0, 4),
+        value:
+          gp != null && rev != null && rev > 0
+            ? parseFloat(((gp / rev) * 100).toFixed(2))
+            : null,
+      };
+    });
+    const validMargins = grossMarginTrend
+      .map((p) => p.value)
+      .filter((v): v is number => v != null);
+    let grossMarginRating: string | null = null;
+    if (validMargins.length >= 3) {
+      const n = validMargins.length;
+      const oldAvg = (validMargins[0] + (validMargins[1] ?? validMargins[0])) / 2;
+      const newAvg =
+        (validMargins[n - 1] + (validMargins[n - 2] ?? validMargins[n - 1])) / 2;
+      const delta = newAvg - oldAvg;
+      grossMarginRating =
+        delta > 1 ? "excellent" : delta > -1 ? "good" : delta > -3 ? "fair" : "poor";
+    }
+
+    // Cash Conversion Cycle: DSO + DIO - DPO
+    const arLatest = num(latestBalance, "accountsReceivable");
+    const invLatest = num(latestBalance, "inventory");
+    const apLatest = num(latestBalance, "accountsPayable");
+    const revLatest = num(latestIncome, "totalRevenue");
+    const cogsLatest = num(latestIncome, "reconciledCostOfRevenue");
+    let ccc: number | null = null;
+    if (arLatest != null && revLatest != null && revLatest > 0) {
+      const dso = (arLatest / revLatest) * 365;
+      const dio =
+        invLatest != null && cogsLatest != null && cogsLatest > 0
+          ? (invLatest / cogsLatest) * 365
+          : 0;
+      const dpo =
+        apLatest != null && cogsLatest != null && cogsLatest > 0
+          ? (apLatest / cogsLatest) * 365
+          : 0;
+      ccc = parseFloat((dso + dio - dpo).toFixed(1));
+    }
+    const cccMetric = makeMetric(ccc, "d", [0, 30, 60], false);
+
+    // ── Valuation ─────────────────────────────────────────────────────────────
+
+    const evToEbitdaMetric = makeMetric(
+      keyStats?.enterpriseToEbitda ?? null,
+      "x",
+      [10, 15, 20],
+      false
+    );
+
+    const fcf = financial?.freeCashflow ?? null;
+    const mktCap = price.marketCap ?? null;
+    const fcfYield =
+      fcf != null && mktCap != null && mktCap > 0 ? (fcf / mktCap) * 100 : null;
+    const fcfYieldMetric = makeMetric(fcfYield, "%", [8, 5, 2], true);
+
+    // Price to Tangible Book — use tangibleBookValue directly if available
+    const currentPrice = price.regularMarketPrice ?? null;
+    const sharesOutstanding = keyStats?.sharesOutstanding ?? null;
+    const tangibleBookDirect = num(latestBalance, "tangibleBookValue");
+    const goodwill = num(latestBalance, "goodwill") ?? 0;
+    const intangibles =
+      num(latestBalance, "otherIntangibleAssets") ?? num(latestBalance, "intangibleAssets") ?? 0;
+    const tangibleBook =
+      tangibleBookDirect ?? (equityLatest != null ? equityLatest - goodwill - intangibles : null);
+    const tbvPerShare =
+      tangibleBook != null && sharesOutstanding != null && sharesOutstanding > 0
+        ? tangibleBook / sharesOutstanding
+        : null;
+    const pTangBook =
+      currentPrice != null && tbvPerShare != null && tbvPerShare > 0
+        ? currentPrice / tbvPerShare
+        : null;
+    const ptbMetric = makeMetric(pTangBook, "x", [1, 3, 5], false);
+
+    // ── Solvency & Health ─────────────────────────────────────────────────────
+
+    const totalDebt = financial?.totalDebt ?? null;
+    const totalCash = financial?.totalCash ?? null;
+    const netDebt =
+      totalDebt != null && totalCash != null ? totalDebt - totalCash : null;
+    const ebitda = financial?.ebitda ?? null;
+    const netDebtToEbitda =
+      netDebt != null && ebitda != null && ebitda > 0 ? netDebt / ebitda : null;
+    const netDebtToEbitdaMetric = makeMetric(netDebtToEbitda, "x", [1, 3, 5], false);
+
+    const ebit = num(latestIncome, "EBIT");
+    // interestExpense isn't always a separate field — derive from EBIT − pretaxIncome when absent
+    let interestExpenseAmt = num(latestIncome, "interestExpense");
+    if (interestExpenseAmt == null && ebit != null) {
+      const pretax = num(latestIncome, "pretaxIncome");
+      const otherIncome = num(latestIncome, "otherIncomeExpense") ?? 0;
+      if (pretax != null) {
+        const derived = ebit - pretax - otherIncome;
+        if (derived > 0) interestExpenseAmt = derived; // positive = net interest expense
+      }
+    }
+    const interestCoverage =
+      ebit != null && interestExpenseAmt != null && interestExpenseAmt > 0
+        ? ebit / interestExpenseAmt
+        : null;
+    const interestCoverageMetric = makeMetric(interestCoverage, "x", [10, 3, 1.5], true);
+
+    const currentRatioMetric = makeMetric(
+      financial?.currentRatio ?? null,
+      "x",
+      [2, 1.5, 1],
+      true
+    );
+    const quickRatioMetric = makeMetric(
+      financial?.quickRatio ?? null,
+      "x",
+      [1.5, 1, 0.5],
+      true
+    );
+
+    // ── Qualitative ───────────────────────────────────────────────────────────
+
+    const insiderPct =
+      keyStats?.heldPercentInsiders != null ? keyStats.heldPercentInsiders * 100 : null;
+    const insiderOwnershipMetric = makeMetric(insiderPct, "%", [10, 5, 1], true);
+
+    const rdExpense = num(latestIncome, "researchAndDevelopment");
+    const rdRevenue = num(latestIncome, "totalRevenue");
+    const rdPct =
+      rdExpense != null && rdRevenue != null && rdRevenue > 0
+        ? (Math.abs(rdExpense) / rdRevenue) * 100
+        : null;
+    const rdMetric = makeMetric(rdPct, "%", [10, 5, 1], true);
+
+    // Share Count Trend (5 annual periods, oldest first)
+    // shareIssued and ordinarySharesNumber are confirmed available in Yahoo Finance balance-sheet
+    const shareCountTrend = sortedBalance.slice(-5).map((item) => {
+      const raw = item as unknown as Record<string, unknown>;
+      const shares =
+        num(raw, "shareIssued") ?? num(raw, "ordinarySharesNumber") ?? num(raw, "commonStock");
+      return { year: itemDate(item).substring(0, 4), value: shares };
+    });
+    const validShares = shareCountTrend.filter((p) => p.value != null);
+    let shareChange5y: number | null = null;
+    if (validShares.length >= 2) {
+      const oldest = validShares[0].value!;
+      const newest = validShares[validShares.length - 1].value!;
+      if (oldest > 0)
+        shareChange5y = parseFloat((((newest - oldest) / oldest) * 100).toFixed(1));
+    }
+    const shareCountMetric = makeMetric(shareChange5y, "%", [-10, -2, 5], false);
+
+    res.json({
+      symbol,
+      profitability: {
+        roe: roeMetric,
+        roic: roicMetric,
+        grossMarginTrend,
+        grossMarginRating,
+        ccc: cccMetric,
+      },
+      valuation: {
+        evToEbitda: evToEbitdaMetric,
+        fcfYield: fcfYieldMetric,
+        priceToTangibleBook: ptbMetric,
+      },
+      solvency: {
+        netDebtToEbitda: netDebtToEbitdaMetric,
+        interestCoverage: interestCoverageMetric,
+        currentRatio: currentRatioMetric,
+        quickRatio: quickRatioMetric,
+      },
+      qualitative: {
+        insiderOwnership: insiderOwnershipMetric,
+        rdAsPercentRevenue: rdMetric,
+        shareCountTrend,
+        shareCountChange5y: shareCountMetric,
+      },
+    });
+  } catch (err: unknown) {
+    req.log.error({ err, symbol }, "Failed to fetch fundamentals");
+    res.status(500).json({ error: "server_error", message: "Failed to fetch fundamentals" });
   }
 });
 

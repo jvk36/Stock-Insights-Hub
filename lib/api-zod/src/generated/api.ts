@@ -222,6 +222,103 @@ export const GetInsiderTransactionsResponse = zod.object({
 });
 
 /**
+ * @summary Get fundamental analysis summary (4 pillars)
+ */
+export const GetStockFundamentalsParams = zod.object({
+  symbol: zod.coerce.string(),
+});
+
+export const GetStockFundamentalsResponse = zod.object({
+  symbol: zod.string(),
+  profitability: zod.object({
+    roe: zod.object({
+      value: zod.number().nullable(),
+      rating: zod.string().nullable(),
+      formatted: zod.string().nullable(),
+    }),
+    roic: zod.object({
+      value: zod.number().nullable(),
+      rating: zod.string().nullable(),
+      formatted: zod.string().nullable(),
+    }),
+    grossMarginTrend: zod.array(
+      zod.object({
+        year: zod.string(),
+        value: zod.number().nullable(),
+      }),
+    ),
+    grossMarginRating: zod.string().nullable(),
+    ccc: zod.object({
+      value: zod.number().nullable(),
+      rating: zod.string().nullable(),
+      formatted: zod.string().nullable(),
+    }),
+  }),
+  valuation: zod.object({
+    evToEbitda: zod.object({
+      value: zod.number().nullable(),
+      rating: zod.string().nullable(),
+      formatted: zod.string().nullable(),
+    }),
+    fcfYield: zod.object({
+      value: zod.number().nullable(),
+      rating: zod.string().nullable(),
+      formatted: zod.string().nullable(),
+    }),
+    priceToTangibleBook: zod.object({
+      value: zod.number().nullable(),
+      rating: zod.string().nullable(),
+      formatted: zod.string().nullable(),
+    }),
+  }),
+  solvency: zod.object({
+    netDebtToEbitda: zod.object({
+      value: zod.number().nullable(),
+      rating: zod.string().nullable(),
+      formatted: zod.string().nullable(),
+    }),
+    interestCoverage: zod.object({
+      value: zod.number().nullable(),
+      rating: zod.string().nullable(),
+      formatted: zod.string().nullable(),
+    }),
+    currentRatio: zod.object({
+      value: zod.number().nullable(),
+      rating: zod.string().nullable(),
+      formatted: zod.string().nullable(),
+    }),
+    quickRatio: zod.object({
+      value: zod.number().nullable(),
+      rating: zod.string().nullable(),
+      formatted: zod.string().nullable(),
+    }),
+  }),
+  qualitative: zod.object({
+    insiderOwnership: zod.object({
+      value: zod.number().nullable(),
+      rating: zod.string().nullable(),
+      formatted: zod.string().nullable(),
+    }),
+    rdAsPercentRevenue: zod.object({
+      value: zod.number().nullable(),
+      rating: zod.string().nullable(),
+      formatted: zod.string().nullable(),
+    }),
+    shareCountTrend: zod.array(
+      zod.object({
+        year: zod.string(),
+        value: zod.number().nullable(),
+      }),
+    ),
+    shareCountChange5y: zod.object({
+      value: zod.number().nullable(),
+      rating: zod.string().nullable(),
+      formatted: zod.string().nullable(),
+    }),
+  }),
+});
+
+/**
  * @summary Get SEC filings for a company
  */
 export const GetSecFilingsParams = zod.object({

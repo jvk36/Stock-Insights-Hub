@@ -19,6 +19,7 @@ import type {
   CompanyProfile,
   EarningsHistoryResponse,
   FinancialStatements,
+  FundamentalSummary,
   GetStockChartParams,
   GetStockFinancialsParams,
   HealthStatus,
@@ -778,6 +779,95 @@ export function useGetInsiderTransactions<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetInsiderTransactionsQueryOptions(symbol, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get fundamental analysis summary (4 pillars)
+ */
+export const getGetStockFundamentalsUrl = (symbol: string) => {
+  return `/api/stock/${symbol}/fundamentals`;
+};
+
+export const getStockFundamentals = async (
+  symbol: string,
+  options?: RequestInit,
+): Promise<FundamentalSummary> => {
+  return customFetch<FundamentalSummary>(getGetStockFundamentalsUrl(symbol), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetStockFundamentalsQueryKey = (symbol: string) => {
+  return [`/api/stock/${symbol}/fundamentals`] as const;
+};
+
+export const getGetStockFundamentalsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getStockFundamentals>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStockFundamentals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetStockFundamentalsQueryKey(symbol);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getStockFundamentals>>
+  > = ({ signal }) =>
+    getStockFundamentals(symbol, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!symbol,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getStockFundamentals>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetStockFundamentalsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getStockFundamentals>>
+>;
+export type GetStockFundamentalsQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get fundamental analysis summary (4 pillars)
+ */
+
+export function useGetStockFundamentals<
+  TData = Awaited<ReturnType<typeof getStockFundamentals>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStockFundamentals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetStockFundamentalsQueryOptions(symbol, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

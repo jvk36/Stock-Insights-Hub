@@ -216,6 +216,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /stock/{symbol}/fundamentals:
+    get:
+      operationId: getStockFundamentals
+      tags: [stock]
+      summary: Get fundamental analysis summary (4 pillars)
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Fundamental summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FundamentalSummary"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /stock/{symbol}/sec-filings:
     get:
       operationId: getSecFilings
@@ -622,6 +647,116 @@ components:
       required:
         - symbol
         - transactions
+
+    FundamentalMetric:
+      type: object
+      properties:
+        value:
+          type: number
+          nullable: true
+        rating:
+          type: string
+          nullable: true
+        formatted:
+          type: string
+          nullable: true
+      required:
+        - value
+        - rating
+        - formatted
+
+    FundamentalTrendPoint:
+      type: object
+      properties:
+        year:
+          type: string
+        value:
+          type: number
+          nullable: true
+      required:
+        - year
+        - value
+
+    FundamentalSummary:
+      type: object
+      properties:
+        symbol:
+          type: string
+        profitability:
+          type: object
+          properties:
+            roe:
+              $ref: "#/components/schemas/FundamentalMetric"
+            roic:
+              $ref: "#/components/schemas/FundamentalMetric"
+            grossMarginTrend:
+              type: array
+              items:
+                $ref: "#/components/schemas/FundamentalTrendPoint"
+            grossMarginRating:
+              type: string
+              nullable: true
+            ccc:
+              $ref: "#/components/schemas/FundamentalMetric"
+          required:
+            - roe
+            - roic
+            - grossMarginTrend
+            - grossMarginRating
+            - ccc
+        valuation:
+          type: object
+          properties:
+            evToEbitda:
+              $ref: "#/components/schemas/FundamentalMetric"
+            fcfYield:
+              $ref: "#/components/schemas/FundamentalMetric"
+            priceToTangibleBook:
+              $ref: "#/components/schemas/FundamentalMetric"
+          required:
+            - evToEbitda
+            - fcfYield
+            - priceToTangibleBook
+        solvency:
+          type: object
+          properties:
+            netDebtToEbitda:
+              $ref: "#/components/schemas/FundamentalMetric"
+            interestCoverage:
+              $ref: "#/components/schemas/FundamentalMetric"
+            currentRatio:
+              $ref: "#/components/schemas/FundamentalMetric"
+            quickRatio:
+              $ref: "#/components/schemas/FundamentalMetric"
+          required:
+            - netDebtToEbitda
+            - interestCoverage
+            - currentRatio
+            - quickRatio
+        qualitative:
+          type: object
+          properties:
+            insiderOwnership:
+              $ref: "#/components/schemas/FundamentalMetric"
+            rdAsPercentRevenue:
+              $ref: "#/components/schemas/FundamentalMetric"
+            shareCountTrend:
+              type: array
+              items:
+                $ref: "#/components/schemas/FundamentalTrendPoint"
+            shareCountChange5y:
+              $ref: "#/components/schemas/FundamentalMetric"
+          required:
+            - insiderOwnership
+            - rdAsPercentRevenue
+            - shareCountTrend
+            - shareCountChange5y
+      required:
+        - symbol
+        - profitability
+        - valuation
+        - solvency
+        - qualitative
 
     SecFiling:
       type: object

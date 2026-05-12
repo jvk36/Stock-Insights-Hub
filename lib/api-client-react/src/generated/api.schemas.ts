@@ -147,6 +147,53 @@ export interface InsiderTransactionsResponse {
   transactions: InsiderTransaction[];
 }
 
+export interface FundamentalMetric {
+  value: number | null;
+  rating: string | null;
+  formatted: string | null;
+}
+
+export interface FundamentalTrendPoint {
+  year: string;
+  value: number | null;
+}
+
+export type FundamentalSummaryProfitability = {
+  roe: FundamentalMetric;
+  roic: FundamentalMetric;
+  grossMarginTrend: FundamentalTrendPoint[];
+  grossMarginRating: string | null;
+  ccc: FundamentalMetric;
+};
+
+export type FundamentalSummaryValuation = {
+  evToEbitda: FundamentalMetric;
+  fcfYield: FundamentalMetric;
+  priceToTangibleBook: FundamentalMetric;
+};
+
+export type FundamentalSummarySolvency = {
+  netDebtToEbitda: FundamentalMetric;
+  interestCoverage: FundamentalMetric;
+  currentRatio: FundamentalMetric;
+  quickRatio: FundamentalMetric;
+};
+
+export type FundamentalSummaryQualitative = {
+  insiderOwnership: FundamentalMetric;
+  rdAsPercentRevenue: FundamentalMetric;
+  shareCountTrend: FundamentalTrendPoint[];
+  shareCountChange5y: FundamentalMetric;
+};
+
+export interface FundamentalSummary {
+  symbol: string;
+  profitability: FundamentalSummaryProfitability;
+  valuation: FundamentalSummaryValuation;
+  solvency: FundamentalSummarySolvency;
+  qualitative: FundamentalSummaryQualitative;
+}
+
 export interface SecFiling {
   id: string;
   type: string;

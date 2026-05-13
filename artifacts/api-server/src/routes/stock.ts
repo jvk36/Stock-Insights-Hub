@@ -12,6 +12,7 @@ import {
   GetEarningsHistoryParams,
   GetInsiderTransactionsParams,
   GetStockFundamentalsParams,
+  GetStockAnalysisParams,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -1253,6 +1254,170 @@ router.get("/stock/:symbol/fundamentals", async (req, res): Promise<void> => {
   } catch (err: unknown) {
     req.log.error({ err, symbol }, "Failed to fetch fundamentals");
     res.status(500).json({ error: "server_error", message: "Failed to fetch fundamentals" });
+  }
+});
+
+// ── Analysis: DCF inputs + MOAT metrics ───────────────────────────────────────
+router.get("/stock/:symbol/analysis", async (req, res): Promise<void> => {
+  const { symbol } = GetStockAnalysisParams.parse(req.params);
+  try {
+    const [income5yr, balance5yr, cashflow5yr, summary] = await Promise.all([
+      yahooFinance.fundamentalsTimeSeries(symbol, {
+        type: "annual",
+        module: "financials",
+        period1: "2020-01-01",
+      }),
+      yahooFinance.fundamentalsTimeSeries(symbol, {
+        type: "annual",
+        module: "balance-sheet",
+        period1: "2020-01-01",
+      }),
+      yahooFinance.fundamentalsTimeSeries(symbol, {
+        type: "annual",
+        module: "cash-flow",
+        period1: "2020-01-01",
+      }),
+      yahooFinance.quoteSummary(symbol, {
+        modules: ["financialData", "defaultKeyStatistics", "price"],
+      }),
+    ]);
+
+    type RawMap = Record<string, Record<string, unknown>>;
+
+    function yearOf(item: Record<string, unknown>): string | null {
+      // yahoo-finance2 fundamentalsTimeSeries stores dates as Date objects under "date"
+      const d = item["date"] ?? item["asOfDate"];
+      if (!d) return null;
+      if (d instanceof Date) return String(d.getFullYear());
+      // ISO string fallback: "2022-09-30T..." → "2022"
+      return String(d).substring(0, 4);
+    }
+
+    const incomeMap: RawMap = {};
+    for (const row of income5yr) {
+      const raw = row as unknown as Record<string, unknown>;
+      const y = yearOf(raw);
+      if (y) incomeMap[y] = raw;
+    }
+    const balanceMap: RawMap = {};
+    for (const row of balance5yr) {
+      const raw = row as unknown as Record<string, unknown>;
+      const y = yearOf(raw);
+      if (y) balanceMap[y] = raw;
+    }
+    const cashMap: RawMap = {};
+    for (const row of cashflow5yr) {
+      const raw = row as unknown as Record<string, unknown>;
+      const y = yearOf(raw);
+      if (y) cashMap[y] = raw;
+    }
+
+    const allYears = [
+      ...new Set([
+        ...Object.keys(incomeMap),
+        ...Object.keys(balanceMap),
+        ...Object.keys(cashMap),
+      ]),
+    ].sort();
+    const years = allYears.slice(-5);
+
+    function n(obj: Record<string, unknown>, key: string): number | null {
+      const v = obj[key];
+      return typeof v === "number" && isFinite(v) ? v : null;
+    }
+
+    const moatRows = years.map((year) => {
+      const inc = incomeMap[year] ?? {};
+      const bs = balanceMap[year] ?? {};
+      const cf = cashMap[year] ?? {};
+
+      const rev = n(inc, "totalRevenue");
+      const gp = n(inc, "grossProfit");
+      const sga = n(inc, "sellingGeneralAndAdministration");
+      const da = n(inc, "reconciledDepreciation");
+      const pretax = n(inc, "pretaxIncome");
+      const tax = n(inc, "taxProvision");
+      const ni = n(inc, "netIncome");
+      const ebit = n(inc, "EBIT");
+      const otherInc = n(inc, "otherIncomeExpense") ?? 0;
+      const capex = n(cf, "capitalExpenditure");
+      const totalLiab = n(bs, "totalLiabilitiesNetMinorityInterest");
+      const equity = n(bs, "stockholdersEquity");
+
+      // Interest expense — try direct fields first, fall back to EBIT − pretaxIncome derivation
+      let interestExp: number | null =
+        n(inc, "interestExpenseNonOperating") ?? n(inc, "interestExpense");
+      if (interestExp != null) interestExp = Math.abs(interestExp);
+      if ((interestExp == null || interestExp === 0) && ebit != null && pretax != null) {
+        const derived = ebit - pretax - otherInc;
+        if (derived > 0) interestExp = derived;
+      }
+
+      return {
+        year,
+        grossMargin:
+          rev != null && rev > 0 && gp != null ? (gp / rev) * 100 : null,
+        sgaMargin:
+          gp != null && gp > 0 && sga != null
+            ? (Math.abs(sga) / gp) * 100
+            : null,
+        daRatio:
+          gp != null && gp > 0 && da != null
+            ? (Math.abs(da) / gp) * 100
+            : null,
+        interestRatio:
+          pretax != null && pretax > 0 && interestExp != null
+            ? (interestExp / pretax) * 100
+            : null,
+        taxRate:
+          pretax != null && pretax > 0 && tax != null
+            ? (Math.abs(tax) / pretax) * 100
+            : null,
+        netMargin:
+          rev != null && rev > 0 && ni != null ? (ni / rev) * 100 : null,
+        capexRatio:
+          ni != null && Math.abs(ni) > 0 && capex != null
+            ? (Math.abs(capex) / Math.abs(ni)) * 100
+            : null,
+        liabToEquity:
+          totalLiab != null && equity != null && equity > 0
+            ? totalLiab / equity
+            : null,
+        roe:
+          equity != null && equity !== 0 && ni != null
+            ? (ni / equity) * 100
+            : null,
+      };
+    });
+
+    const financial = summary.financialData;
+    const keyStats = summary.defaultKeyStatistics;
+    const price = summary.price;
+
+    const mostRecentYear = years[years.length - 1] ?? "";
+    const fcf = financial?.freeCashflow ?? null;
+    const sharesOutstanding = keyStats?.sharesOutstanding ?? null;
+    const totalDebt = financial?.totalDebt ?? null;
+    const totalCash = financial?.totalCash ?? null;
+    const netDebt =
+      totalDebt != null && totalCash != null ? totalDebt - totalCash : null;
+    const currentPrice = price?.regularMarketPrice ?? null;
+
+    res.json({
+      dcfInputs: {
+        freeCashFlow: fcf ?? null,
+        sharesOutstanding: sharesOutstanding ?? null,
+        netDebt: netDebt ?? null,
+        currentPrice: currentPrice ?? null,
+        dataYear: mostRecentYear ? `${mostRecentYear} Annual` : "N/A",
+      },
+      moatRows,
+    });
+  } catch (err: unknown) {
+    req.log.error({ err, symbol }, "Failed to fetch analysis data");
+    res
+      .status(500)
+      .json({ error: "server_error", message: "Failed to fetch analysis" });
   }
 });
 

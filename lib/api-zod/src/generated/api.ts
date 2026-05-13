@@ -319,6 +319,37 @@ export const GetStockFundamentalsResponse = zod.object({
 });
 
 /**
+ * @summary Get DCF inputs and MOAT analysis data (5 years)
+ */
+export const GetStockAnalysisParams = zod.object({
+  symbol: zod.coerce.string(),
+});
+
+export const GetStockAnalysisResponse = zod.object({
+  dcfInputs: zod.object({
+    freeCashFlow: zod.number().nullish(),
+    sharesOutstanding: zod.number().nullish(),
+    netDebt: zod.number().nullish(),
+    currentPrice: zod.number().nullish(),
+    dataYear: zod.string(),
+  }),
+  moatRows: zod.array(
+    zod.object({
+      year: zod.string(),
+      grossMargin: zod.number().nullish(),
+      sgaMargin: zod.number().nullish(),
+      daRatio: zod.number().nullish(),
+      interestRatio: zod.number().nullish(),
+      taxRate: zod.number().nullish(),
+      netMargin: zod.number().nullish(),
+      capexRatio: zod.number().nullish(),
+      liabToEquity: zod.number().nullish(),
+      roe: zod.number().nullish(),
+    }),
+  ),
+});
+
+/**
  * @summary Get SEC filings for a company
  */
 export const GetSecFilingsParams = zod.object({

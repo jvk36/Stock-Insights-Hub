@@ -241,6 +241,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /stock/{symbol}/analysis:
+    get:
+      operationId: getStockAnalysis
+      tags: [stock]
+      summary: Get DCF inputs and MOAT analysis data (5 years)
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Analysis data including DCF inputs and MOAT metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockAnalysis"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /stock/{symbol}/sec-filings:
     get:
       operationId: getSecFilings
@@ -757,6 +782,74 @@ components:
         - valuation
         - solvency
         - qualitative
+
+    DcfInputs:
+      type: object
+      properties:
+        freeCashFlow:
+          type: number
+          nullable: true
+        sharesOutstanding:
+          type: number
+          nullable: true
+        netDebt:
+          type: number
+          nullable: true
+        currentPrice:
+          type: number
+          nullable: true
+        dataYear:
+          type: string
+      required:
+        - dataYear
+
+    MoatRow:
+      type: object
+      properties:
+        year:
+          type: string
+        grossMargin:
+          type: number
+          nullable: true
+        sgaMargin:
+          type: number
+          nullable: true
+        daRatio:
+          type: number
+          nullable: true
+        interestRatio:
+          type: number
+          nullable: true
+        taxRate:
+          type: number
+          nullable: true
+        netMargin:
+          type: number
+          nullable: true
+        capexRatio:
+          type: number
+          nullable: true
+        liabToEquity:
+          type: number
+          nullable: true
+        roe:
+          type: number
+          nullable: true
+      required:
+        - year
+
+    StockAnalysis:
+      type: object
+      properties:
+        dcfInputs:
+          $ref: "#/components/schemas/DcfInputs"
+        moatRows:
+          type: array
+          items:
+            $ref: "#/components/schemas/MoatRow"
+      required:
+        - dcfInputs
+        - moatRows
 
     SecFiling:
       type: object

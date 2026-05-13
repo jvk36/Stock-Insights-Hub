@@ -194,6 +194,32 @@ export interface FundamentalSummary {
   qualitative: FundamentalSummaryQualitative;
 }
 
+export interface DcfInputs {
+  freeCashFlow?: number | null;
+  sharesOutstanding?: number | null;
+  netDebt?: number | null;
+  currentPrice?: number | null;
+  dataYear: string;
+}
+
+export interface MoatRow {
+  year: string;
+  grossMargin?: number | null;
+  sgaMargin?: number | null;
+  daRatio?: number | null;
+  interestRatio?: number | null;
+  taxRate?: number | null;
+  netMargin?: number | null;
+  capexRatio?: number | null;
+  liabToEquity?: number | null;
+  roe?: number | null;
+}
+
+export interface StockAnalysis {
+  dcfInputs: DcfInputs;
+  moatRows: MoatRow[];
+}
+
 export interface SecFiling {
   id: string;
   type: string;

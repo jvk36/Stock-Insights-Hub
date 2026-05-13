@@ -26,6 +26,7 @@ import type {
   InsiderTransactionsResponse,
   NewsResponse,
   SecFilingsResponse,
+  StockAnalysis,
   StockQuote,
 } from "./api.schemas";
 
@@ -868,6 +869,94 @@ export function useGetStockFundamentals<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetStockFundamentalsQueryOptions(symbol, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get DCF inputs and MOAT analysis data (5 years)
+ */
+export const getGetStockAnalysisUrl = (symbol: string) => {
+  return `/api/stock/${symbol}/analysis`;
+};
+
+export const getStockAnalysis = async (
+  symbol: string,
+  options?: RequestInit,
+): Promise<StockAnalysis> => {
+  return customFetch<StockAnalysis>(getGetStockAnalysisUrl(symbol), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetStockAnalysisQueryKey = (symbol: string) => {
+  return [`/api/stock/${symbol}/analysis`] as const;
+};
+
+export const getGetStockAnalysisQueryOptions = <
+  TData = Awaited<ReturnType<typeof getStockAnalysis>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStockAnalysis>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetStockAnalysisQueryKey(symbol);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getStockAnalysis>>
+  > = ({ signal }) => getStockAnalysis(symbol, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!symbol,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getStockAnalysis>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetStockAnalysisQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getStockAnalysis>>
+>;
+export type GetStockAnalysisQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get DCF inputs and MOAT analysis data (5 years)
+ */
+
+export function useGetStockAnalysis<
+  TData = Awaited<ReturnType<typeof getStockAnalysis>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStockAnalysis>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetStockAnalysisQueryOptions(symbol, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

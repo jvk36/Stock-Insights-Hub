@@ -176,8 +176,8 @@ export default function GrahamModel({ data, currentPrice }: Props) {
                     </table>
                   </div>
                   <p className="text-xs text-muted-foreground mt-3">
-                    EPS approximated as Net Income ÷ Current Shares Outstanding. Historical share counts
-                    may differ due to buybacks/issuances.
+                    EPS computed as Net Income ÷ Diluted Average Shares for each year, reflecting the actual
+                    share count reported in that year's annual filing.
                   </p>
                 </CardContent>
               </Card>

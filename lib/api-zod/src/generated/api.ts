@@ -396,6 +396,68 @@ export const GetStockModelsResponse = zod.object({
     payoutRatio: zod.number().nullish(),
     trailingDividendRate: zod.number().nullish(),
   }),
+  katsenelson: zod.object({
+    ttmEps: zod.number().nullish(),
+    epsGrowthRate: zod.number().nullish(),
+    dividendYield: zod.number().nullish(),
+    currentPrice: zod.number().nullish(),
+    sharesOutstanding: zod.number().nullish(),
+    epsHistory: zod
+      .array(
+        zod.object({
+          year: zod.string(),
+          eps: zod.number().nullish(),
+        }),
+      )
+      .optional(),
+  }),
+  epv: zod.object({
+    history: zod.array(
+      zod.object({
+        year: zod.string(),
+        revenue: zod.number().nullish(),
+        ebit: zod.number().nullish(),
+        capex: zod.number().nullish(),
+        depreciation: zod.number().nullish(),
+        grossPPE: zod.number().nullish(),
+        taxRate: zod.number().nullish(),
+      }),
+    ),
+    normalizedEbit: zod.number().nullish(),
+    normalizedTaxRate: zod.number().nullish(),
+    maintenanceCapex: zod.number().nullish(),
+    growthCapexRatio: zod.number().nullish(),
+    latestRevenueDelta: zod.number().nullish(),
+    latestCapex: zod.number().nullish(),
+    latestDepreciation: zod.number().nullish(),
+    currentCash: zod.number().nullish(),
+    currentDebt: zod.number().nullish(),
+    currentPrice: zod.number().nullish(),
+    sharesOutstanding: zod.number().nullish(),
+    beta: zod.number().nullish(),
+    latestInterestExpense: zod.number().nullish(),
+  }),
+  ownersEarnings: zod.object({
+    netIncome: zod.number().nullish(),
+    depreciation: zod.number().nullish(),
+    deferredTax: zod.number().nullish(),
+    workingCapitalChange: zod.number().nullish(),
+    maintenanceCapex: zod.number().nullish(),
+    growthCapexRatio: zod.number().nullish(),
+    latestRevenueDelta: zod.number().nullish(),
+    latestCapex: zod.number().nullish(),
+    sharesOutstanding: zod.number().nullish(),
+    currentPrice: zod.number().nullish(),
+  }),
+  riv: zod.object({
+    bookValuePerShare: zod.number().nullish(),
+    roe: zod.number().nullish(),
+    eps: zod.number().nullish(),
+    dividendPerShare: zod.number().nullish(),
+    currentPrice: zod.number().nullish(),
+    sharesOutstanding: zod.number().nullish(),
+    beta: zod.number().nullish(),
+  }),
 });
 
 /**

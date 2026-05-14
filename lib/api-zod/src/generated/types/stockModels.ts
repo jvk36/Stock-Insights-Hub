@@ -6,11 +6,19 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DdmData } from "./ddmData";
+import type { EpvData } from "./epvData";
 import type { EvEbitData } from "./evEbitData";
 import type { GrahamData } from "./grahamData";
+import type { KatsenelsonData } from "./katsenelsonData";
+import type { OwnersEarningsData } from "./ownersEarningsData";
+import type { RivData } from "./rivData";
 
 export interface StockModels {
   graham: GrahamData;
   evEbit: EvEbitData;
   ddm: DdmData;
+  katsenelson: KatsenelsonData;
+  epv: EpvData;
+  ownersEarnings: OwnersEarningsData;
+  riv: RivData;
 }

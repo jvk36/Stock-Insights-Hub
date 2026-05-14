@@ -236,10 +236,73 @@ export interface DdmData {
   trailingDividendRate?: number | null;
 }
 
+export interface KatsenelsonData {
+  ttmEps?: number | null;
+  epsGrowthRate?: number | null;
+  dividendYield?: number | null;
+  currentPrice?: number | null;
+  sharesOutstanding?: number | null;
+  epsHistory?: GrahamEpsRow[];
+}
+
+export interface EpvHistoryRow {
+  year: string;
+  revenue?: number | null;
+  ebit?: number | null;
+  capex?: number | null;
+  depreciation?: number | null;
+  grossPPE?: number | null;
+  taxRate?: number | null;
+}
+
+export interface EpvData {
+  history: EpvHistoryRow[];
+  normalizedEbit?: number | null;
+  normalizedTaxRate?: number | null;
+  maintenanceCapex?: number | null;
+  growthCapexRatio?: number | null;
+  latestRevenueDelta?: number | null;
+  latestCapex?: number | null;
+  latestDepreciation?: number | null;
+  currentCash?: number | null;
+  currentDebt?: number | null;
+  currentPrice?: number | null;
+  sharesOutstanding?: number | null;
+  beta?: number | null;
+  latestInterestExpense?: number | null;
+}
+
+export interface OwnersEarningsData {
+  netIncome?: number | null;
+  depreciation?: number | null;
+  deferredTax?: number | null;
+  workingCapitalChange?: number | null;
+  maintenanceCapex?: number | null;
+  growthCapexRatio?: number | null;
+  latestRevenueDelta?: number | null;
+  latestCapex?: number | null;
+  sharesOutstanding?: number | null;
+  currentPrice?: number | null;
+}
+
+export interface RivData {
+  bookValuePerShare?: number | null;
+  roe?: number | null;
+  eps?: number | null;
+  dividendPerShare?: number | null;
+  currentPrice?: number | null;
+  sharesOutstanding?: number | null;
+  beta?: number | null;
+}
+
 export interface StockModels {
   graham: GrahamData;
   evEbit: EvEbitData;
   ddm: DdmData;
+  katsenelson: KatsenelsonData;
+  epv: EpvData;
+  ownersEarnings: OwnersEarningsData;
+  riv: RivData;
 }
 
 export interface DcfInputs {

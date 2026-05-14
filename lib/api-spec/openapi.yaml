@@ -916,6 +916,166 @@ components:
       required:
         - dividendHistory
 
+    KatsenelsonData:
+      type: object
+      properties:
+        ttmEps:
+          type: number
+          nullable: true
+        epsGrowthRate:
+          type: number
+          nullable: true
+        dividendYield:
+          type: number
+          nullable: true
+        currentPrice:
+          type: number
+          nullable: true
+        sharesOutstanding:
+          type: number
+          nullable: true
+        epsHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/GrahamEpsRow"
+      required: []
+
+    EpvHistoryRow:
+      type: object
+      properties:
+        year:
+          type: string
+        revenue:
+          type: number
+          nullable: true
+        ebit:
+          type: number
+          nullable: true
+        capex:
+          type: number
+          nullable: true
+        depreciation:
+          type: number
+          nullable: true
+        grossPPE:
+          type: number
+          nullable: true
+        taxRate:
+          type: number
+          nullable: true
+      required:
+        - year
+
+    EpvData:
+      type: object
+      properties:
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/EpvHistoryRow"
+        normalizedEbit:
+          type: number
+          nullable: true
+        normalizedTaxRate:
+          type: number
+          nullable: true
+        maintenanceCapex:
+          type: number
+          nullable: true
+        growthCapexRatio:
+          type: number
+          nullable: true
+        latestRevenueDelta:
+          type: number
+          nullable: true
+        latestCapex:
+          type: number
+          nullable: true
+        latestDepreciation:
+          type: number
+          nullable: true
+        currentCash:
+          type: number
+          nullable: true
+        currentDebt:
+          type: number
+          nullable: true
+        currentPrice:
+          type: number
+          nullable: true
+        sharesOutstanding:
+          type: number
+          nullable: true
+        beta:
+          type: number
+          nullable: true
+        latestInterestExpense:
+          type: number
+          nullable: true
+      required:
+        - history
+
+    OwnersEarningsData:
+      type: object
+      properties:
+        netIncome:
+          type: number
+          nullable: true
+        depreciation:
+          type: number
+          nullable: true
+        deferredTax:
+          type: number
+          nullable: true
+        workingCapitalChange:
+          type: number
+          nullable: true
+        maintenanceCapex:
+          type: number
+          nullable: true
+        growthCapexRatio:
+          type: number
+          nullable: true
+        latestRevenueDelta:
+          type: number
+          nullable: true
+        latestCapex:
+          type: number
+          nullable: true
+        sharesOutstanding:
+          type: number
+          nullable: true
+        currentPrice:
+          type: number
+          nullable: true
+      required: []
+
+    RivData:
+      type: object
+      properties:
+        bookValuePerShare:
+          type: number
+          nullable: true
+        roe:
+          type: number
+          nullable: true
+        eps:
+          type: number
+          nullable: true
+        dividendPerShare:
+          type: number
+          nullable: true
+        currentPrice:
+          type: number
+          nullable: true
+        sharesOutstanding:
+          type: number
+          nullable: true
+        beta:
+          type: number
+          nullable: true
+      required: []
+
     StockModels:
       type: object
       properties:
@@ -925,10 +1085,22 @@ components:
           $ref: "#/components/schemas/EvEbitData"
         ddm:
           $ref: "#/components/schemas/DdmData"
+        katsenelson:
+          $ref: "#/components/schemas/KatsenelsonData"
+        epv:
+          $ref: "#/components/schemas/EpvData"
+        ownersEarnings:
+          $ref: "#/components/schemas/OwnersEarningsData"
+        riv:
+          $ref: "#/components/schemas/RivData"
       required:
         - graham
         - evEbit
         - ddm
+        - katsenelson
+        - epv
+        - ownersEarnings
+        - riv
 
     DcfInputs:
       type: object

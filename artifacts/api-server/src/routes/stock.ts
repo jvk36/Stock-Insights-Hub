@@ -1432,7 +1432,7 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
     const sevenYearsAgo = new Date();
     sevenYearsAgo.setFullYear(sevenYearsAgo.getFullYear() - 7);
 
-    const [income10yr, balance5yr, balance10yr, chartData, summary] = await Promise.all([
+    const [income10yr, balance5yr, balance10yr, cashflow5yr, chartData, summary] = await Promise.all([
       yahooFinance.fundamentalsTimeSeries(symbol, {
         type: "annual",
         module: "financials",
@@ -1448,6 +1448,13 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
         module: "balance-sheet",
         period1: tenYearsAgo,
       }),
+      yahooFinance
+        .fundamentalsTimeSeries(symbol, {
+          type: "annual",
+          module: "cash-flow",
+          period1: fiveYearsAgo,
+        })
+        .catch(() => [] as Awaited<ReturnType<typeof yahooFinance.fundamentalsTimeSeries>>),
       yahooFinance
         .chart(symbol, {
           period1: sevenYearsAgo,
@@ -1508,8 +1515,8 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
 
     // --- Graham: EPS history using per-year diluted average shares ---
     const epsHistory = income10yr
-      .map((row) => {
-        const raw = row as unknown as Record<string, unknown>;
+      .map((row: unknown) => {
+        const raw = row as Record<string, unknown>;
         const year = yearOf(raw);
         if (!year) return null;
         const dilutedEPS = (raw["dilutedEPS"] as number | undefined) ?? null;
@@ -1527,7 +1534,7 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
         return { year, eps };
       })
       .filter((r): r is { year: string; eps: number | null } => r !== null)
-      .sort((a, b) => a.year.localeCompare(b.year));
+      .sort((a: { year: string }, b: { year: string }) => a.year.localeCompare(b.year));
 
     // --- EV/EBIT: 5-year income + balance history with historical EV ---
     const incomeMap5: RawMap = {};
@@ -1631,6 +1638,230 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
     const trailingDividendRate = (summary.defaultKeyStatistics
       ?.trailingAnnualDividendRate ?? null) as number | null;
 
+    // --- Katsenelson: 10-yr EPS CAGR ---
+    const positiveEpsRows = epsHistory.filter(
+      (r): r is { year: string; eps: number } => r.eps != null && r.eps > 0
+    );
+    const oldestPositive = positiveEpsRows[0] ?? null;
+    const latestEpsRow =
+      positiveEpsRows[positiveEpsRows.length - 1] ?? null;
+    let epsGrowthRate: number | null = null;
+    if (
+      oldestPositive &&
+      latestEpsRow &&
+      oldestPositive.year !== latestEpsRow.year
+    ) {
+      const yrs =
+        parseInt(latestEpsRow.year) - parseInt(oldestPositive.year);
+      if (yrs > 0) {
+        epsGrowthRate =
+          Math.pow(latestEpsRow.eps / oldestPositive.eps, 1 / yrs) - 1;
+      }
+    }
+    const katsenelson = {
+      ttmEps: trailingEps,
+      epsGrowthRate,
+      dividendYield: (summary.summaryDetail?.dividendYield ?? null) as
+        | number
+        | null,
+      currentPrice,
+      sharesOutstanding,
+      epsHistory,
+    };
+
+    // --- EPV & Owners' Earnings: cash-flow map + computations ---
+    type CfRawMap = Record<string, Record<string, unknown>>;
+    const cfMap5: CfRawMap = {};
+    for (const row of cashflow5yr) {
+      const raw = row as unknown as Record<string, unknown>;
+      const y = yearOf(raw);
+      if (y) cfMap5[y] = raw;
+    }
+
+    const epvYears = [
+      ...new Set([
+        ...Object.keys(incomeMap5),
+        ...Object.keys(balanceMap5),
+        ...Object.keys(cfMap5),
+      ]),
+    ].sort();
+
+    const epvHistory = epvYears.map((year) => {
+      const inc = incomeMap5[year] ?? {};
+      const bal = balanceMap5[year] ?? {};
+      const cf = cfMap5[year] ?? {};
+      const revenue = (inc["totalRevenue"] as number | undefined) ?? null;
+      const ebit = (inc["operatingIncome"] as number | undefined) ?? null;
+      const capexRaw = (cf["capitalExpenditure"] as number | undefined) ?? null;
+      const capex = capexRaw != null ? Math.abs(capexRaw) : null;
+      const depreciation =
+        (cf["depreciationAmortizationDepletion"] as number | undefined) ??
+        (cf["depreciation"] as number | undefined) ??
+        null;
+      const grossPPE = (bal["grossPPE"] as number | undefined) ?? null;
+      const taxProvision =
+        (inc["taxProvision"] as number | undefined) ?? null;
+      const pretaxIncome =
+        (inc["pretaxIncome"] as number | undefined) ?? null;
+      const taxRate =
+        taxProvision != null && pretaxIncome != null && pretaxIncome > 0
+          ? taxProvision / pretaxIncome
+          : null;
+      return { year, revenue, ebit, capex, depreciation, grossPPE, taxRate };
+    });
+
+    // Normalize EBIT and tax rate over available years
+    const ebitValues = epvHistory
+      .filter((r) => r.ebit != null && r.ebit > 0)
+      .map((r) => r.ebit!);
+    const normalizedEbit =
+      ebitValues.length > 0
+        ? ebitValues.reduce((a, b) => a + b, 0) / ebitValues.length
+        : null;
+
+    const taxRateValues = epvHistory
+      .filter((r) => r.taxRate != null && r.taxRate > 0 && r.taxRate < 1)
+      .map((r) => r.taxRate!);
+    const normalizedTaxRate =
+      taxRateValues.length > 0
+        ? taxRateValues.reduce((a, b) => a + b, 0) / taxRateValues.length
+        : 0.25;
+
+    // Growth CapEx ratio = avg(GrossPPE / Revenue) over available years
+    const gppePairs = epvHistory.filter(
+      (r) => r.grossPPE != null && r.revenue != null && r.revenue > 0
+    );
+    const growthCapexRatio =
+      gppePairs.length > 0
+        ? gppePairs.reduce((s, r) => s + r.grossPPE! / r.revenue!, 0) /
+          gppePairs.length
+        : null;
+
+    // Latest-year data for maintenance capex
+    const latestEpvYear = epvYears[epvYears.length - 1];
+    const priorEpvYear = epvYears[epvYears.length - 2];
+    const latestRevenue =
+      (incomeMap5[latestEpvYear]?.["totalRevenue"] as number | undefined) ??
+      null;
+    const priorRevenue =
+      (incomeMap5[priorEpvYear]?.["totalRevenue"] as number | undefined) ??
+      null;
+    const latestRevenueDelta =
+      latestRevenue != null && priorRevenue != null
+        ? latestRevenue - priorRevenue
+        : null;
+
+    const latestCf = cfMap5[latestEpvYear] ?? {};
+    const latestCapexRaw =
+      (latestCf["capitalExpenditure"] as number | undefined) ?? null;
+    const latestCapex =
+      latestCapexRaw != null ? Math.abs(latestCapexRaw) : null;
+    const latestDepreciation =
+      (latestCf["depreciationAmortizationDepletion"] as number | undefined) ??
+      (latestCf["depreciation"] as number | undefined) ??
+      null;
+
+    const growthCapex =
+      growthCapexRatio != null &&
+      latestRevenueDelta != null &&
+      latestRevenueDelta > 0
+        ? growthCapexRatio * latestRevenueDelta
+        : 0;
+    const maintenanceCapex =
+      latestCapex != null ? Math.max(0, latestCapex - growthCapex) : null;
+
+    // Latest balance sheet items for EPV equity bridge
+    const latestEpvBal = balanceMap5[latestEpvYear] ?? {};
+    const epvCash =
+      (latestEpvBal["cashCashEquivalentsAndShortTermInvestments"] as
+        | number
+        | undefined) ??
+      (latestEpvBal["cashAndCashEquivalents"] as number | undefined) ??
+      null;
+    const epvDebt =
+      (latestEpvBal["totalDebt"] as number | undefined) ?? null;
+
+    // Interest expense for Kd in WACC
+    const latestEpvInc = incomeMap5[latestEpvYear] ?? {};
+    const latestIntExpRaw =
+      (latestEpvInc["interestExpense"] as number | undefined) ??
+      (latestEpvInc["interestExpenseNonOperating"] as number | undefined) ??
+      null;
+    const latestInterestExpense =
+      latestIntExpRaw != null ? Math.abs(latestIntExpRaw) : null;
+
+    const epv = {
+      history: epvHistory,
+      normalizedEbit,
+      normalizedTaxRate,
+      maintenanceCapex,
+      growthCapexRatio,
+      latestRevenueDelta,
+      latestCapex,
+      latestDepreciation,
+      currentCash: epvCash,
+      currentDebt: epvDebt,
+      currentPrice,
+      sharesOutstanding,
+      beta,
+      latestInterestExpense,
+    };
+
+    // --- Owners' Earnings: most-recent-year CF components ---
+    const latestNetIncome =
+      (latestEpvInc["netIncome"] as number | undefined) ?? null;
+    const latestDeferredTax =
+      (latestCf["deferredTax"] as number | undefined) ??
+      (latestCf["deferredIncomeTax"] as number | undefined) ??
+      null;
+    const latestWcChange =
+      (latestCf["changeInWorkingCapital"] as number | undefined) ?? null;
+
+    const ownersEarnings = {
+      netIncome: latestNetIncome,
+      depreciation: latestDepreciation,
+      deferredTax: latestDeferredTax,
+      workingCapitalChange: latestWcChange,
+      maintenanceCapex,
+      growthCapexRatio,
+      latestRevenueDelta,
+      latestCapex,
+      sharesOutstanding,
+      currentPrice,
+    };
+
+    // --- RIV: book value per share and ROE ---
+    const latestEquity =
+      (latestEpvBal["commonStockEquity"] as number | undefined) ??
+      (latestEpvBal["stockholdersEquity"] as number | undefined) ??
+      null;
+    const latestSharesForBv =
+      (latestEpvBal["ordinarySharesNumber"] as number | undefined) ??
+      sharesOutstanding ??
+      null;
+    const bookValuePerShare =
+      latestEquity != null &&
+      latestSharesForBv != null &&
+      latestSharesForBv > 0
+        ? latestEquity / latestSharesForBv
+        : null;
+    const roe =
+      latestNetIncome != null &&
+      latestEquity != null &&
+      latestEquity > 0
+        ? latestNetIncome / latestEquity
+        : null;
+
+    const riv = {
+      bookValuePerShare,
+      roe,
+      eps: trailingEps,
+      dividendPerShare: trailingDividendRate,
+      currentPrice,
+      sharesOutstanding,
+      beta,
+    };
+
     res.json({
       graham: {
         epsHistory,
@@ -1650,6 +1881,10 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
         payoutRatio,
         trailingDividendRate,
       },
+      katsenelson,
+      epv,
+      ownersEarnings,
+      riv,
     });
   } catch (err: unknown) {
     req.log.error({ err, symbol }, "Failed to fetch models data");

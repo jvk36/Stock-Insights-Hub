@@ -839,6 +839,9 @@ components:
         minorityInterest:
           type: number
           nullable: true
+        ev:
+          type: number
+          nullable: true
       required:
         - year
 

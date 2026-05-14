@@ -13,4 +13,5 @@ export interface EvEbitHistoryRow {
   totalDebt?: number | null;
   cash?: number | null;
   minorityInterest?: number | null;
+  ev?: number | null;
 }

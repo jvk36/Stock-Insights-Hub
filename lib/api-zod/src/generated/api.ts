@@ -376,6 +376,7 @@ export const GetStockModelsResponse = zod.object({
         totalDebt: zod.number().nullish(),
         cash: zod.number().nullish(),
         minorityInterest: zod.number().nullish(),
+        ev: zod.number().nullish(),
       }),
     ),
     currentEv: zod.number().nullish(),

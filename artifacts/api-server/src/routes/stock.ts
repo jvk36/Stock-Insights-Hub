@@ -1432,7 +1432,7 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
     const sevenYearsAgo = new Date();
     sevenYearsAgo.setFullYear(sevenYearsAgo.getFullYear() - 7);
 
-    const [income10yr, balance5yr, dividends, summary] = await Promise.all([
+    const [income10yr, balance5yr, balance10yr, chartData, summary] = await Promise.all([
       yahooFinance.fundamentalsTimeSeries(symbol, {
         type: "annual",
         module: "financials",
@@ -1442,6 +1442,11 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
         type: "annual",
         module: "balance-sheet",
         period1: fiveYearsAgo,
+      }),
+      yahooFinance.fundamentalsTimeSeries(symbol, {
+        type: "annual",
+        module: "balance-sheet",
+        period1: tenYearsAgo,
       }),
       yahooFinance
         .chart(symbol, {
@@ -1468,7 +1473,40 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
         | number
         | null;
 
-    // --- Graham: EPS history (up to 10 years) ---
+    type RawMap = Record<string, Record<string, unknown>>;
+
+    // Build 10-year balance sheet map for historical shares (used in Graham EPS)
+    const balance10Map: RawMap = {};
+    for (const row of balance10yr) {
+      const raw = row as unknown as Record<string, unknown>;
+      const y = yearOf(raw);
+      if (y) balance10Map[y] = raw;
+    }
+
+    // Build monthly price map from chart quotes (YYYY-MM → close price)
+    // Used to compute historical EV = price × shares + debt − cash
+    const priceMap: Record<string, number> = {};
+    for (const quote of chartData?.quotes ?? []) {
+      const raw = quote as unknown as Record<string, unknown>;
+      const d = raw["date"];
+      const close = raw["adjclose"] ?? raw["close"];
+      if (d instanceof Date && typeof close === "number") {
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        priceMap[key] = close;
+      }
+    }
+
+    // Helper: extract YYYY-MM from a balance-sheet row's date
+    function monthKeyOf(item: Record<string, unknown>): string | null {
+      const d = item["date"] ?? item["asOfDate"];
+      if (!d) return null;
+      if (d instanceof Date) {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      }
+      return String(d).substring(0, 7);
+    }
+
+    // --- Graham: EPS history using per-year diluted average shares ---
     const epsHistory = income10yr
       .map((row) => {
         const raw = row as unknown as Record<string, unknown>;
@@ -1476,20 +1514,22 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
         if (!year) return null;
         const dilutedEPS = (raw["dilutedEPS"] as number | undefined) ?? null;
         const netIncome = (raw["netIncome"] as number | undefined) ?? null;
+        const dilutedAvgShares =
+          (raw["dilutedAverageShares"] as number | undefined) ?? null;
         const eps =
           dilutedEPS ??
-          (netIncome != null &&
-          sharesOutstanding != null &&
-          sharesOutstanding > 0
-            ? netIncome / sharesOutstanding
+          (netIncome != null
+            ? (() => {
+                const s = dilutedAvgShares ?? sharesOutstanding;
+                return s != null && s > 0 ? netIncome / s : null;
+              })()
             : null);
         return { year, eps };
       })
       .filter((r): r is { year: string; eps: number | null } => r !== null)
       .sort((a, b) => a.year.localeCompare(b.year));
 
-    // --- EV/EBIT: 5-year income + balance history ---
-    type RawMap = Record<string, Record<string, unknown>>;
+    // --- EV/EBIT: 5-year income + balance history with historical EV ---
     const incomeMap5: RawMap = {};
     for (const row of income10yr.slice(-5)) {
       const raw = row as unknown as Record<string, unknown>;
@@ -1508,14 +1548,28 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
     const evEbitHistory = evEbitYears.map((year) => {
       const inc = incomeMap5[year] ?? {};
       const bal = balanceMap5[year] ?? {};
+      const td = (bal["totalDebt"] as number | undefined) ?? 0;
+      const cash = (bal["cashAndCashEquivalents"] as number | undefined) ?? 0;
+      // Diluted shares for this year (from income stmt)
+      const yearShares =
+        (inc["dilutedAverageShares"] as number | undefined) ?? sharesOutstanding ?? 0;
+      // Year-end price: match the fiscal year-end month from the balance sheet date
+      const monthKey = monthKeyOf(bal);
+      const yearEndPrice = monthKey ? (priceMap[monthKey] ?? null) : null;
+      // Historical EV = price × shares + debt − cash
+      const historicalEv =
+        yearEndPrice != null && yearShares > 0
+          ? yearEndPrice * yearShares + td - cash
+          : null;
       return {
         year,
         ebit: (inc["operatingIncome"] as number | undefined) ?? null,
         revenue: (inc["totalRevenue"] as number | undefined) ?? null,
-        totalDebt: (bal["totalDebt"] as number | undefined) ?? null,
-        cash: (bal["cashAndCashEquivalents"] as number | undefined) ?? null,
+        totalDebt: td > 0 ? td : null,
+        cash: cash > 0 ? cash : null,
         minorityInterest:
           (bal["minorityInterest"] as number | undefined) ?? null,
+        ev: historicalEv,
       };
     });
     const currentEv =
@@ -1539,7 +1593,7 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
     }
 
     const dividendByYear: Record<string, number> = {};
-    const divEvents = dividends?.events?.dividends ?? {};
+    const divEvents = chartData?.events?.dividends ?? {};
     for (const entry of Object.values(divEvents)) {
       const raw = entry as unknown as Record<string, unknown>;
       const dateVal = raw["date"];
@@ -1552,7 +1606,9 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
       }
     }
 
+    const currentCalendarYear = String(new Date().getFullYear());
     const ddmDividendHistory = Object.keys(dividendByYear)
+      .filter((year) => year !== currentCalendarYear)
       .sort()
       .map((year) => ({
         year,

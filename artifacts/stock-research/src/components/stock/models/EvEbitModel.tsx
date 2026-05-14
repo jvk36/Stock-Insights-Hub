@@ -54,15 +54,26 @@ export default function EvEbitModel({ data, currentPrice }: Props) {
   );
 
   const result = useMemo(() => {
+    // Only use rows that have valid positive EBIT, revenue, AND historical EV
     const validRows = data.history.filter(
-      (r: EvEbitHistoryRow) => r.ebit != null && r.ebit > 0 && r.revenue != null && r.revenue > 0
+      (r: EvEbitHistoryRow) =>
+        r.ebit != null && r.ebit > 0 &&
+        r.revenue != null && r.revenue > 0 &&
+        r.ev != null && r.ev > 0
     );
 
-    if (validRows.length === 0 || data.currentEv == null) {
-      return { incalculable: true as const, reason: "Insufficient data or negative EBIT across all years." };
+    if (validRows.length === 0) {
+      const hasNegEbit = data.history.some(r => r.ebit != null && r.ebit <= 0);
+      const missingEv = data.history.some(r => r.ebit != null && r.ebit > 0 && (r.ev == null || r.ev <= 0));
+      const reason = hasNegEbit
+        ? "Normalized EBIT is negative across all years — the business is not sustaining its capital structure."
+        : missingEv
+        ? "Historical enterprise value data could not be computed for sufficient years."
+        : "Insufficient operating history data.";
+      return { incalculable: true as const, reason };
     }
 
-    const evEbitRatios = validRows.map((r: EvEbitHistoryRow) => data.currentEv! / r.ebit!);
+    const evEbitRatios = validRows.map((r: EvEbitHistoryRow) => r.ev! / r.ebit!);
     const avgEvEbit = evEbitRatios.reduce((a: number, b: number) => a + b, 0) / evEbitRatios.length;
 
     const revenues = validRows.map((r: EvEbitHistoryRow) => r.revenue!);
@@ -74,7 +85,10 @@ export default function EvEbitModel({ data, currentPrice }: Props) {
     const normalizedEbit = normalizedRevenue * normalizedMargin;
 
     if (normalizedEbit <= 0) {
-      return { incalculable: true as const, reason: "Normalized EBIT is negative — the business is not sustaining its capital structure on average." };
+      return {
+        incalculable: true as const,
+        reason: "Normalized EBIT is negative — the business is not sustaining its capital structure on average.",
+      };
     }
 
     const targetEv = normalizedEbit * avgEvEbit;
@@ -142,7 +156,8 @@ export default function EvEbitModel({ data, currentPrice }: Props) {
                       <th className="text-right py-2 font-medium text-muted-foreground">Revenue</th>
                       <th className="text-right py-2 font-medium text-muted-foreground">EBIT</th>
                       <th className="text-right py-2 font-medium text-muted-foreground">Op. Margin</th>
-                      <th className="text-right py-2 font-medium text-muted-foreground">EV/EBIT*</th>
+                      <th className="text-right py-2 font-medium text-muted-foreground">Hist. EV</th>
+                      <th className="text-right py-2 font-medium text-muted-foreground">EV/EBIT</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -152,8 +167,8 @@ export default function EvEbitModel({ data, currentPrice }: Props) {
                           ? row.ebit / row.revenue
                           : null;
                       const evEbit =
-                        data.currentEv != null && row.ebit != null && row.ebit > 0
-                          ? data.currentEv / row.ebit
+                        row.ev != null && row.ebit != null && row.ebit > 0
+                          ? row.ev / row.ebit
                           : null;
                       const isNeg = row.ebit != null && row.ebit <= 0;
                       return (
@@ -164,8 +179,15 @@ export default function EvEbitModel({ data, currentPrice }: Props) {
                             {fmtB(row.ebit ?? null)}
                           </td>
                           <td className="py-2 text-right">{pct(margin)}</td>
+                          <td className="py-2 text-right font-mono text-muted-foreground text-xs">
+                            {row.ev != null ? fmtB(row.ev) : "—"}
+                          </td>
                           <td className="py-2 text-right font-mono">
-                            {evEbit != null ? evEbit.toFixed(1) + "×" : isNeg ? <span className="text-destructive text-xs">N/A (neg)</span> : "—"}
+                            {evEbit != null
+                              ? evEbit.toFixed(1) + "×"
+                              : isNeg
+                              ? <span className="text-destructive text-xs">N/A (neg)</span>
+                              : "—"}
                           </td>
                         </tr>
                       );
@@ -174,9 +196,8 @@ export default function EvEbitModel({ data, currentPrice }: Props) {
                 </table>
               </div>
               <p className="text-xs text-muted-foreground mt-3">
-                * EV/EBIT uses <strong>current</strong> Enterprise Value of{" "}
-                {data.currentEv != null ? `$${(data.currentEv / 1e9).toFixed(0)}B` : "N/A"} applied to each year's EBIT.
-                Historical EV data is not available from public APIs; using current EV is a standard approximation.
+                Historical EV = (fiscal year-end stock price × diluted shares) + total debt − cash.
+                Stock price is sourced from the monthly close matching the company's fiscal year-end month.
               </p>
             </CardContent>
           </Card>
@@ -202,9 +223,9 @@ export default function EvEbitModel({ data, currentPrice }: Props) {
                 {[
                   {
                     step: "1",
-                    label: "Average EV/EBIT Multiple",
+                    label: "Average Historical EV/EBIT Multiple",
                     value: `${result.avgEvEbit.toFixed(1)}×`,
-                    note: `Mean of the ${result.validRows.length} year(s) with positive EBIT. This is the "normalized" valuation multiple the market has historically applied to this company's operating earnings.`,
+                    note: `Mean of the ${result.validRows.length} year(s) with positive EBIT and available historical EV data. Each year's EV is computed from that year's fiscal year-end stock price × diluted shares, adjusted for net cash/debt. This reflects the actual multiple investors paid over the period.`,
                   },
                   {
                     step: "2",
@@ -228,13 +249,13 @@ export default function EvEbitModel({ data, currentPrice }: Props) {
                     step: "5",
                     label: "Target Enterprise Value",
                     value: fmtB(result.targetEv),
-                    note: "Normalized EBIT × Average EV/EBIT multiple. The estimated fair total enterprise value for the business.",
+                    note: "Normalized EBIT × Average EV/EBIT multiple. The estimated fair total enterprise value for the business based on normalized earnings power.",
                   },
                   {
                     step: "6",
-                    label: "Net Debt & Adjustments",
+                    label: "Net Debt & Adjustments (current)",
                     value: fmtB(result.totalDebt - result.cash + result.minorityInterest + result.preferredStock),
-                    note: `Total Debt (${fmtB(result.totalDebt)}) − Cash (${fmtB(result.cash)}) + Minority Interest + Preferred Stock. These claims rank ahead of common equity holders.`,
+                    note: `Current Total Debt (${fmtB(result.totalDebt)}) − Cash (${fmtB(result.cash)}) + Minority Interest + Preferred Stock. These current claims are subtracted because they rank ahead of common equity holders.`,
                   },
                   {
                     step: "7",
@@ -246,7 +267,7 @@ export default function EvEbitModel({ data, currentPrice }: Props) {
                     step: "8",
                     label: "Intrinsic Value Per Share",
                     value: fmt(result.perShare),
-                    note: `Intrinsic Equity Value ÷ ${data.sharesOutstanding != null ? `${(data.sharesOutstanding / 1e9).toFixed(2)}B` : "N/A"} shares outstanding.`,
+                    note: `Intrinsic Equity Value ÷ ${data.sharesOutstanding != null ? `${(data.sharesOutstanding / 1e9).toFixed(2)}B` : "N/A"} current shares outstanding.`,
                   },
                 ].map(({ step, label, value, note }) => (
                   <div key={step} className="flex gap-3 p-3 rounded-lg border border-border bg-muted/20">
@@ -341,7 +362,7 @@ export default function EvEbitModel({ data, currentPrice }: Props) {
                 <strong>CapEx Trap:</strong> A cheap EV/EBIT can be misleading if the company requires massive ongoing capital expenditure. Check the cash flow statement — if FCF is significantly below EBIT, depreciation may not reflect real economic costs.
               </NoteBox>
               <InfoBox>
-                <strong>EV/EBIT vs. EV/EBITDA:</strong> Unlike EBITDA, EBIT includes depreciation & amortization. For asset-heavy businesses, this distinction matters — EBITDA overstates earnings power when capex is high.
+                <strong>Historical EV methodology:</strong> Each year's Enterprise Value is computed as fiscal year-end stock price × diluted shares + net debt. The stock price is matched to the company's fiscal year-end month for accuracy.
               </InfoBox>
             </CardContent>
           </Card>

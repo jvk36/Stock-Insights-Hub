@@ -16,6 +16,7 @@ import Financials from "@/components/stock/Financials";
 import InsiderTransactions from "@/components/stock/InsiderTransactions";
 import FundamentalSummary from "@/components/stock/FundamentalSummary";
 import AnalysisTab from "@/components/stock/AnalysisTab";
+import ModelsTab from "@/components/stock/ModelsTab";
 
 export default function StockDetail() {
   const { symbol } = useParams();
@@ -94,10 +95,11 @@ export default function StockDetail() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="bg-card border border-border h-auto p-1 grid grid-cols-4 md:grid-cols-8 lg:inline-flex w-full lg:w-auto overflow-x-auto">
+          <TabsList className="bg-card border border-border h-auto p-1 flex flex-wrap gap-0.5 w-full lg:w-auto lg:inline-flex lg:flex-nowrap overflow-x-auto">
             <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
             <TabsTrigger value="fundamentals" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Fundamentals</TabsTrigger>
             <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Analysis</TabsTrigger>
+            <TabsTrigger value="models" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Models</TabsTrigger>
             <TabsTrigger value="financials" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Financials</TabsTrigger>
             <TabsTrigger value="news" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">News</TabsTrigger>
             <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Profile</TabsTrigger>
@@ -123,6 +125,10 @@ export default function StockDetail() {
 
             <TabsContent value="analysis" className="mt-0">
               <AnalysisTab symbol={symbol!} />
+            </TabsContent>
+
+            <TabsContent value="models" className="mt-0">
+              <ModelsTab symbol={symbol!} />
             </TabsContent>
 
             <TabsContent value="financials" className="mt-0">

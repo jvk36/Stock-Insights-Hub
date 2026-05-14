@@ -350,6 +350,54 @@ export const GetStockAnalysisResponse = zod.object({
 });
 
 /**
+ * @summary Get raw data for valuation models (Graham, EV/EBIT, DDM)
+ */
+export const GetStockModelsParams = zod.object({
+  symbol: zod.coerce.string(),
+});
+
+export const GetStockModelsResponse = zod.object({
+  graham: zod.object({
+    epsHistory: zod.array(
+      zod.object({
+        year: zod.string(),
+        eps: zod.number().nullish(),
+      }),
+    ),
+    currentPrice: zod.number().nullish(),
+    trailingEps: zod.number().nullish(),
+  }),
+  evEbit: zod.object({
+    history: zod.array(
+      zod.object({
+        year: zod.string(),
+        ebit: zod.number().nullish(),
+        revenue: zod.number().nullish(),
+        totalDebt: zod.number().nullish(),
+        cash: zod.number().nullish(),
+        minorityInterest: zod.number().nullish(),
+      }),
+    ),
+    currentEv: zod.number().nullish(),
+    sharesOutstanding: zod.number().nullish(),
+  }),
+  ddm: zod.object({
+    dividendHistory: zod.array(
+      zod.object({
+        year: zod.string(),
+        dps: zod.number(),
+        eps: zod.number().nullish(),
+      }),
+    ),
+    beta: zod.number().nullish(),
+    currentPrice: zod.number().nullish(),
+    trailingEps: zod.number().nullish(),
+    payoutRatio: zod.number().nullish(),
+    trailingDividendRate: zod.number().nullish(),
+  }),
+});
+
+/**
  * @summary Get SEC filings for a company
  */
 export const GetSecFilingsParams = zod.object({

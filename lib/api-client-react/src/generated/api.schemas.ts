@@ -194,6 +194,53 @@ export interface FundamentalSummary {
   qualitative: FundamentalSummaryQualitative;
 }
 
+export interface GrahamEpsRow {
+  year: string;
+  eps?: number | null;
+}
+
+export interface EvEbitHistoryRow {
+  year: string;
+  ebit?: number | null;
+  revenue?: number | null;
+  totalDebt?: number | null;
+  cash?: number | null;
+  minorityInterest?: number | null;
+}
+
+export interface DdmDividendRow {
+  year: string;
+  dps: number;
+  eps?: number | null;
+}
+
+export interface GrahamData {
+  epsHistory: GrahamEpsRow[];
+  currentPrice?: number | null;
+  trailingEps?: number | null;
+}
+
+export interface EvEbitData {
+  history: EvEbitHistoryRow[];
+  currentEv?: number | null;
+  sharesOutstanding?: number | null;
+}
+
+export interface DdmData {
+  dividendHistory: DdmDividendRow[];
+  beta?: number | null;
+  currentPrice?: number | null;
+  trailingEps?: number | null;
+  payoutRatio?: number | null;
+  trailingDividendRate?: number | null;
+}
+
+export interface StockModels {
+  graham: GrahamData;
+  evEbit: EvEbitData;
+  ddm: DdmData;
+}
+
 export interface DcfInputs {
   freeCashFlow?: number | null;
   sharesOutstanding?: number | null;

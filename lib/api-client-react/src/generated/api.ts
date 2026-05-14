@@ -27,6 +27,7 @@ import type {
   NewsResponse,
   SecFilingsResponse,
   StockAnalysis,
+  StockModels,
   StockQuote,
 } from "./api.schemas";
 
@@ -957,6 +958,93 @@ export function useGetStockAnalysis<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetStockAnalysisQueryOptions(symbol, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get raw data for valuation models (Graham, EV/EBIT, DDM)
+ */
+export const getGetStockModelsUrl = (symbol: string) => {
+  return `/api/stock/${symbol}/models`;
+};
+
+export const getStockModels = async (
+  symbol: string,
+  options?: RequestInit,
+): Promise<StockModels> => {
+  return customFetch<StockModels>(getGetStockModelsUrl(symbol), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetStockModelsQueryKey = (symbol: string) => {
+  return [`/api/stock/${symbol}/models`] as const;
+};
+
+export const getGetStockModelsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getStockModels>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStockModels>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetStockModelsQueryKey(symbol);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getStockModels>>> = ({
+    signal,
+  }) => getStockModels(symbol, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!symbol,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getStockModels>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetStockModelsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getStockModels>>
+>;
+export type GetStockModelsQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get raw data for valuation models (Graham, EV/EBIT, DDM)
+ */
+
+export function useGetStockModels<
+  TData = Awaited<ReturnType<typeof getStockModels>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStockModels>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetStockModelsQueryOptions(symbol, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

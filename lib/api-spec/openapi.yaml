@@ -266,6 +266,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /stock/{symbol}/models:
+    get:
+      operationId: getStockModels
+      tags: [stock]
+      summary: Get raw data for valuation models (Graham, EV/EBIT, DDM)
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Valuation model input data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockModels"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /stock/{symbol}/sec-filings:
     get:
       operationId: getSecFilings
@@ -782,6 +807,125 @@ components:
         - valuation
         - solvency
         - qualitative
+
+    GrahamEpsRow:
+      type: object
+      properties:
+        year:
+          type: string
+        eps:
+          type: number
+          nullable: true
+      required:
+        - year
+
+    EvEbitHistoryRow:
+      type: object
+      properties:
+        year:
+          type: string
+        ebit:
+          type: number
+          nullable: true
+        revenue:
+          type: number
+          nullable: true
+        totalDebt:
+          type: number
+          nullable: true
+        cash:
+          type: number
+          nullable: true
+        minorityInterest:
+          type: number
+          nullable: true
+      required:
+        - year
+
+    DdmDividendRow:
+      type: object
+      properties:
+        year:
+          type: string
+        dps:
+          type: number
+        eps:
+          type: number
+          nullable: true
+      required:
+        - year
+        - dps
+
+    GrahamData:
+      type: object
+      properties:
+        epsHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/GrahamEpsRow"
+        currentPrice:
+          type: number
+          nullable: true
+        trailingEps:
+          type: number
+          nullable: true
+      required:
+        - epsHistory
+
+    EvEbitData:
+      type: object
+      properties:
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvEbitHistoryRow"
+        currentEv:
+          type: number
+          nullable: true
+        sharesOutstanding:
+          type: number
+          nullable: true
+      required:
+        - history
+
+    DdmData:
+      type: object
+      properties:
+        dividendHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/DdmDividendRow"
+        beta:
+          type: number
+          nullable: true
+        currentPrice:
+          type: number
+          nullable: true
+        trailingEps:
+          type: number
+          nullable: true
+        payoutRatio:
+          type: number
+          nullable: true
+        trailingDividendRate:
+          type: number
+          nullable: true
+      required:
+        - dividendHistory
+
+    StockModels:
+      type: object
+      properties:
+        graham:
+          $ref: "#/components/schemas/GrahamData"
+        evEbit:
+          $ref: "#/components/schemas/EvEbitData"
+        ddm:
+          $ref: "#/components/schemas/DdmData"
+      required:
+        - graham
+        - evEbit
+        - ddm
 
     DcfInputs:
       type: object

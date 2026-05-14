@@ -13,6 +13,7 @@ import {
   GetInsiderTransactionsParams,
   GetStockFundamentalsParams,
   GetStockAnalysisParams,
+  GetStockModelsParams,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -1418,6 +1419,187 @@ router.get("/stock/:symbol/analysis", async (req, res): Promise<void> => {
     res
       .status(500)
       .json({ error: "server_error", message: "Failed to fetch analysis" });
+  }
+});
+
+router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
+  const { symbol } = GetStockModelsParams.parse(req.params);
+  try {
+    const tenYearsAgo = new Date();
+    tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
+    const fiveYearsAgo = new Date();
+    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+    const sevenYearsAgo = new Date();
+    sevenYearsAgo.setFullYear(sevenYearsAgo.getFullYear() - 7);
+
+    const [income10yr, balance5yr, dividends, summary] = await Promise.all([
+      yahooFinance.fundamentalsTimeSeries(symbol, {
+        type: "annual",
+        module: "financials",
+        period1: tenYearsAgo,
+      }),
+      yahooFinance.fundamentalsTimeSeries(symbol, {
+        type: "annual",
+        module: "balance-sheet",
+        period1: fiveYearsAgo,
+      }),
+      yahooFinance
+        .chart(symbol, {
+          period1: sevenYearsAgo,
+          period2: new Date(),
+          interval: "1mo",
+          events: "div",
+        })
+        .catch(() => null),
+      yahooFinance.quoteSummary(symbol, {
+        modules: ["financialData", "defaultKeyStatistics", "summaryDetail", "price"],
+      }),
+    ]);
+
+    function yearOf(item: Record<string, unknown>): string | null {
+      const d = item["date"] ?? item["asOfDate"];
+      if (!d) return null;
+      if (d instanceof Date) return String(d.getFullYear());
+      return String(d).substring(0, 4);
+    }
+
+    const sharesOutstanding =
+      (summary.defaultKeyStatistics?.sharesOutstanding ?? null) as
+        | number
+        | null;
+
+    // --- Graham: EPS history (up to 10 years) ---
+    const epsHistory = income10yr
+      .map((row) => {
+        const raw = row as unknown as Record<string, unknown>;
+        const year = yearOf(raw);
+        if (!year) return null;
+        const dilutedEPS = (raw["dilutedEPS"] as number | undefined) ?? null;
+        const netIncome = (raw["netIncome"] as number | undefined) ?? null;
+        const eps =
+          dilutedEPS ??
+          (netIncome != null &&
+          sharesOutstanding != null &&
+          sharesOutstanding > 0
+            ? netIncome / sharesOutstanding
+            : null);
+        return { year, eps };
+      })
+      .filter((r): r is { year: string; eps: number | null } => r !== null)
+      .sort((a, b) => a.year.localeCompare(b.year));
+
+    // --- EV/EBIT: 5-year income + balance history ---
+    type RawMap = Record<string, Record<string, unknown>>;
+    const incomeMap5: RawMap = {};
+    for (const row of income10yr.slice(-5)) {
+      const raw = row as unknown as Record<string, unknown>;
+      const y = yearOf(raw);
+      if (y) incomeMap5[y] = raw;
+    }
+    const balanceMap5: RawMap = {};
+    for (const row of balance5yr) {
+      const raw = row as unknown as Record<string, unknown>;
+      const y = yearOf(raw);
+      if (y) balanceMap5[y] = raw;
+    }
+    const evEbitYears = [
+      ...new Set([...Object.keys(incomeMap5), ...Object.keys(balanceMap5)]),
+    ].sort();
+    const evEbitHistory = evEbitYears.map((year) => {
+      const inc = incomeMap5[year] ?? {};
+      const bal = balanceMap5[year] ?? {};
+      return {
+        year,
+        ebit: (inc["operatingIncome"] as number | undefined) ?? null,
+        revenue: (inc["totalRevenue"] as number | undefined) ?? null,
+        totalDebt: (bal["totalDebt"] as number | undefined) ?? null,
+        cash: (bal["cashAndCashEquivalents"] as number | undefined) ?? null,
+        minorityInterest:
+          (bal["minorityInterest"] as number | undefined) ?? null,
+      };
+    });
+    const currentEv =
+      (summary.defaultKeyStatistics?.enterpriseValue ?? null) as
+        | number
+        | null;
+
+    // --- DDM: dividend history grouped by year ---
+    const epsMap: Record<string, number | null> = {};
+    for (const row of income10yr.slice(-6)) {
+      const raw = row as unknown as Record<string, unknown>;
+      const y = yearOf(raw);
+      if (!y) continue;
+      const dilutedEPS = (raw["dilutedEPS"] as number | undefined) ?? null;
+      const netIncome = (raw["netIncome"] as number | undefined) ?? null;
+      epsMap[y] =
+        dilutedEPS ??
+        (netIncome != null && sharesOutstanding != null && sharesOutstanding > 0
+          ? netIncome / sharesOutstanding
+          : null);
+    }
+
+    const dividendByYear: Record<string, number> = {};
+    const divEvents = dividends?.events?.dividends ?? {};
+    for (const entry of Object.values(divEvents)) {
+      const raw = entry as unknown as Record<string, unknown>;
+      const dateVal = raw["date"];
+      const amount = raw["amount"] as number | undefined;
+      if (amount != null) {
+        let year: string | null = null;
+        if (dateVal instanceof Date) year = String(dateVal.getFullYear());
+        else if (typeof dateVal === "string") year = dateVal.substring(0, 4);
+        if (year) dividendByYear[year] = (dividendByYear[year] ?? 0) + amount;
+      }
+    }
+
+    const ddmDividendHistory = Object.keys(dividendByYear)
+      .sort()
+      .map((year) => ({
+        year,
+        dps: dividendByYear[year],
+        eps: epsMap[year] ?? null,
+      }));
+
+    const beta = (summary.defaultKeyStatistics?.beta ?? null) as
+      | number
+      | null;
+    const currentPrice = (summary.price?.regularMarketPrice ?? null) as
+      | number
+      | null;
+    const trailingEps = (summary.defaultKeyStatistics?.trailingEps ?? null) as
+      | number
+      | null;
+    const payoutRatio = (summary.summaryDetail?.payoutRatio ?? null) as
+      | number
+      | null;
+    const trailingDividendRate = (summary.defaultKeyStatistics
+      ?.trailingAnnualDividendRate ?? null) as number | null;
+
+    res.json({
+      graham: {
+        epsHistory,
+        currentPrice,
+        trailingEps,
+      },
+      evEbit: {
+        history: evEbitHistory,
+        currentEv,
+        sharesOutstanding,
+      },
+      ddm: {
+        dividendHistory: ddmDividendHistory,
+        beta,
+        currentPrice,
+        trailingEps,
+        payoutRatio,
+        trailingDividendRate,
+      },
+    });
+  } catch (err: unknown) {
+    req.log.error({ err, symbol }, "Failed to fetch models data");
+    res
+      .status(500)
+      .json({ error: "server_error", message: "Failed to fetch models data" });
   }
 });
 

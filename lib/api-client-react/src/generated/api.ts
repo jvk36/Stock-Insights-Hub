@@ -19,11 +19,14 @@ import type {
   CompanyProfile,
   EarningsHistoryResponse,
   FinancialStatements,
+  FredObservationsResponse,
   FundamentalSummary,
+  GetMacroSeriesObservationsParams,
   GetStockChartParams,
   GetStockFinancialsParams,
   HealthStatus,
   InsiderTransactionsResponse,
+  MacroIndicatorsResponse,
   NewsResponse,
   ScreenerData,
   SecFilingsResponse,
@@ -1224,6 +1227,202 @@ export function useGetStockIndicators<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetStockIndicatorsQueryOptions(symbol, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get latest values for all macro economic indicators
+ */
+export const getGetMacroIndicatorsUrl = () => {
+  return `/api/macro/indicators`;
+};
+
+export const getMacroIndicators = async (
+  options?: RequestInit,
+): Promise<MacroIndicatorsResponse> => {
+  return customFetch<MacroIndicatorsResponse>(getGetMacroIndicatorsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMacroIndicatorsQueryKey = () => {
+  return [`/api/macro/indicators`] as const;
+};
+
+export const getGetMacroIndicatorsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMacroIndicators>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMacroIndicators>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMacroIndicatorsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMacroIndicators>>
+  > = ({ signal }) => getMacroIndicators({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMacroIndicators>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMacroIndicatorsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMacroIndicators>>
+>;
+export type GetMacroIndicatorsQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get latest values for all macro economic indicators
+ */
+
+export function useGetMacroIndicators<
+  TData = Awaited<ReturnType<typeof getMacroIndicators>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMacroIndicators>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMacroIndicatorsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get historical observations for a FRED series (for charts)
+ */
+export const getGetMacroSeriesObservationsUrl = (
+  seriesId: string,
+  params?: GetMacroSeriesObservationsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/macro/series/${seriesId}/observations?${stringifiedParams}`
+    : `/api/macro/series/${seriesId}/observations`;
+};
+
+export const getMacroSeriesObservations = async (
+  seriesId: string,
+  params?: GetMacroSeriesObservationsParams,
+  options?: RequestInit,
+): Promise<FredObservationsResponse> => {
+  return customFetch<FredObservationsResponse>(
+    getGetMacroSeriesObservationsUrl(seriesId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetMacroSeriesObservationsQueryKey = (
+  seriesId: string,
+  params?: GetMacroSeriesObservationsParams,
+) => {
+  return [
+    `/api/macro/series/${seriesId}/observations`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetMacroSeriesObservationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMacroSeriesObservations>>,
+  TError = ErrorType<ApiError>,
+>(
+  seriesId: string,
+  params?: GetMacroSeriesObservationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMacroSeriesObservations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGetMacroSeriesObservationsQueryKey(seriesId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMacroSeriesObservations>>
+  > = ({ signal }) =>
+    getMacroSeriesObservations(seriesId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!seriesId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMacroSeriesObservations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMacroSeriesObservationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMacroSeriesObservations>>
+>;
+export type GetMacroSeriesObservationsQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get historical observations for a FRED series (for charts)
+ */
+
+export function useGetMacroSeriesObservations<
+  TData = Awaited<ReturnType<typeof getMacroSeriesObservations>>,
+  TError = ErrorType<ApiError>,
+>(
+  seriesId: string,
+  params?: GetMacroSeriesObservationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMacroSeriesObservations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMacroSeriesObservationsQueryOptions(
+    seriesId,
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

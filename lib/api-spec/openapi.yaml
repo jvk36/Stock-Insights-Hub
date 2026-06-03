@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: stock
     description: Stock data operations
+  - name: macro
+    description: Macroeconomic indicator operations
 paths:
   /healthz:
     get:
@@ -336,6 +338,63 @@ paths:
                 $ref: "#/components/schemas/StockIndicators"
         "404":
           description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /macro/indicators:
+    get:
+      operationId: getMacroIndicators
+      tags: [macro]
+      summary: Get latest values for all macro economic indicators
+      responses:
+        "200":
+          description: Macro indicators with latest values and signals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MacroIndicatorsResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /macro/series/{seriesId}/observations:
+    get:
+      operationId: getMacroSeriesObservations
+      tags: [macro]
+      summary: Get historical observations for a FRED series (for charts)
+      parameters:
+        - name: seriesId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: units
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [lin, chg, ch1, pch, pc1, pca, cch, cca, log]
+            default: lin
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 120
+      responses:
+        "200":
+          description: Series observations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FredObservationsResponse"
+        "500":
+          description: Server error
           content:
             application/json:
               schema:
@@ -1365,6 +1424,113 @@ components:
           nullable: true
       required:
         - symbol
+
+    MacroIndicator:
+      type: object
+      properties:
+        id:
+          type: string
+        seriesId:
+          type: string
+        title:
+          type: string
+        value:
+          type: number
+          nullable: true
+        date:
+          type: string
+          nullable: true
+        unitsLabel:
+          type: string
+        chartUnits:
+          type: string
+        source:
+          type: string
+        frequency:
+          type: string
+        category:
+          type: string
+        type:
+          type: string
+          nullable: true
+        whyItMatters:
+          type: string
+          nullable: true
+        signal:
+          type: string
+          nullable: true
+        signalLabel:
+          type: string
+          nullable: true
+        explanation:
+          type: string
+          nullable: true
+      required:
+        - id
+        - seriesId
+        - title
+        - unitsLabel
+        - chartUnits
+        - source
+        - frequency
+        - category
+
+    MarketCycle:
+      type: object
+      properties:
+        phase:
+          type: string
+        confidence:
+          type: number
+      required:
+        - phase
+        - confidence
+
+    MacroIndicatorsResponse:
+      type: object
+      properties:
+        indicators:
+          type: array
+          items:
+            $ref: "#/components/schemas/MacroIndicator"
+        marketCycle:
+          $ref: "#/components/schemas/MarketCycle"
+        fetchedAt:
+          type: string
+      required:
+        - indicators
+        - marketCycle
+        - fetchedAt
+
+    FredObservation:
+      type: object
+      properties:
+        date:
+          type: string
+        value:
+          type: number
+          nullable: true
+      required:
+        - date
+
+    FredObservationsResponse:
+      type: object
+      properties:
+        seriesId:
+          type: string
+        title:
+          type: string
+        unitsLabel:
+          type: string
+        observations:
+          type: array
+          items:
+            $ref: "#/components/schemas/FredObservation"
+      required:
+        - seriesId
+        - title
+        - unitsLabel
+        - observations
 
     SecFilingsResponse:
       type: object

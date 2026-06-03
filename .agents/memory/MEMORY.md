@@ -1,1 +1,2 @@
 - [Yahoo Finance module quirks](yahoo-finance-module-quirks.md) — key gotchas for yahoo-finance2 v3 field names, units, and availability
+- [FRED API rate limiting on Replit](fred-rate-limit.md) — Akamai CDN burst-limits FRED requests; batched enrichment strategy

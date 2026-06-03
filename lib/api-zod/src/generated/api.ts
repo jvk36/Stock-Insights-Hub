@@ -523,6 +523,67 @@ export const GetStockIndicatorsResponse = zod.object({
 });
 
 /**
+ * @summary Get latest values for all macro economic indicators
+ */
+export const GetMacroIndicatorsResponse = zod.object({
+  indicators: zod.array(
+    zod.object({
+      id: zod.string(),
+      seriesId: zod.string(),
+      title: zod.string(),
+      value: zod.number().nullish(),
+      date: zod.string().nullish(),
+      unitsLabel: zod.string(),
+      chartUnits: zod.string(),
+      source: zod.string(),
+      frequency: zod.string(),
+      category: zod.string(),
+      type: zod.string().nullish(),
+      whyItMatters: zod.string().nullish(),
+      signal: zod.string().nullish(),
+      signalLabel: zod.string().nullish(),
+      explanation: zod.string().nullish(),
+    }),
+  ),
+  marketCycle: zod.object({
+    phase: zod.string(),
+    confidence: zod.number(),
+  }),
+  fetchedAt: zod.string(),
+});
+
+/**
+ * @summary Get historical observations for a FRED series (for charts)
+ */
+export const GetMacroSeriesObservationsParams = zod.object({
+  seriesId: zod.coerce.string(),
+});
+
+export const getMacroSeriesObservationsQueryUnitsDefault = `lin`;
+export const getMacroSeriesObservationsQueryLimitDefault = 120;
+
+export const GetMacroSeriesObservationsQueryParams = zod.object({
+  units: zod
+    .enum(["lin", "chg", "ch1", "pch", "pc1", "pca", "cch", "cca", "log"])
+    .default(getMacroSeriesObservationsQueryUnitsDefault),
+  limit: zod.coerce
+    .number()
+    .default(getMacroSeriesObservationsQueryLimitDefault),
+});
+
+export const GetMacroSeriesObservationsResponse = zod.object({
+  seriesId: zod.string(),
+  title: zod.string(),
+  unitsLabel: zod.string(),
+  observations: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number().nullish(),
+    }),
+  ),
+});
+
+/**
  * @summary Get SEC filings for a company
  */
 export const GetSecFilingsParams = zod.object({

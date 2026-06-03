@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { warmMacroCache } from "./routes/macro";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +23,7 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // Pre-warm macro indicators cache in background so first user request is fast
+  warmMacroCache().catch(() => { /* non-fatal */ });
 });

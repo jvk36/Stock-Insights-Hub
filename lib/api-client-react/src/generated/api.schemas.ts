@@ -393,6 +393,47 @@ export interface StockIndicators {
   impliedVolatility?: number | null;
 }
 
+export interface MacroIndicator {
+  id: string;
+  seriesId: string;
+  title: string;
+  value?: number | null;
+  date?: string | null;
+  unitsLabel: string;
+  chartUnits: string;
+  source: string;
+  frequency: string;
+  category: string;
+  type?: string | null;
+  whyItMatters?: string | null;
+  signal?: string | null;
+  signalLabel?: string | null;
+  explanation?: string | null;
+}
+
+export interface MarketCycle {
+  phase: string;
+  confidence: number;
+}
+
+export interface MacroIndicatorsResponse {
+  indicators: MacroIndicator[];
+  marketCycle: MarketCycle;
+  fetchedAt: string;
+}
+
+export interface FredObservation {
+  date: string;
+  value?: number | null;
+}
+
+export interface FredObservationsResponse {
+  seriesId: string;
+  title: string;
+  unitsLabel: string;
+  observations: FredObservation[];
+}
+
 export interface SecFilingsResponse {
   symbol: string;
   cik?: string | null;
@@ -428,4 +469,24 @@ export type GetStockFinancialsPeriod =
 export const GetStockFinancialsPeriod = {
   quarterly: "quarterly",
   annual: "annual",
+} as const;
+
+export type GetMacroSeriesObservationsParams = {
+  units?: GetMacroSeriesObservationsUnits;
+  limit?: number;
+};
+
+export type GetMacroSeriesObservationsUnits =
+  (typeof GetMacroSeriesObservationsUnits)[keyof typeof GetMacroSeriesObservationsUnits];
+
+export const GetMacroSeriesObservationsUnits = {
+  lin: "lin",
+  chg: "chg",
+  ch1: "ch1",
+  pch: "pch",
+  pc1: "pc1",
+  pca: "pca",
+  cch: "cch",
+  cca: "cca",
+  log: "log",
 } as const;

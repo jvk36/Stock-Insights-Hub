@@ -341,6 +341,43 @@ export interface SecFiling {
   documentUrl?: string | null;
 }
 
+export interface ScreenerData {
+  symbol: string;
+  /** Annualized EPS CAGR using available annual history (%) */
+  epsGrowth5yr?: number | null;
+  pegRatio?: number | null;
+  forwardPE?: number | null;
+  /** 3-year annualized revenue CAGR (%) */
+  revenueGrowth3yr?: number | null;
+  priceToBook?: number | null;
+  evToEbitda?: number | null;
+  /** Free cash flow yield (%) */
+  fcfYield?: number | null;
+  trailingPE?: number | null;
+  /** 52-week price return (%) */
+  return52w?: number | null;
+  /** S&P 500 52-week change (%) */
+  sp52wChange?: number | null;
+  /** 3-month price return (%) */
+  return3m?: number | null;
+  /** 1-month price return (%) */
+  return1m?: number | null;
+  /** Return on equity (%) */
+  returnOnEquity?: number | null;
+  /** Gross margin (%) */
+  grossMargin?: number | null;
+  /** Debt-to-equity ratio */
+  debtToEquity?: number | null;
+  /** Operating margin (%) */
+  operatingMargin?: number | null;
+  /** Trailing dividend yield (%) */
+  dividendYield?: number | null;
+  /** Dividend payout ratio (%) */
+  payoutRatio?: number | null;
+  /** 5-year average dividend yield (%) */
+  fiveYearAvgDividendYield?: number | null;
+}
+
 export interface StockIndicators {
   symbol: string;
   forwardPE?: number | null;

@@ -44,6 +44,7 @@ export * from "./newsItem";
 export * from "./newsResponse";
 export * from "./ownersEarningsData";
 export * from "./rivData";
+export * from "./screenerData";
 export * from "./secFiling";
 export * from "./secFilingsResponse";
 export * from "./stockAnalysis";

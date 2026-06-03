@@ -1,0 +1,1 @@
+- [Yahoo Finance module quirks](yahoo-finance-module-quirks.md) — key gotchas for yahoo-finance2 v3 field names, units, and availability

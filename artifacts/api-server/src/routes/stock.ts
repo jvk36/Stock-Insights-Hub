@@ -15,6 +15,7 @@ import {
   GetStockAnalysisParams,
   GetStockModelsParams,
   GetStockIndicatorsParams,
+  GetStockScreenerRatingsParams,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -883,6 +884,199 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
   } catch (err: unknown) {
     req.log.error({ err, symbol }, "Failed to fetch insider transactions");
     res.status(500).json({ error: "server_error", message: "Failed to fetch insider transactions" });
+  }
+});
+
+router.get("/stock/:symbol/screener-ratings", async (req, res): Promise<void> => {
+  const params = GetStockScreenerRatingsParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "bad_request", message: params.error.message });
+    return;
+  }
+
+  const symbol = getSymbol(params.data.symbol);
+
+  try {
+    const [quoteData, chartResult] = await Promise.all([
+      yahooFinance.quoteSummary(symbol, {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        modules: ["price", "summaryDetail", "financialData", "defaultKeyStatistics", "incomeStatementHistory", "earnings"] as any,
+      }),
+      yahooFinance
+        .chart(symbol, {
+          period1: new Date(Date.now() - 380 * 24 * 60 * 60 * 1000),
+          interval: "1d",
+        })
+        .catch(() => null),
+    ]);
+
+    const price = quoteData.price;
+    if (!price) {
+      res.status(404).json({ error: "not_found", message: `Symbol ${symbol} not found` });
+      return;
+    }
+
+    const summary = quoteData.summaryDetail;
+    const financial = quoteData.financialData;
+    const keyStats = quoteData.defaultKeyStatistics;
+
+    // ── GARP ──────────────────────────────────────────────────────────────────
+
+    // EPS CAGR and Revenue CAGR from earnings module (earningsChart.yearly has actual EPS)
+    const earningsModule = (
+      quoteData as unknown as {
+        earnings?: {
+          earningsChart?: { yearly?: Array<{ date: number; earnings: number }> };
+          financialsChart?: { yearly?: Array<{ date: number; revenue: number; earnings: number }> };
+        };
+      }
+    ).earnings;
+
+    // Income statement history for revenue fallback
+    const stmts =
+      (
+        quoteData as unknown as {
+          incomeStatementHistory?: {
+            incomeStatementHistory?: Array<{ totalRevenue?: number | null }>;
+          };
+        }
+      ).incomeStatementHistory?.incomeStatementHistory ?? [];
+
+    // 5-yr EPS CAGR — use earningsChart.yearly (actual annual EPS)
+    let epsGrowth5yr: number | null = null;
+    const epsYearly = (earningsModule?.earningsChart?.yearly ?? [])
+      .filter((y) => y.earnings > 0)
+      .sort((a, b) => a.date - b.date);
+    if (epsYearly.length >= 2) {
+      const spanYears = epsYearly[epsYearly.length - 1].date - epsYearly[0].date;
+      if (spanYears > 0) {
+        epsGrowth5yr = parseFloat(
+          (
+            ((epsYearly[epsYearly.length - 1].earnings / epsYearly[0].earnings) ** (1 / spanYears) - 1) *
+            100
+          ).toFixed(1)
+        );
+      }
+    }
+
+    // 3-yr Revenue CAGR — prefer financialsChart.yearly, fall back to incomeStatementHistory
+    let revenueGrowth3yr: number | null = null;
+    const revYearly = (earningsModule?.financialsChart?.yearly ?? [])
+      .filter((y) => y.revenue > 0)
+      .sort((a, b) => a.date - b.date);
+    if (revYearly.length >= 2) {
+      const n = revYearly.length;
+      const startIdx = Math.max(0, n - 4); // use up to 3 years back
+      const startRev = revYearly[startIdx].revenue;
+      const endRev = revYearly[n - 1].revenue;
+      const yrsDiff = revYearly[n - 1].date - revYearly[startIdx].date;
+      if (yrsDiff > 0 && startRev > 0) {
+        revenueGrowth3yr = parseFloat(
+          (((endRev / startRev) ** (1 / yrsDiff) - 1) * 100).toFixed(1)
+        );
+      }
+    } else {
+      // Fallback: incomeStatementHistory (most-recent-first)
+      const revVals = stmts
+        .map((s) => s.totalRevenue)
+        .filter((v): v is number => v != null && v > 0);
+      if (revVals.length >= 2) {
+        const years = Math.min(revVals.length - 1, 3);
+        revenueGrowth3yr = parseFloat(
+          (((revVals[0] / revVals[years]) ** (1 / years) - 1) * 100).toFixed(1)
+        );
+      }
+    }
+
+    const pegRatio = keyStats?.pegRatio ?? null;
+    const forwardPE = summary?.forwardPE ?? null;
+
+    // ── Deep Value ────────────────────────────────────────────────────────────
+
+    const priceToBook = keyStats?.priceToBook ?? null;
+    const evToEbitda = keyStats?.enterpriseToEbitda ?? null;
+    const fcf = financial?.freeCashflow;
+    const mktCap = price.marketCap;
+    const fcfYield = fcf != null && mktCap != null && mktCap > 0
+      ? parseFloat(((fcf / mktCap) * 100).toFixed(2))
+      : null;
+    const trailingPE = summary?.trailingPE ?? null;
+
+    // ── Momentum ──────────────────────────────────────────────────────────────
+
+    const sp52wChange =
+      keyStats?.SandP52WeekChange != null
+        ? parseFloat((Number(keyStats.SandP52WeekChange) * 100).toFixed(2))
+        : null;
+
+    const quotes = (chartResult?.quotes ?? []).filter(
+      (q): q is typeof q & { close: number } => q.close != null
+    );
+    const currentClose = quotes.at(-1)?.close ?? null;
+
+    let return52w: number | null = null;
+    let return1m: number | null = null;
+    let return3m: number | null = null;
+    if (currentClose != null && quotes.length >= 2) {
+      // 52w ≈ 252 trading days; chart spans ~380 calendar days, so index ~252 from end
+      const idx52w = Math.max(0, quotes.length - 253);
+      const close52w = quotes[idx52w]?.close;
+      if (close52w) return52w = parseFloat((((currentClose / close52w) - 1) * 100).toFixed(2));
+
+      const idx1m = Math.max(0, quotes.length - 22);
+      const close1m = quotes[idx1m]?.close;
+      if (close1m) return1m = parseFloat((((currentClose / close1m) - 1) * 100).toFixed(2));
+
+      const idx3m = Math.max(0, quotes.length - 64);
+      const close3m = quotes[idx3m]?.close;
+      if (close3m) return3m = parseFloat((((currentClose / close3m) - 1) * 100).toFixed(2));
+    }
+
+    // ── Quality ───────────────────────────────────────────────────────────────
+
+    const returnOnEquity =
+      financial?.returnOnEquity != null ? parseFloat((financial.returnOnEquity * 100).toFixed(1)) : null;
+    const grossMargin =
+      financial?.grossMargins != null ? parseFloat((financial.grossMargins * 100).toFixed(1)) : null;
+    const operatingMargin =
+      financial?.operatingMargins != null ? parseFloat((financial.operatingMargins * 100).toFixed(1)) : null;
+    // debtToEquity from yahoo is percentage (163 = 1.63x), divide by 100
+    const debtToEquity =
+      financial?.debtToEquity != null ? parseFloat((financial.debtToEquity / 100).toFixed(3)) : null;
+
+    // ── Dividend Growth ───────────────────────────────────────────────────────
+
+    const dividendYield =
+      summary?.dividendYield != null ? parseFloat((summary.dividendYield * 100).toFixed(2)) : null;
+    const payoutRatio =
+      summary?.payoutRatio != null ? parseFloat((summary.payoutRatio * 100).toFixed(1)) : null;
+    const fiveYearAvgDividendYield = summary?.fiveYearAvgDividendYield ?? null;
+
+    res.json({
+      symbol,
+      epsGrowth5yr,
+      pegRatio,
+      forwardPE,
+      revenueGrowth3yr,
+      priceToBook,
+      evToEbitda,
+      fcfYield,
+      trailingPE,
+      return52w,
+      sp52wChange,
+      return1m,
+      return3m,
+      returnOnEquity,
+      grossMargin,
+      debtToEquity,
+      operatingMargin,
+      dividendYield,
+      payoutRatio,
+      fiveYearAvgDividendYield,
+    });
+  } catch (err: unknown) {
+    req.log.error({ err, symbol }, "Failed to fetch screener ratings");
+    res.status(500).json({ error: "server_error", message: "Failed to fetch screener ratings" });
   }
 });
 

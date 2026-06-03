@@ -25,6 +25,7 @@ import type {
   HealthStatus,
   InsiderTransactionsResponse,
   NewsResponse,
+  ScreenerData,
   SecFilingsResponse,
   StockAnalysis,
   StockIndicators,
@@ -1046,6 +1047,95 @@ export function useGetStockModels<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetStockModelsQueryOptions(symbol, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get raw metrics for 5-strategy screener scoring
+ */
+export const getGetStockScreenerRatingsUrl = (symbol: string) => {
+  return `/api/stock/${symbol}/screener-ratings`;
+};
+
+export const getStockScreenerRatings = async (
+  symbol: string,
+  options?: RequestInit,
+): Promise<ScreenerData> => {
+  return customFetch<ScreenerData>(getGetStockScreenerRatingsUrl(symbol), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetStockScreenerRatingsQueryKey = (symbol: string) => {
+  return [`/api/stock/${symbol}/screener-ratings`] as const;
+};
+
+export const getGetStockScreenerRatingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getStockScreenerRatings>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStockScreenerRatings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetStockScreenerRatingsQueryKey(symbol);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getStockScreenerRatings>>
+  > = ({ signal }) =>
+    getStockScreenerRatings(symbol, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!symbol,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getStockScreenerRatings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetStockScreenerRatingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getStockScreenerRatings>>
+>;
+export type GetStockScreenerRatingsQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get raw metrics for 5-strategy screener scoring
+ */
+
+export function useGetStockScreenerRatings<
+  TData = Awaited<ReturnType<typeof getStockScreenerRatings>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStockScreenerRatings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetStockScreenerRatingsQueryOptions(symbol, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

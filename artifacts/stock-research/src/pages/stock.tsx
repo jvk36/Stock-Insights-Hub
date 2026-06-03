@@ -14,6 +14,7 @@ import SecFilings from "@/components/stock/SecFilings";
 import Financials from "@/components/stock/Financials";
 import InsiderTransactions from "@/components/stock/InsiderTransactions";
 import FundamentalSummary from "@/components/stock/FundamentalSummary";
+import ScreenerRatings from "@/components/stock/ScreenerRatings";
 import AnalysisTab from "@/components/stock/AnalysisTab";
 import ModelsTab from "@/components/stock/ModelsTab";
 
@@ -120,6 +121,7 @@ export default function StockDetail() {
           <TabsList className="bg-card border border-border h-auto p-1 flex flex-wrap gap-0.5 w-full lg:w-auto lg:inline-flex lg:flex-nowrap overflow-x-auto">
             <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
             <TabsTrigger value="indicators" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Indicators</TabsTrigger>
+            <TabsTrigger value="screener" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Screener</TabsTrigger>
             <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Analysis</TabsTrigger>
             <TabsTrigger value="models" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Models</TabsTrigger>
           </TabsList>
@@ -154,6 +156,10 @@ export default function StockDetail() {
 
             <TabsContent value="indicators" className="mt-0">
               <FundamentalSummary symbol={symbol!} />
+            </TabsContent>
+
+            <TabsContent value="screener" className="mt-0">
+              <ScreenerRatings symbol={symbol!} />
             </TabsContent>
 
             <TabsContent value="analysis" className="mt-0">

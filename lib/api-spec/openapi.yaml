@@ -291,6 +291,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /stock/{symbol}/screener-ratings:
+    get:
+      operationId: getStockScreenerRatings
+      tags: [stock]
+      summary: Get raw metrics for 5-strategy screener scoring
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Raw screener metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScreenerData"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /stock/{symbol}/indicators:
     get:
       operationId: getStockIndicators
@@ -1220,6 +1245,85 @@ components:
         - description
         - filedAt
         - url
+
+    ScreenerData:
+      type: object
+      properties:
+        symbol:
+          type: string
+        epsGrowth5yr:
+          type: number
+          nullable: true
+          description: Annualized EPS CAGR using available annual history (%)
+        pegRatio:
+          type: number
+          nullable: true
+        forwardPE:
+          type: number
+          nullable: true
+        revenueGrowth3yr:
+          type: number
+          nullable: true
+          description: 3-year annualized revenue CAGR (%)
+        priceToBook:
+          type: number
+          nullable: true
+        evToEbitda:
+          type: number
+          nullable: true
+        fcfYield:
+          type: number
+          nullable: true
+          description: Free cash flow yield (%)
+        trailingPE:
+          type: number
+          nullable: true
+        return52w:
+          type: number
+          nullable: true
+          description: 52-week price return (%)
+        sp52wChange:
+          type: number
+          nullable: true
+          description: S&P 500 52-week change (%)
+        return3m:
+          type: number
+          nullable: true
+          description: 3-month price return (%)
+        return1m:
+          type: number
+          nullable: true
+          description: 1-month price return (%)
+        returnOnEquity:
+          type: number
+          nullable: true
+          description: Return on equity (%)
+        grossMargin:
+          type: number
+          nullable: true
+          description: Gross margin (%)
+        debtToEquity:
+          type: number
+          nullable: true
+          description: Debt-to-equity ratio
+        operatingMargin:
+          type: number
+          nullable: true
+          description: Operating margin (%)
+        dividendYield:
+          type: number
+          nullable: true
+          description: Trailing dividend yield (%)
+        payoutRatio:
+          type: number
+          nullable: true
+          description: Dividend payout ratio (%)
+        fiveYearAvgDividendYield:
+          type: number
+          nullable: true
+          description: 5-year average dividend yield (%)
+      required:
+        - symbol
 
     StockIndicators:
       type: object

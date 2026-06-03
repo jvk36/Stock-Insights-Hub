@@ -462,6 +462,45 @@ export const GetStockModelsResponse = zod.object({
 });
 
 /**
+ * @summary Get raw metrics for 5-strategy screener scoring
+ */
+export const GetStockScreenerRatingsParams = zod.object({
+  symbol: zod.coerce.string(),
+});
+
+export const GetStockScreenerRatingsResponse = zod.object({
+  symbol: zod.string(),
+  epsGrowth5yr: zod
+    .number()
+    .nullish()
+    .describe("Annualized EPS CAGR using available annual history (%)"),
+  pegRatio: zod.number().nullish(),
+  forwardPE: zod.number().nullish(),
+  revenueGrowth3yr: zod
+    .number()
+    .nullish()
+    .describe("3-year annualized revenue CAGR (%)"),
+  priceToBook: zod.number().nullish(),
+  evToEbitda: zod.number().nullish(),
+  fcfYield: zod.number().nullish().describe("Free cash flow yield (%)"),
+  trailingPE: zod.number().nullish(),
+  return52w: zod.number().nullish().describe("52-week price return (%)"),
+  sp52wChange: zod.number().nullish().describe("S&P 500 52-week change (%)"),
+  return3m: zod.number().nullish().describe("3-month price return (%)"),
+  return1m: zod.number().nullish().describe("1-month price return (%)"),
+  returnOnEquity: zod.number().nullish().describe("Return on equity (%)"),
+  grossMargin: zod.number().nullish().describe("Gross margin (%)"),
+  debtToEquity: zod.number().nullish().describe("Debt-to-equity ratio"),
+  operatingMargin: zod.number().nullish().describe("Operating margin (%)"),
+  dividendYield: zod.number().nullish().describe("Trailing dividend yield (%)"),
+  payoutRatio: zod.number().nullish().describe("Dividend payout ratio (%)"),
+  fiveYearAvgDividendYield: zod
+    .number()
+    .nullish()
+    .describe("5-year average dividend yield (%)"),
+});
+
+/**
  * @summary Get market signal indicators for a stock
  */
 export const GetStockIndicatorsParams = zod.object({

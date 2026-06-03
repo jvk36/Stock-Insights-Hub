@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { Search, ArrowLeft } from "lucide-react";
+import { Search, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGetStockQuote, getGetStockQuoteQueryKey } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
@@ -17,6 +16,17 @@ import InsiderTransactions from "@/components/stock/InsiderTransactions";
 import FundamentalSummary from "@/components/stock/FundamentalSummary";
 import AnalysisTab from "@/components/stock/AnalysisTab";
 import ModelsTab from "@/components/stock/ModelsTab";
+
+function SectionDivider({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-4 pt-4">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+        {children}
+      </h2>
+      <div className="flex-1 h-px bg-border" />
+    </div>
+  );
+}
 
 export default function StockDetail() {
   const { symbol } = useParams();
@@ -40,20 +50,32 @@ export default function StockDetail() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* Header / Nav */}
+      {/* Ribbon */}
       <header className="border-b border-border bg-card sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="shrink-0 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-6">
+          {/* Logo */}
+          <div className="flex items-center gap-2 shrink-0">
+            <TrendingUp className="w-5 h-5 text-primary" />
+            <span className="font-bold text-foreground tracking-tight">Terminal</span>
+          </div>
 
-          <form onSubmit={handleSearch} className="relative max-w-sm w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          {/* Nav menu */}
+          <nav className="flex items-center gap-1">
+            <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
+              Stock Analysis
+            </span>
+          </nav>
+
+          <div className="flex-1" />
+
+          {/* Symbol search */}
+          <form onSubmit={handleSearch} className="relative w-44">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value.toUpperCase())}
-              placeholder="Search symbol..."
-              className="w-full pl-9 bg-background border-border font-mono h-9 uppercase"
+              placeholder="Symbol…"
+              className="w-full pl-9 bg-background border-border font-mono h-9 uppercase text-sm"
             />
           </form>
         </div>
@@ -61,7 +83,7 @@ export default function StockDetail() {
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6 space-y-6">
         {/* Top Section: Title & Price */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4"
@@ -97,17 +119,13 @@ export default function StockDetail() {
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="bg-card border border-border h-auto p-1 flex flex-wrap gap-0.5 w-full lg:w-auto lg:inline-flex lg:flex-nowrap overflow-x-auto">
             <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
-            <TabsTrigger value="fundamentals" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Fundamentals</TabsTrigger>
+            <TabsTrigger value="indicators" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Indicators</TabsTrigger>
             <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Analysis</TabsTrigger>
             <TabsTrigger value="models" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Models</TabsTrigger>
-            <TabsTrigger value="financials" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Financials</TabsTrigger>
-            <TabsTrigger value="news" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">News</TabsTrigger>
-            <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Profile</TabsTrigger>
-            <TabsTrigger value="filings" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Filings</TabsTrigger>
-            <TabsTrigger value="insiders" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Insiders</TabsTrigger>
           </TabsList>
 
           <div className="mt-6">
+            {/* Overview: chart + stats + all detail sections */}
             <TabsContent value="overview" className="space-y-6 mt-0">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
@@ -117,9 +135,24 @@ export default function StockDetail() {
                   <SummaryStats symbol={symbol!} quote={quote} isLoading={isLoadingQuote} />
                 </div>
               </div>
+
+              <SectionDivider>Financials</SectionDivider>
+              <Financials symbol={symbol!} />
+
+              <SectionDivider>News</SectionDivider>
+              <NewsSection symbol={symbol!} />
+
+              <SectionDivider>Company Profile</SectionDivider>
+              <CompanyProfile symbol={symbol!} />
+
+              <SectionDivider>SEC Filings</SectionDivider>
+              <SecFilings symbol={symbol!} />
+
+              <SectionDivider>Insider Transactions</SectionDivider>
+              <InsiderTransactions symbol={symbol!} />
             </TabsContent>
 
-            <TabsContent value="fundamentals" className="mt-0">
+            <TabsContent value="indicators" className="mt-0">
               <FundamentalSummary symbol={symbol!} />
             </TabsContent>
 
@@ -129,26 +162,6 @@ export default function StockDetail() {
 
             <TabsContent value="models" className="mt-0">
               <ModelsTab symbol={symbol!} />
-            </TabsContent>
-
-            <TabsContent value="financials" className="mt-0">
-              <Financials symbol={symbol!} />
-            </TabsContent>
-
-            <TabsContent value="news" className="mt-0">
-              <NewsSection symbol={symbol!} />
-            </TabsContent>
-
-            <TabsContent value="profile" className="mt-0">
-              <CompanyProfile symbol={symbol!} />
-            </TabsContent>
-
-            <TabsContent value="filings" className="mt-0">
-              <SecFilings symbol={symbol!} />
-            </TabsContent>
-
-            <TabsContent value="insiders" className="mt-0">
-              <InsiderTransactions symbol={symbol!} />
             </TabsContent>
           </div>
         </Tabs>

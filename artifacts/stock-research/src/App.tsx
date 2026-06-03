@@ -1,9 +1,9 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { useEffect } from "react";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
-import Home from "@/pages/home";
 import StockDetail from "@/pages/stock";
 
 const queryClient = new QueryClient({
@@ -16,10 +16,18 @@ const queryClient = new QueryClient({
   },
 });
 
+function HomeRedirect() {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    setLocation("/stock/AAPL");
+  }, [setLocation]);
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={HomeRedirect} />
       <Route path="/stock/:symbol" component={StockDetail} />
       <Route component={NotFound} />
     </Switch>

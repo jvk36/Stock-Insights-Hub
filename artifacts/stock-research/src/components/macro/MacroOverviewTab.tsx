@@ -203,7 +203,7 @@ export default function MacroOverviewTab({ indicators, marketCycle }: Props) {
               {yieldCurveInd && (
                 <>
                   <div className={`text-3xl font-bold font-mono mb-2 ${valueClass(yieldCurveInd.signal)}`}>
-                    {fmtVal(yieldCurveInd)}%
+                    {fmtVal(yieldCurveInd)}
                   </div>
                   <div className="flex items-center gap-2 mb-3">
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${signalBadgeClass(yieldCurveInd.signal)}`}>

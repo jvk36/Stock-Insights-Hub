@@ -35,7 +35,12 @@ function signalBadgeClass(signal: string | null | undefined): string {
 function fmtVal(ind: MacroIndicator): string {
   if (ind.value == null) return "—";
   const v = ind.value;
-  if (ind.unitsLabel === "K") return `${v >= 1000 ? `${(v / 1000).toFixed(0)}M` : `${v.toFixed(0)}K`}`;
+  // ICSA/CCSA return raw person counts (e.g. 215,000), not pre-converted thousands
+  if (ind.id === "jobless_claims" || ind.id === "cont_claims") {
+    if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`;
+    return `${(v / 1_000).toFixed(0)}K`;
+  }
+  if (ind.unitsLabel === "K") return `${v >= 1000 ? `${(v / 1000).toFixed(1)}M` : `${v.toFixed(0)}K`}`;
   if (ind.unitsLabel === "% YoY") return `${v.toFixed(2)}% YoY`;
   if (ind.unitsLabel === "%") return `${v.toFixed(1)}%`;
   if (ind.unitsLabel === "Hrs") return `${v.toFixed(1)} hrs`;
@@ -126,6 +131,7 @@ export default function MacroLaborTab({ indicators }: Props) {
                 <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">Latest Value</th>
                 <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden sm:table-cell">Source</th>
                 <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden md:table-cell">Signal</th>
+                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden lg:table-cell">Why It Matters</th>
               </tr>
             </thead>
             <tbody>
@@ -144,6 +150,9 @@ export default function MacroLaborTab({ indicators }: Props) {
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${signalBadgeClass(ind.signal)}`}>
                       {ind.signalLabel ?? "Normal"}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground hidden lg:table-cell max-w-xs">
+                    {ind.whyItMatters ?? ind.explanation}
                   </td>
                 </tr>
               ))}

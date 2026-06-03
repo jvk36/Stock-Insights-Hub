@@ -38,6 +38,7 @@ function fmtVal(ind: MacroIndicator): string {
     if (Math.abs(v) >= 1000) return `$${(v / 1000).toFixed(1)}B`;
     return `$${v.toFixed(0)}M`;
   }
+  if (ind.unitsLabel.startsWith("% MoM")) return `${v.toFixed(2)}% MoM`;
   if (ind.unitsLabel.startsWith("% YoY")) return `${v.toFixed(2)}% YoY`;
   if (ind.unitsLabel.startsWith("% QoQ")) return `${v.toFixed(2)}% ann.`;
   if (ind.unitsLabel.startsWith("% ann")) return `${v.toFixed(2)}% ann.`;

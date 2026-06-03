@@ -33,49 +33,49 @@ interface IndicatorDef {
 const INDICATORS: IndicatorDef[] = [
   // Overview - Key Readings
   { id: "gdp_growth",       seriesId: "A191RL1Q225SBEA", title: "GDP Growth (Annualized)",       unitsLabel: "% QoQ ann.", chartUnits: "lin", source: "BEA",           frequency: "Quarterly", category: "overview" },
-  { id: "cpi_yoy",          seriesId: "CPIAUCSL",         title: "CPI (YoY)",                    unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "overview" },
-  { id: "unemployment",     seriesId: "UNRATE",           title: "Unemployment Rate",             unitsLabel: "%",          chartUnits: "lin", source: "BLS",           frequency: "Monthly",   category: "overview" },
+  { id: "cpi_yoy",          seriesId: "CPIAUCSL",         title: "CPI (YoY)",                    unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "overview", whyItMatters: "The headline consumer price gauge. Drives Social Security COLA, TIPS adjustments, and real-wage calculations." },
+  { id: "unemployment",     seriesId: "UNRATE",           title: "Unemployment Rate",             unitsLabel: "%",          chartUnits: "lin", source: "BLS",           frequency: "Monthly",   category: "overview", whyItMatters: "The U-3 headline unemployment rate. Below 4% signals full employment; rising above 5% indicates labor market slack." },
   { id: "fed_funds",        seriesId: "FEDFUNDS",         title: "Fed Funds Rate",                unitsLabel: "%",          chartUnits: "lin", source: "Federal Reserve", frequency: "Monthly", category: "overview" },
   { id: "t10y",             seriesId: "DGS10",            title: "10-Year Treasury Yield",        unitsLabel: "%",          chartUnits: "lin", source: "Federal Reserve", frequency: "Daily",   category: "overview" },
   { id: "indpro_yoy",       seriesId: "INDPRO",           title: "Industrial Production (YoY)",   unitsLabel: "% YoY",      chartUnits: "pc1", source: "Federal Reserve", frequency: "Monthly", category: "overview" },
   // Overview - Signal Dashboard
   { id: "yield_curve",      seriesId: "T10Y2Y",           title: "Yield Curve (2s10s)",           unitsLabel: "%",          chartUnits: "lin", source: "Federal Reserve", frequency: "Daily",   category: "overview" },
   { id: "hy_oas",           seriesId: "BAMLH0A0HYM2",    title: "Credit Spreads (HY OAS)",        unitsLabel: "bps",        chartUnits: "lin", source: "ICE BofA",      frequency: "Daily",    category: "overview" },
-  { id: "nfp_mom",          seriesId: "PAYEMS",           title: "Labor Market (NFP MoM)",         unitsLabel: "K",          chartUnits: "ch1", source: "BLS",           frequency: "Monthly",   category: "overview" },
+  { id: "nfp_mom",          seriesId: "PAYEMS",           title: "Labor Market (NFP MoM)",         unitsLabel: "K",          chartUnits: "ch1", source: "BLS",           frequency: "Monthly",   category: "overview", whyItMatters: "Monthly payroll jobs count — the most closely-watched labor market indicator. Defines hiring trends and labor demand." },
   { id: "recession_prob",   seriesId: "RECPROUSM156N",    title: "Recession Probability",          unitsLabel: "%",          chartUnits: "lin", source: "Federal Reserve", frequency: "Monthly", category: "overview" },
   // GDP tab
   { id: "real_gdp",         seriesId: "A191RL1Q225SBEA", title: "Real GDP (Annualized)",          unitsLabel: "% QoQ ann.", chartUnits: "lin", source: "BEA",           frequency: "Quarterly",   category: "gdp",  type: "Lagging" },
   { id: "gdpnow",           seriesId: "GDPNOW",           title: "Atlanta Fed GDPNow",             unitsLabel: "% ann.",     chartUnits: "lin", source: "Atlanta Fed",   frequency: "Updates vary", category: "gdp", type: "Real-Time" },
   { id: "cfnai",            seriesId: "CFNAI",            title: "Chicago Fed CFNAI",              unitsLabel: "Index",      chartUnits: "lin", source: "Chicago Fed",   frequency: "Monthly",     category: "gdp",  type: "Coincident" },
-  { id: "indpro",           seriesId: "INDPRO",           title: "Industrial Production",          unitsLabel: "% YoY",      chartUnits: "pc1", source: "Federal Reserve", frequency: "Monthly",  category: "gdp",  type: "Coincident" },
-  { id: "retail_ex_auto",   seriesId: "RSXFS",            title: "Retail Sales (ex-auto)",         unitsLabel: "% YoY",      chartUnits: "pc1", source: "Census Bureau", frequency: "Monthly",    category: "gdp",  type: "Coincident" },
-  { id: "durable_goods",    seriesId: "DGORDER",          title: "Durable Goods Orders",           unitsLabel: "% YoY",      chartUnits: "pc1", source: "Census Bureau", frequency: "Monthly",    category: "gdp",  type: "Leading" },
+  { id: "indpro",           seriesId: "INDPRO",           title: "Industrial Production",          unitsLabel: "% MoM",      chartUnits: "pch", source: "Federal Reserve", frequency: "Monthly",  category: "gdp",  type: "Coincident" },
+  { id: "retail_ex_auto",   seriesId: "RSXFS",            title: "Retail Sales (ex-auto)",         unitsLabel: "% MoM",      chartUnits: "pch", source: "Census Bureau", frequency: "Monthly",    category: "gdp",  type: "Coincident" },
+  { id: "durable_goods",    seriesId: "DGORDER",          title: "Durable Goods Orders",           unitsLabel: "% MoM",      chartUnits: "pch", source: "Census Bureau", frequency: "Monthly",    category: "gdp",  type: "Leading" },
   { id: "building_permits", seriesId: "PERMIT",           title: "Building Permits",               unitsLabel: "K",          chartUnits: "lin", source: "Census Bureau", frequency: "Monthly",    category: "gdp",  type: "Leading" },
   // Inflation - Headline Cards
-  { id: "core_cpi_yoy",     seriesId: "CPILFESL",         title: "Core CPI (YoY)",                unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "inflation" },
-  { id: "pce_yoy",          seriesId: "PCEPI",            title: "PCE Deflator (YoY)",            unitsLabel: "% YoY",      chartUnits: "pc1", source: "BEA",           frequency: "Monthly",   category: "inflation" },
-  { id: "core_pce_yoy",     seriesId: "PCEPILFE",         title: "Core PCE (YoY)",                unitsLabel: "% YoY",      chartUnits: "pc1", source: "BEA",           frequency: "Monthly",   category: "inflation" },
+  { id: "core_cpi_yoy",     seriesId: "CPILFESL",         title: "Core CPI (YoY)",                unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "inflation", whyItMatters: "Strips food & energy to reveal underlying inflation trend. A key metric for Fed rate decisions." },
+  { id: "pce_yoy",          seriesId: "PCEPI",            title: "PCE Deflator (YoY)",            unitsLabel: "% YoY",      chartUnits: "pc1", source: "BEA",           frequency: "Monthly",   category: "inflation", whyItMatters: "Broader than CPI — covers more spending categories and adjusts for consumer substitution effects." },
+  { id: "core_pce_yoy",     seriesId: "PCEPILFE",         title: "Core PCE (YoY)",                unitsLabel: "% YoY",      chartUnits: "pc1", source: "BEA",           frequency: "Monthly",   category: "inflation", whyItMatters: "The Fed's primary 2% inflation target. Cited directly in every FOMC statement and rate decision." },
   // Inflation - CPI Components
-  { id: "shelter_oer",      seriesId: "CUSR0000SEHC",    title: "Shelter / OER",                  unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "inflation" },
-  { id: "supercore",        seriesId: "CUSR0000SASLE",   title: "Supercore (Services ex-Energy)", unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "inflation" },
-  { id: "food_at_home",     seriesId: "CUUR0000SAF11",   title: "Food at Home",                   unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "inflation" },
-  { id: "energy_cpi",       seriesId: "CUUR0000SA0E",    title: "Energy",                          unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "inflation" },
-  { id: "new_vehicles",     seriesId: "CUUR0000SETA01",  title: "New Vehicles",                   unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "inflation" },
+  { id: "shelter_oer",      seriesId: "CUSR0000SEHC",    title: "Shelter / OER",                  unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "inflation", whyItMatters: "Largest CPI component (~34%). Lags actual rents by ~12 months — key to whether CPI can sustainably fall." },
+  { id: "supercore",        seriesId: "CUSR0000SASLE",   title: "Supercore (Services ex-Energy)", unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "inflation", whyItMatters: "The Fed's most-watched 'sticky' inflation gauge — services inflation excluding housing and energy." },
+  { id: "food_at_home",     seriesId: "CUUR0000SAF11",   title: "Food at Home",                   unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "inflation", whyItMatters: "Grocery prices directly impact household budgets. Politically sensitive and closely tracked by consumers." },
+  { id: "energy_cpi",       seriesId: "CPIENGSL",         title: "Energy",                          unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "inflation", whyItMatters: "Volatile but high-impact — large energy swings can distort headline CPI significantly month-to-month." },
+  { id: "new_vehicles",     seriesId: "CUUR0000SETA01",  title: "New Vehicles",                   unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "inflation", whyItMatters: "Post-pandemic normalization benchmark; vehicle price deflation was a key 2023-24 CPI tailwind." },
   // Inflation - Full Suite extras
-  { id: "ppi",              seriesId: "PPIFIS",           title: "PPI (Final Demand)",             unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "inflation", whyItMatters: "Leading indicator of consumer inflation" },
-  { id: "breakeven_5y5y",   seriesId: "T5YIFR",          title: "5Y5Y Breakeven Rate",            unitsLabel: "%",          chartUnits: "lin", source: "Federal Reserve", frequency: "Daily",   category: "inflation", whyItMatters: "Market-based 5y inflation expectations starting in 5y" },
-  { id: "mich_infl_1y",     seriesId: "MICH",             title: "Michigan Inflation Exp. (1Y)",  unitsLabel: "%",          chartUnits: "lin", source: "U. of Michigan", frequency: "Monthly",  category: "inflation", whyItMatters: "Consumer inflation expectations drive wage negotiations" },
+  { id: "ppi",              seriesId: "PPIFIS",           title: "PPI (Final Demand)",             unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "inflation", whyItMatters: "Leading indicator of consumer inflation — producer costs eventually pass through to consumer prices." },
+  { id: "breakeven_5y5y",   seriesId: "T5YIFR",          title: "5Y5Y Breakeven Rate",            unitsLabel: "%",          chartUnits: "lin", source: "Federal Reserve", frequency: "Daily",   category: "inflation", whyItMatters: "Market-implied 5-year inflation expectations starting in 5 years — the Fed's long-run credibility gauge." },
+  { id: "mich_infl_1y",     seriesId: "MICH",             title: "Michigan Inflation Exp. (1Y)",  unitsLabel: "%",          chartUnits: "lin", source: "U. of Michigan", frequency: "Monthly",  category: "inflation", whyItMatters: "Consumer 1-year inflation expectations — high readings can become self-fulfilling via wage demands." },
   // Labor - Health Cards
-  { id: "avg_hrly_earn",    seriesId: "CES0500000003",   title: "Avg Hourly Earnings (YoY)",      unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "labor" },
-  { id: "jolts",            seriesId: "JTSJOL",           title: "Job Openings (JOLTS)",           unitsLabel: "K",          chartUnits: "lin", source: "BLS",           frequency: "Monthly",   category: "labor" },
+  { id: "avg_hrly_earn",    seriesId: "CES0500000003",   title: "Avg Hourly Earnings (YoY)",      unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "labor", whyItMatters: "Year-over-year wage growth. Above 3.5% may signal inflationary wage-price pressure that the Fed must counter." },
+  { id: "jolts",            seriesId: "JTSJOL",           title: "Job Openings (JOLTS)",           unitsLabel: "K",          chartUnits: "lin", source: "BLS",           frequency: "Monthly",   category: "labor", whyItMatters: "Job Openings and Labor Turnover Survey. The openings-to-unemployed ratio defines how tight the labor market is." },
   // Labor - Full Suite extras
-  { id: "u6_unemp",         seriesId: "U6RATE",           title: "U-6 Unemployment Rate",          unitsLabel: "%",          chartUnits: "lin", source: "BLS",           frequency: "Monthly",   category: "labor" },
-  { id: "lfpr",             seriesId: "CIVPART",          title: "Labor Force Participation Rate", unitsLabel: "%",          chartUnits: "lin", source: "BLS",           frequency: "Monthly",   category: "labor" },
-  { id: "prime_age_lfpr",   seriesId: "LNS11300060",     title: "Prime-Age LFPR (25-54)",         unitsLabel: "%",          chartUnits: "lin", source: "BLS",           frequency: "Monthly",   category: "labor" },
-  { id: "quits_rate",       seriesId: "JTSQUR",           title: "Quits Rate",                    unitsLabel: "%",          chartUnits: "lin", source: "BLS",           frequency: "Monthly",   category: "labor" },
-  { id: "jobless_claims",   seriesId: "ICSA",             title: "Initial Jobless Claims",         unitsLabel: "K",          chartUnits: "lin", source: "DOL",           frequency: "Weekly",    category: "labor" },
-  { id: "cont_claims",      seriesId: "CCSA",             title: "Continuing Claims",              unitsLabel: "K",          chartUnits: "lin", source: "DOL",           frequency: "Weekly",    category: "labor" },
-  { id: "avg_wkly_hrs",     seriesId: "AWHAETP",          title: "Average Weekly Hours",           unitsLabel: "Hrs",        chartUnits: "lin", source: "BLS",           frequency: "Monthly",   category: "labor" },
+  { id: "u6_unemp",         seriesId: "U6RATE",           title: "U-6 Unemployment Rate",          unitsLabel: "%",          chartUnits: "lin", source: "BLS",           frequency: "Monthly",   category: "labor", whyItMatters: "Broad unemployment including part-time workers seeking full-time work and marginally attached workers." },
+  { id: "lfpr",             seriesId: "CIVPART",          title: "Labor Force Participation Rate", unitsLabel: "%",          chartUnits: "lin", source: "BLS",           frequency: "Monthly",   category: "labor", whyItMatters: "Share of adults working or seeking work. Structural decline from aging demographics limits the headline rate." },
+  { id: "prime_age_lfpr",   seriesId: "LNS11300060",     title: "Prime-Age LFPR (25-54)",         unitsLabel: "%",          chartUnits: "lin", source: "BLS",           frequency: "Monthly",   category: "labor", whyItMatters: "Ages 25-54 LFPR strips out retirement and student effects — the cleanest measure of core labor supply." },
+  { id: "quits_rate",       seriesId: "JTSQUR",           title: "Quits Rate",                    unitsLabel: "%",          chartUnits: "lin", source: "BLS",           frequency: "Monthly",   category: "labor", whyItMatters: "Share of workers voluntarily leaving jobs. High quits signal worker confidence and a tight labor market." },
+  { id: "jobless_claims",   seriesId: "ICSA",             title: "Initial Jobless Claims",         unitsLabel: "K",          chartUnits: "lin", source: "DOL",           frequency: "Weekly",    category: "labor", whyItMatters: "Weekly count of first-time unemployment filers — the most timely leading indicator of labor market health." },
+  { id: "cont_claims",      seriesId: "CCSA",             title: "Continuing Claims",              unitsLabel: "K",          chartUnits: "lin", source: "DOL",           frequency: "Weekly",    category: "labor", whyItMatters: "Count of ongoing unemployment benefit recipients — measures how long the unemployed remain without a job." },
+  { id: "avg_wkly_hrs",     seriesId: "AWHAETP",          title: "Average Weekly Hours",           unitsLabel: "Hrs",        chartUnits: "lin", source: "BLS",           frequency: "Monthly",   category: "labor", whyItMatters: "Firms cut hours before cutting headcount — a declining workweek is a leading signal of labor deterioration." },
   // Financial Conditions - Cards
   { id: "t2y",              seriesId: "DGS2",             title: "2Y Treasury Yield",              unitsLabel: "%",          chartUnits: "lin", source: "Federal Reserve", frequency: "Daily",   category: "financial" },
   // Financial Conditions - Full Suite extras
@@ -332,21 +332,21 @@ function getSignal(id: string, value: number | null): { signal: Signal; label: s
       return { signal: "negative", label: "Contraction", explanation: "GDPNow tracking negative growth" };
 
     case "indpro":
-      if (value >= 3) return { signal: "positive", label: "Strong", explanation: "Industrial output growing robustly above trend" };
+      if (value >= 0.5) return { signal: "positive", label: "Strong", explanation: "Industrial output rising robustly month-over-month" };
       if (value >= 0) return { signal: "neutral", label: "Moderate", explanation: "Industrial production growing modestly" };
-      if (value >= -2) return { signal: "warning", label: "Slowing", explanation: "Industrial production declining mildly" };
-      return { signal: "negative", label: "Contracting", explanation: "Industrial production in sharp contraction" };
+      if (value >= -0.5) return { signal: "warning", label: "Slowing", explanation: "Industrial production in mild monthly decline" };
+      return { signal: "negative", label: "Contracting", explanation: "Industrial production in sharp monthly contraction" };
 
     case "retail_ex_auto":
-      if (value >= 4) return { signal: "positive", label: "Strong", explanation: "Consumer spending showing robust growth" };
-      if (value >= 1) return { signal: "neutral", label: "Moderate", explanation: "Retail sales growing at a moderate pace" };
-      if (value >= -1) return { signal: "warning", label: "Slowing", explanation: "Consumer spending growth has stalled" };
-      return { signal: "negative", label: "Declining", explanation: "Retail sales are contracting" };
+      if (value >= 0.5) return { signal: "positive", label: "Strong", explanation: "Consumer spending showing strong monthly growth" };
+      if (value >= 0) return { signal: "neutral", label: "Moderate", explanation: "Retail sales growing at a moderate monthly pace" };
+      if (value >= -0.5) return { signal: "warning", label: "Slowing", explanation: "Consumer spending declined month-over-month" };
+      return { signal: "negative", label: "Declining", explanation: "Retail sales contracting — consumer weakness signal" };
 
     case "durable_goods":
-      if (value >= 5) return { signal: "positive", label: "Strong", explanation: "Business investment and capex orders accelerating" };
-      if (value >= 0) return { signal: "neutral", label: "Stable", explanation: "Durable goods orders holding steady" };
-      return { signal: "warning", label: "Weak", explanation: "Durable goods declining — business caution on investment" };
+      if (value >= 2) return { signal: "positive", label: "Strong", explanation: "Durable goods orders up sharply — business investment accelerating" };
+      if (value >= -1) return { signal: "neutral", label: "Stable", explanation: "Durable goods orders roughly flat month-over-month" };
+      return { signal: "warning", label: "Weak", explanation: "Durable goods orders fell — business caution on investment" };
 
     case "building_permits":
       if (value >= 1500) return { signal: "positive", label: "Strong", explanation: "Housing supply strong, supports economic growth" };
@@ -418,14 +418,14 @@ function getSignal(id: string, value: number | null): { signal: Signal; label: s
       return { signal: "warning", label: "Low", explanation: "Workers less willing to quit — labor market softening" };
 
     case "jobless_claims":
-      if (value <= 250) return { signal: "positive", label: "Low", explanation: "Low initial claims reflect strong labor market" };
-      if (value <= 350) return { signal: "neutral", label: "Normal", explanation: "Jobless claims at historical average range" };
-      if (value <= 450) return { signal: "warning", label: "Rising", explanation: "Elevated claims suggest labor market softening" };
+      if (value <= 250_000) return { signal: "positive", label: "Low", explanation: "Low initial claims reflect strong labor market" };
+      if (value <= 350_000) return { signal: "neutral", label: "Normal", explanation: "Jobless claims at historical average range" };
+      if (value <= 450_000) return { signal: "warning", label: "Rising", explanation: "Elevated claims suggest labor market softening" };
       return { signal: "negative", label: "High", explanation: "High initial claims signal recession-level layoffs" };
 
     case "cont_claims":
-      if (value <= 1800) return { signal: "positive", label: "Low", explanation: "Low continuing claims signal quick re-employment" };
-      if (value <= 2200) return { signal: "neutral", label: "Normal", explanation: "Continuing claims at normal levels" };
+      if (value <= 1_800_000) return { signal: "positive", label: "Low", explanation: "Low continuing claims signal quick re-employment" };
+      if (value <= 2_200_000) return { signal: "neutral", label: "Normal", explanation: "Continuing claims at normal levels" };
       return { signal: "warning", label: "Elevated", explanation: "Rising continuing claims suggest harder to find new jobs" };
 
     case "avg_wkly_hrs":

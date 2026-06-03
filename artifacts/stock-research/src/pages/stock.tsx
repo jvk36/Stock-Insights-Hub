@@ -63,7 +63,7 @@ export default function StockDetail() {
           {/* Nav menu */}
           <nav className="flex items-center gap-1">
             <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
-              Stock Analysis
+              Stock Insights
             </span>
             <Link
               href="/macro"

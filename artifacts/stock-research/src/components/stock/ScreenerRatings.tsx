@@ -206,11 +206,11 @@ function buildQuality(d: ScreenerData): StrategyResult {
 }
 
 function buildDividendGrowth(d: ScreenerData): StrategyResult {
-  const dy   = computeMetric(d.dividendYield, 0, 4, true, PRIMARY_MAX, true);
-  const pr   = computeMetric(d.payoutRatio, 80, 20, false, SEC_MAX);
+  const pr   = computeMetric(d.payoutRatio, 90, 20, false, PRIMARY_MAX);
+  const dy   = computeMetric(d.dividendYield, 0, 4, true, SEC_MAX, true);
   const eps5 = computeMetric(d.epsGrowth5yr, 0, 20, true, SEC_MAX, true);
   const y5   = computeMetric(d.fiveYearAvgDividendYield, 0, 3, true, SEC_MAX, true);
-  const total = Math.round(dy.score + pr.score + eps5.score + y5.score);
+  const total = Math.round(pr.score + dy.score + eps5.score + y5.score);
 
   return {
     key: "dividend",
@@ -218,9 +218,9 @@ function buildDividendGrowth(d: ScreenerData): StrategyResult {
     subtitle: "Sustainable income & growing payouts",
     icon: <Flower2 className="w-5 h-5" />,
     totalScore: total,
-    primary: driver("Dividend Yield", d.dividendYield, fmtDividend(d.dividendYield), "> 0%", dy.score, PRIMARY_MAX, dy.rating),
+    primary: driver("Payout Ratio", d.payoutRatio, fmtPct(d.payoutRatio, 1), "≤ 80%", pr.score, PRIMARY_MAX, pr.rating),
     secondaries: [
-      driver("Payout Ratio", d.payoutRatio, fmtPct(d.payoutRatio, 1), "≤ 80%", pr.score, SEC_MAX, pr.rating),
+      driver("Dividend Yield", d.dividendYield, fmtDividend(d.dividendYield), "> 0%", dy.score, SEC_MAX, dy.rating),
       driver("Fwd EPS Growth Est. (1yr)", d.epsGrowth5yr, fmtPct(d.epsGrowth5yr), "> 0%", eps5.score, SEC_MAX, eps5.rating),
       driver("5yr Avg Dividend Yield", d.fiveYearAvgDividendYield, fmtDividend(d.fiveYearAvgDividendYield), "> 0%", y5.score, SEC_MAX, y5.rating),
     ],

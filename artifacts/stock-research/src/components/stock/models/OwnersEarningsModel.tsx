@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Info, AlertCircle } from "lucide-react";
@@ -249,14 +249,12 @@ export default function OwnersEarningsModel({ data, currentPrice }: Props) {
             <CardContent className="space-y-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Multiplier (×)</Label>
-                <Input
-                  type="number"
-                  step="1"
-                  min="5"
-                  max="30"
+                <NumericInput
+                  min={1}
+                  max={50}
                   value={multiplier}
-                  onChange={e => setMultiplier(parseInt(e.target.value) || 10)}
-                  className="font-mono h-8 text-sm"
+                  onChange={v => setMultiplier(Math.round(v))}
+                  className="h-8 text-sm"
                 />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 text-xs space-y-1">

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Info, AlertCircle } from "lucide-react";
@@ -308,14 +308,12 @@ export default function RivModel({ data, currentPrice }: Props) {
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Discount Rate / Cost of Equity (%)</Label>
-                <Input
-                  type="number"
-                  step="0.5"
-                  min="5"
-                  max="25"
+                <NumericInput
+                  min={1}
+                  max={50}
                   value={discountRate}
-                  onChange={e => setDiscountRate(parseFloat(e.target.value) || 12)}
-                  className="font-mono h-8 text-sm"
+                  onChange={setDiscountRate}
+                  className="h-8 text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
                   Your required return on equity. Default 12% — a conservative hurdle rate for mature businesses.
@@ -324,14 +322,12 @@ export default function RivModel({ data, currentPrice }: Props) {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Projection Years</Label>
-                <Input
-                  type="number"
-                  step="1"
-                  min="1"
-                  max="20"
+                <NumericInput
+                  min={1}
+                  max={20}
                   value={projectionYears}
-                  onChange={e => setProjectionYears(Math.min(20, Math.max(1, parseInt(e.target.value) || 10)))}
-                  className="font-mono h-8 text-sm"
+                  onChange={v => setProjectionYears(Math.min(20, Math.max(1, Math.round(v))))}
+                  className="h-8 text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
                   How many years to project excess returns before assuming RI fades to zero. 10 years is a reasonable horizon for most mature businesses. Beyond 15 years, uncertainty compounds significantly.

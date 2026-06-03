@@ -102,6 +102,7 @@ export interface FinancialPeriod {
 export interface FinancialStatements {
   symbol: string;
   period: string;
+  financialCurrency?: string | null;
   incomeStatement: FinancialPeriod[];
   balanceSheet: FinancialPeriod[];
   cashFlow: FinancialPeriod[];

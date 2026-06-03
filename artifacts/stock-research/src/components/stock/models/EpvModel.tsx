@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Info, AlertCircle } from "lucide-react";
@@ -309,12 +309,12 @@ export default function EpvModel({ data, currentPrice }: Props) {
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Risk-Free Rate (%)</Label>
-                <Input type="number" step="0.1" min="0" max="15" value={rfRate} onChange={e => setRfRate(parseFloat(e.target.value) || 4.5)} className="font-mono h-8 text-sm" />
+                <NumericInput min={0} max={15} value={rfRate} onChange={setRfRate} className="h-8 text-sm" />
                 <p className="text-xs text-muted-foreground">Typically the 10-year government bond yield. Default 4.5% reflects current U.S. Treasury rates.</p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Equity Risk Premium (%)</Label>
-                <Input type="number" step="0.1" min="0" max="15" value={erp} onChange={e => setErp(parseFloat(e.target.value) || 5.0)} className="font-mono h-8 text-sm" />
+                <NumericInput min={0} max={15} value={erp} onChange={setErp} className="h-8 text-sm" />
                 <p className="text-xs text-muted-foreground">Additional return investors demand above the risk-free rate for owning equities. Damodaran's long-run estimate is 4.5%–5.5%. Default 5.0%.</p>
               </div>
               {result.incalculable === false && (

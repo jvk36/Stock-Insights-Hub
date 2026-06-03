@@ -383,7 +383,15 @@ router.get("/stock/:symbol/financials", async (req, res): Promise<void> => {
         data: mapKeys(item as unknown as Record<string, unknown>, cashFlowKeyMap),
       }));
 
-    res.json({ symbol, period, incomeStatement, balanceSheet, cashFlow });
+    const financialCurrency =
+      incomeRaw.length > 0
+        ? (
+            (incomeRaw[0] as unknown as Record<string, unknown>)
+              ?.currencyCode as string | undefined
+          ) ?? null
+        : null;
+
+    res.json({ symbol, period, financialCurrency, incomeStatement, balanceSheet, cashFlow });
   } catch (err: unknown) {
     req.log.error({ err, symbol }, "Failed to fetch financials");
     res.status(500).json({ error: "server_error", message: "Failed to fetch financials" });

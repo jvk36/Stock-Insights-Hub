@@ -147,6 +147,7 @@ export const GetStockFinancialsQueryParams = zod.object({
 export const GetStockFinancialsResponse = zod.object({
   symbol: zod.string(),
   period: zod.string(),
+  financialCurrency: zod.string().nullish(),
   incomeStatement: zod.array(
     zod.object({
       date: zod.string(),

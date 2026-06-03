@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Info } from "lucide-react";
@@ -374,13 +374,12 @@ export default function DdmModel({ data, currentPrice }: Props) {
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Risk-Free Rate (Rf) — %</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  min="0"
+                <NumericInput
+                  min={0}
+                  max={20}
                   value={rfRate}
-                  onChange={e => setRfRate(parseFloat(e.target.value) || 0)}
-                  className="font-mono h-8 text-sm"
+                  onChange={setRfRate}
+                  className="h-8 text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
                   10-year US Treasury yield. Default ~4.3%. This is the "risk-free" return investors can earn without taking equity risk.
@@ -388,13 +387,12 @@ export default function DdmModel({ data, currentPrice }: Props) {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Beta (β)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
+                <NumericInput
+                  min={0}
+                  max={5}
                   value={betaInput}
-                  onChange={e => setBetaInput(parseFloat(e.target.value) || 0)}
-                  className="font-mono h-8 text-sm"
+                  onChange={setBetaInput}
+                  className="h-8 text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
                   Measures how much the stock moves relative to the market. β = 1 means it moves with the market; β &gt; 1 means more volatile. Pre-filled from Yahoo Finance.
@@ -402,13 +400,12 @@ export default function DdmModel({ data, currentPrice }: Props) {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Equity Risk Premium (ERP) — %</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  min="0"
+                <NumericInput
+                  min={0}
+                  max={20}
                   value={erp}
-                  onChange={e => setErp(parseFloat(e.target.value) || 0)}
-                  className="font-mono h-8 text-sm"
+                  onChange={setErp}
+                  className="h-8 text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
                   The extra return investors demand for holding equities over risk-free bonds. Damodaran's long-run US estimate is ~4.5–5.5%. Default 5%.

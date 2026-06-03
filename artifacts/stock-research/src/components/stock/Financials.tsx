@@ -3,7 +3,7 @@ import { useGetStockFinancials, getGetStockFinancialsQueryKey } from "@workspace
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatNumber, formatDate } from "@/lib/format";
+import { formatNumber, formatDate, getCurrencySymbol } from "@/lib/format";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { FinancialPeriod } from "@workspace/api-client-react";
 import { Switch } from "@/components/ui/switch";
@@ -32,7 +32,6 @@ const LABEL_MAP: Record<string, string> = {
 
 function formatLabel(key: string): string {
   if (LABEL_MAP[key]) return LABEL_MAP[key];
-  // CamelCase to Title Case
   return key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase());
 }
 
@@ -46,13 +45,15 @@ export default function Financials({ symbol }: { symbol: string }) {
     }
   });
 
+  const currSymbol = getCurrencySymbol(data?.financialCurrency);
+  const isNonUSD = data?.financialCurrency != null && data.financialCurrency !== "USD";
+
   const renderTable = (periods: FinancialPeriod[]) => {
     if (!periods || periods.length === 0) return <div className="p-8 text-center text-muted-foreground">No data available</div>;
 
-    // Get all unique keys from all periods to ensure we show all rows
     const keys = new Set<string>();
     periods.forEach(p => Object.keys(p.data).forEach(k => keys.add(k)));
-    const sortedKeys = Array.from(keys).sort(); // Sort or order specifically if needed
+    const sortedKeys = Array.from(keys).sort();
 
     return (
       <div className="overflow-x-auto">
@@ -75,7 +76,7 @@ export default function Financials({ symbol }: { symbol: string }) {
                 </TableCell>
                 {periods.map(p => (
                   <TableCell key={`${p.date}-${key}`} className="text-right font-mono text-muted-foreground">
-                    {formatNumber(p.data[key])}
+                    {formatNumber(p.data[key], currSymbol)}
                   </TableCell>
                 ))}
               </TableRow>
@@ -89,7 +90,14 @@ export default function Financials({ symbol }: { symbol: string }) {
   return (
     <Card className="bg-card border-border">
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4">
-        <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Financial Statements</CardTitle>
+        <div className="flex items-center gap-3 flex-wrap">
+          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Financial Statements</CardTitle>
+          {isNonUSD && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+              Amounts in {data?.financialCurrency}
+            </span>
+          )}
+        </div>
         <div className="flex items-center space-x-2">
           <Label htmlFor="period-toggle" className="text-sm cursor-pointer" onClick={() => setPeriod("quarterly")}>Quarterly</Label>
           <Switch 

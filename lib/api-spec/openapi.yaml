@@ -571,6 +571,9 @@ components:
           type: string
         period:
           type: string
+        financialCurrency:
+          type: string
+          nullable: true
         incomeStatement:
           type: array
           items:

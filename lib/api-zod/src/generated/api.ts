@@ -462,6 +462,28 @@ export const GetStockModelsResponse = zod.object({
 });
 
 /**
+ * @summary Get market signal indicators for a stock
+ */
+export const GetStockIndicatorsParams = zod.object({
+  symbol: zod.coerce.string(),
+});
+
+export const GetStockIndicatorsResponse = zod.object({
+  symbol: zod.string(),
+  forwardPE: zod.number().nullish(),
+  epsGrowth: zod.number().nullish(),
+  debtToEquity: zod.number().nullish(),
+  currentPrice: zod.number().nullish(),
+  fiftyDayAverage: zod.number().nullish(),
+  twoHundredDayAverage: zod.number().nullish(),
+  rsi14: zod.number().nullish(),
+  shortPercentOfFloat: zod.number().nullish(),
+  putCallRatio: zod.number().nullish(),
+  beta: zod.number().nullish(),
+  impliedVolatility: zod.number().nullish(),
+});
+
+/**
  * @summary Get SEC filings for a company
  */
 export const GetSecFilingsParams = zod.object({

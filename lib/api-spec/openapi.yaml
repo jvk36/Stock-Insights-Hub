@@ -291,6 +291,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /stock/{symbol}/indicators:
+    get:
+      operationId: getStockIndicators
+      tags: [stock]
+      summary: Get market signal indicators for a stock
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Market signal indicators
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockIndicators"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /stock/{symbol}/sec-filings:
     get:
       operationId: getSecFilings
@@ -1195,6 +1220,47 @@ components:
         - description
         - filedAt
         - url
+
+    StockIndicators:
+      type: object
+      properties:
+        symbol:
+          type: string
+        forwardPE:
+          type: number
+          nullable: true
+        epsGrowth:
+          type: number
+          nullable: true
+        debtToEquity:
+          type: number
+          nullable: true
+        currentPrice:
+          type: number
+          nullable: true
+        fiftyDayAverage:
+          type: number
+          nullable: true
+        twoHundredDayAverage:
+          type: number
+          nullable: true
+        rsi14:
+          type: number
+          nullable: true
+        shortPercentOfFloat:
+          type: number
+          nullable: true
+        putCallRatio:
+          type: number
+          nullable: true
+        beta:
+          type: number
+          nullable: true
+        impliedVolatility:
+          type: number
+          nullable: true
+      required:
+        - symbol
 
     SecFilingsResponse:
       type: object

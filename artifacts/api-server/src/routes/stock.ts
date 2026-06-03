@@ -14,6 +14,7 @@ import {
   GetStockFundamentalsParams,
   GetStockAnalysisParams,
   GetStockModelsParams,
+  GetStockIndicatorsParams,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -43,6 +44,23 @@ async function lookupCik(symbol: string): Promise<string | null> {
 
 function getSymbol(param: string | string[]): string {
   return (Array.isArray(param) ? param[0] : param).toUpperCase();
+}
+
+function calculateRSI14(closes: number[]): number | null {
+  if (closes.length < 15) return null;
+  const slice = closes.slice(-15);
+  let gains = 0;
+  let losses = 0;
+  for (let i = 1; i < slice.length; i++) {
+    const diff = slice[i] - slice[i - 1];
+    if (diff > 0) gains += diff;
+    else losses += -diff;
+  }
+  const avgGain = gains / 14;
+  const avgLoss = losses / 14;
+  if (avgLoss === 0) return 100;
+  const rs = avgGain / avgLoss;
+  return parseFloat((100 - 100 / (1 + rs)).toFixed(1));
 }
 
 router.get("/stock/:symbol/quote", async (req, res): Promise<void> => {
@@ -865,6 +883,100 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
   } catch (err: unknown) {
     req.log.error({ err, symbol }, "Failed to fetch insider transactions");
     res.status(500).json({ error: "server_error", message: "Failed to fetch insider transactions" });
+  }
+});
+
+router.get("/stock/:symbol/indicators", async (req, res): Promise<void> => {
+  const params = GetStockIndicatorsParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "bad_request", message: params.error.message });
+    return;
+  }
+
+  const symbol = getSymbol(params.data.symbol);
+
+  try {
+    const [quoteData, chartResult, optionsData] = await Promise.all([
+      yahooFinance.quoteSummary(symbol, {
+        modules: ["price", "summaryDetail", "financialData", "defaultKeyStatistics"],
+      }),
+      yahooFinance.chart(symbol, { period1: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), interval: "1d" }).catch(() => null),
+      yahooFinance.options(symbol).catch(() => null),
+    ]);
+
+    const price = quoteData.price;
+    const summary = quoteData.summaryDetail;
+    const financial = quoteData.financialData;
+    const keyStats = quoteData.defaultKeyStatistics;
+
+    if (!price) {
+      res.status(404).json({ error: "not_found", message: `Symbol ${symbol} not found` });
+      return;
+    }
+
+    const currentPrice = price.regularMarketPrice ?? null;
+    const forwardPE = summary?.forwardPE ?? null;
+    const epsGrowth =
+      financial?.earningsGrowth != null ? financial.earningsGrowth * 100 : null;
+    // debtToEquity from yahoo-finance2 is returned as percentage (e.g. 163 = 1.63x), divide by 100
+    const debtToEquity =
+      financial?.debtToEquity != null ? financial.debtToEquity / 100 : null;
+    const fiftyDayAverage = summary?.fiftyDayAverage ?? null;
+    const twoHundredDayAverage = summary?.twoHundredDayAverage ?? null;
+
+    // RSI(14) from 60-day chart
+    const closes = (chartResult?.quotes ?? [])
+      .map((q) => q.close)
+      .filter((c): c is number => c != null);
+    const rsi14 = calculateRSI14(closes);
+
+    // Short interest as percentage
+    const shortPercentOfFloat =
+      keyStats?.shortPercentOfFloat != null ? keyStats.shortPercentOfFloat * 100 : null;
+
+    // Put/Call ratio and IV from near-term options
+    let putCallRatio: number | null = null;
+    let impliedVolatility: number | null = null;
+    if (optionsData?.options?.[0]) {
+      const chain = optionsData.options[0];
+      const calls = chain.calls ?? [];
+      const puts = chain.puts ?? [];
+
+      // PCR via open interest
+      const callOI = calls.reduce((s, c) => s + (c.openInterest ?? 0), 0);
+      const putOI = puts.reduce((s, p) => s + (p.openInterest ?? 0), 0);
+      if (callOI > 0) putCallRatio = parseFloat((putOI / callOI).toFixed(2));
+
+      // IV: average of all options with valid IV (expressed as decimal in yahoo-finance2)
+      const allOpts = [...calls, ...puts];
+      const ivs = allOpts
+        .map((o) => o.impliedVolatility)
+        .filter((iv): iv is number => iv != null && iv > 0 && iv < 5);
+      if (ivs.length > 0) {
+        const avg = ivs.reduce((a, b) => a + b, 0) / ivs.length;
+        impliedVolatility = parseFloat((avg * 100).toFixed(1));
+      }
+    }
+
+    const beta = summary?.beta ?? null;
+
+    res.json({
+      symbol,
+      forwardPE,
+      epsGrowth,
+      debtToEquity,
+      currentPrice,
+      fiftyDayAverage,
+      twoHundredDayAverage,
+      rsi14,
+      shortPercentOfFloat,
+      putCallRatio,
+      beta,
+      impliedVolatility,
+    });
+  } catch (err: unknown) {
+    req.log.error({ err, symbol }, "Failed to fetch stock indicators");
+    res.status(500).json({ error: "server_error", message: "Failed to fetch indicators" });
   }
 });
 

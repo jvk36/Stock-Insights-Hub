@@ -27,6 +27,7 @@ import type {
   NewsResponse,
   SecFilingsResponse,
   StockAnalysis,
+  StockIndicators,
   StockModels,
   StockQuote,
 } from "./api.schemas";
@@ -1045,6 +1046,94 @@ export function useGetStockModels<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetStockModelsQueryOptions(symbol, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get market signal indicators for a stock
+ */
+export const getGetStockIndicatorsUrl = (symbol: string) => {
+  return `/api/stock/${symbol}/indicators`;
+};
+
+export const getStockIndicators = async (
+  symbol: string,
+  options?: RequestInit,
+): Promise<StockIndicators> => {
+  return customFetch<StockIndicators>(getGetStockIndicatorsUrl(symbol), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetStockIndicatorsQueryKey = (symbol: string) => {
+  return [`/api/stock/${symbol}/indicators`] as const;
+};
+
+export const getGetStockIndicatorsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getStockIndicators>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStockIndicators>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetStockIndicatorsQueryKey(symbol);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getStockIndicators>>
+  > = ({ signal }) => getStockIndicators(symbol, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!symbol,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getStockIndicators>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetStockIndicatorsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getStockIndicators>>
+>;
+export type GetStockIndicatorsQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get market signal indicators for a stock
+ */
+
+export function useGetStockIndicators<
+  TData = Awaited<ReturnType<typeof getStockIndicators>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStockIndicators>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetStockIndicatorsQueryOptions(symbol, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

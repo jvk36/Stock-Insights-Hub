@@ -47,5 +47,6 @@ export * from "./rivData";
 export * from "./secFiling";
 export * from "./secFilingsResponse";
 export * from "./stockAnalysis";
+export * from "./stockIndicators";
 export * from "./stockModels";
 export * from "./stockQuote";

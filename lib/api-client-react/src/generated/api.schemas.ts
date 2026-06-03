@@ -341,6 +341,21 @@ export interface SecFiling {
   documentUrl?: string | null;
 }
 
+export interface StockIndicators {
+  symbol: string;
+  forwardPE?: number | null;
+  epsGrowth?: number | null;
+  debtToEquity?: number | null;
+  currentPrice?: number | null;
+  fiftyDayAverage?: number | null;
+  twoHundredDayAverage?: number | null;
+  rsi14?: number | null;
+  shortPercentOfFloat?: number | null;
+  putCallRatio?: number | null;
+  beta?: number | null;
+  impliedVolatility?: number | null;
+}
+
 export interface SecFilingsResponse {
   symbol: string;
   cik?: string | null;

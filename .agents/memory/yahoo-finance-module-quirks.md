@@ -21,6 +21,29 @@ description: Field name gotchas, unit conventions, and data availability for yah
 ## Module `as any` cast
 When passing a custom modules array to `quoteSummary`, use `modules: [...] as any` to avoid TypeScript errors about the modules union type. Non-standard modules (like `incomeStatementHistory`, `earnings`) must be cast `as unknown as { ... }` on the result to access their fields.
 
+## Dividend data — summaryDetail is unreliable for small-yield stocks
+`summaryDetail.dividendYield` and `.payoutRatio` are frequently null for stocks with small dividends (e.g. AAPL). Also null: `.trailingAnnualDividendYield`. `summaryDetail.dividendRate` is also sometimes absent even when dividendYield is present.
+
+**dividendYield fallback chain** (decimal → multiply ×100 for %):
+1. `summaryDetail.dividendYield` (> 0 guard)
+2. `summaryDetail.trailingAnnualDividendYield` (> 0 guard)
+3. `summaryDetail.dividendRate / price.regularMarketPrice` (> 0 guards on both)
+
+**payoutRatio fallback chain**:
+1. `summaryDetail.payoutRatio` (decimal, × 100; > 0 guard)
+2. `annualDivPerShare / trailingEps × 100` where:
+   - `annualDivPerShare` = `dividendRate` if present, else back-compute `(dividendYield% / 100) × mktPrice`
+   - `trailingEps` = `defaultKeyStatistics.trailingEps` if > 0, else `mktPrice / summaryDetail.trailingPE`
+**Why back-compute annualDivPerShare**: `dividendRate` is often absent when `dividendYield` is present.
+
+`fiveYearAvgDividendYield` in summaryDetail is a percentage (e.g. 2.77 = 2.77%), not decimal. Returns null for stocks without 5yr dividend history — accept this as N/A.
+
+## earningsTrend — reliable forward growth estimates
+`earningsTrend.trend` periods: "0q", "+1q", "0y", "+1y". No "+5y" period (despite type definition allowing it). Use `"+1y"` for forward EPS and revenue growth estimates. `earningsGrowth` in `financialData` is YoY trailing (also decimal). EPS growth formula: `trend.find(t => t.period === "+1y").growth * 100`.
+
+## incomeStatementHistory deprecated since Nov 2024
+Yahoo Finance's quoteSummary `incomeStatementHistory` returns almost no data since Nov 2024. Server logs show: "Use `fundamentalsTimeSeries` instead." `dilutedEps` field does NOT exist in incomeStatementHistory anyway — only `totalRevenue`, `netIncome`, etc.
+
 ## API codegen barrel
 After every codegen run, `lib/api-zod/src/index.ts` must be manually reset to: `export * from "./generated/api";`
 The codegen tool overwrites it with a multi-line barrel that causes duplicate export errors.

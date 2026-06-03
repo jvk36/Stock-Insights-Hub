@@ -123,11 +123,11 @@ function buildGARP(d: ScreenerData): StrategyResult {
     subtitle: "Growth at a Reasonable Price",
     icon: <TrendingUp className="w-5 h-5" />,
     totalScore: total,
-    primary: driver("5yr Annualized EPS Growth", d.epsGrowth5yr, fmtPct(d.epsGrowth5yr), "≥ 16%", eps.score, PRIMARY_MAX, eps.rating),
+    primary: driver("Fwd EPS Growth Est. (1yr)", d.epsGrowth5yr, fmtPct(d.epsGrowth5yr), "≥ 16%", eps.score, PRIMARY_MAX, eps.rating),
     secondaries: [
       driver("PEG Ratio", d.pegRatio, fmtX(d.pegRatio), "≤ 3", peg.score, SEC_MAX, peg.rating),
       driver("Forward P/E", d.forwardPE, fmtX(d.forwardPE), "≤ 50", fpe.score, SEC_MAX, fpe.rating),
-      driver("3yr Revenue Growth", d.revenueGrowth3yr, fmtPct(d.revenueGrowth3yr), "≥ 8%", rev.score, SEC_MAX, rev.rating),
+      driver("Fwd Revenue Growth (1yr)", d.revenueGrowth3yr, fmtPct(d.revenueGrowth3yr), "≥ 8%", rev.score, SEC_MAX, rev.rating),
     ],
   };
 }
@@ -221,7 +221,7 @@ function buildDividendGrowth(d: ScreenerData): StrategyResult {
     primary: driver("Dividend Yield", d.dividendYield, fmtDividend(d.dividendYield), "> 0%", dy.score, PRIMARY_MAX, dy.rating),
     secondaries: [
       driver("Payout Ratio", d.payoutRatio, fmtPct(d.payoutRatio, 1), "≤ 80%", pr.score, SEC_MAX, pr.rating),
-      driver("5yr Annualized EPS Growth", d.epsGrowth5yr, fmtPct(d.epsGrowth5yr), "> 0%", eps5.score, SEC_MAX, eps5.rating),
+      driver("Fwd EPS Growth Est. (1yr)", d.epsGrowth5yr, fmtPct(d.epsGrowth5yr), "> 0%", eps5.score, SEC_MAX, eps5.rating),
       driver("5yr Avg Dividend Yield", d.fiveYearAvgDividendYield, fmtDividend(d.fiveYearAvgDividendYield), "> 0%", y5.score, SEC_MAX, y5.rating),
     ],
   };

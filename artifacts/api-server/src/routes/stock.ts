@@ -900,7 +900,7 @@ router.get("/stock/:symbol/screener-ratings", async (req, res): Promise<void> =>
     const [quoteData, chartResult] = await Promise.all([
       yahooFinance.quoteSummary(symbol, {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        modules: ["price", "summaryDetail", "financialData", "defaultKeyStatistics", "incomeStatementHistory", "earnings"] as any,
+        modules: ["price", "summaryDetail", "financialData", "defaultKeyStatistics", "earningsTrend"] as any,
       }),
       yahooFinance
         .chart(symbol, {
@@ -922,71 +922,40 @@ router.get("/stock/:symbol/screener-ratings", async (req, res): Promise<void> =>
 
     // ── GARP ──────────────────────────────────────────────────────────────────
 
-    // EPS CAGR and Revenue CAGR from earnings module (earningsChart.yearly has actual EPS)
-    const earningsModule = (
+    // earningsTrend module: analyst consensus growth estimates by period
+    const earningsTrendModule = (
       quoteData as unknown as {
-        earnings?: {
-          earningsChart?: { yearly?: Array<{ date: number; earnings: number }> };
-          financialsChart?: { yearly?: Array<{ date: number; revenue: number; earnings: number }> };
+        earningsTrend?: {
+          trend?: Array<{
+            period: string; // "0q", "+1q", "0y", "+1y", "+5y"
+            growth?: number | null;
+            revenueEstimate?: { growth?: number | null };
+          }>;
         };
       }
-    ).earnings;
+    ).earningsTrend;
 
-    // Income statement history for revenue fallback
-    const stmts =
-      (
-        quoteData as unknown as {
-          incomeStatementHistory?: {
-            incomeStatementHistory?: Array<{ totalRevenue?: number | null }>;
-          };
-        }
-      ).incomeStatementHistory?.incomeStatementHistory ?? [];
+    const trendEntries = earningsTrendModule?.trend ?? [];
 
-    // 5-yr EPS CAGR — use earningsChart.yearly (actual annual EPS)
-    let epsGrowth5yr: number | null = null;
-    const epsYearly = (earningsModule?.earningsChart?.yearly ?? [])
-      .filter((y) => y.earnings > 0)
-      .sort((a, b) => a.date - b.date);
-    if (epsYearly.length >= 2) {
-      const spanYears = epsYearly[epsYearly.length - 1].date - epsYearly[0].date;
-      if (spanYears > 0) {
-        epsGrowth5yr = parseFloat(
-          (
-            ((epsYearly[epsYearly.length - 1].earnings / epsYearly[0].earnings) ** (1 / spanYears) - 1) *
-            100
-          ).toFixed(1)
-        );
-      }
-    }
+    // Forward 1-yr analyst consensus estimates ("+1y" period has real data)
+    const oneYrTrend = trendEntries.find((t) => t.period === "+1y");
 
-    // 3-yr Revenue CAGR — prefer financialsChart.yearly, fall back to incomeStatementHistory
-    let revenueGrowth3yr: number | null = null;
-    const revYearly = (earningsModule?.financialsChart?.yearly ?? [])
-      .filter((y) => y.revenue > 0)
-      .sort((a, b) => a.date - b.date);
-    if (revYearly.length >= 2) {
-      const n = revYearly.length;
-      const startIdx = Math.max(0, n - 4); // use up to 3 years back
-      const startRev = revYearly[startIdx].revenue;
-      const endRev = revYearly[n - 1].revenue;
-      const yrsDiff = revYearly[n - 1].date - revYearly[startIdx].date;
-      if (yrsDiff > 0 && startRev > 0) {
-        revenueGrowth3yr = parseFloat(
-          (((endRev / startRev) ** (1 / yrsDiff) - 1) * 100).toFixed(1)
-        );
-      }
-    } else {
-      // Fallback: incomeStatementHistory (most-recent-first)
-      const revVals = stmts
-        .map((s) => s.totalRevenue)
-        .filter((v): v is number => v != null && v > 0);
-      if (revVals.length >= 2) {
-        const years = Math.min(revVals.length - 1, 3);
-        revenueGrowth3yr = parseFloat(
-          (((revVals[0] / revVals[years]) ** (1 / years) - 1) * 100).toFixed(1)
-        );
-      }
-    }
+    // Forward EPS growth estimate — primary source: earningsTrend "+1y" growth
+    // fallback: financialData.earningsGrowth (YoY trailing)
+    const epsGrowth5yr =
+      oneYrTrend?.growth != null
+        ? parseFloat((oneYrTrend.growth * 100).toFixed(1))
+        : financial?.earningsGrowth != null
+        ? parseFloat((financial.earningsGrowth * 100).toFixed(1))
+        : null;
+
+    // Forward 1-yr revenue growth estimate
+    const revenueGrowth3yr =
+      oneYrTrend?.revenueEstimate?.growth != null
+        ? parseFloat((oneYrTrend.revenueEstimate.growth * 100).toFixed(1))
+        : financial?.revenueGrowth != null
+        ? parseFloat((financial.revenueGrowth * 100).toFixed(1))
+        : null;
 
     const pegRatio = keyStats?.pegRatio ?? null;
     const forwardPE = summary?.forwardPE ?? null;
@@ -1046,10 +1015,43 @@ router.get("/stock/:symbol/screener-ratings", async (req, res): Promise<void> =>
 
     // ── Dividend Growth ───────────────────────────────────────────────────────
 
+    // dividendYield: summaryDetail.dividendYield (decimal) → %
+    //   fallback 1: summaryDetail.trailingAnnualDividendYield (decimal)
+    //   fallback 2: compute from summaryDetail.dividendRate / market price
+    const mktPrice = price?.regularMarketPrice;
     const dividendYield =
-      summary?.dividendYield != null ? parseFloat((summary.dividendYield * 100).toFixed(2)) : null;
+      summary?.dividendYield != null && summary.dividendYield > 0
+        ? parseFloat((summary.dividendYield * 100).toFixed(2))
+        : summary?.trailingAnnualDividendYield != null && summary.trailingAnnualDividendYield > 0
+        ? parseFloat((summary.trailingAnnualDividendYield * 100).toFixed(2))
+        : summary?.dividendRate != null && summary.dividendRate > 0 && mktPrice != null && mktPrice > 0
+        ? parseFloat(((summary.dividendRate / mktPrice) * 100).toFixed(2))
+        : null;
+
+    // payoutRatio: summaryDetail (decimal) → %
+    //   fallback: annualDividendRate / EPS, where EPS = keyStats.trailingEps or price/trailingPE
+    const trailingEps =
+      keyStats?.trailingEps != null && keyStats.trailingEps > 0 ? keyStats.trailingEps
+      : mktPrice != null && summary?.trailingPE != null && summary.trailingPE > 0
+        ? mktPrice / summary.trailingPE
+        : null;
+    // annualDivPerShare: prefer summaryDetail.dividendRate (when present),
+    // else back-compute from yield × price (Yahoo Finance sometimes omits dividendRate)
+    const divRate = summary?.dividendRate;
+    const annualDivPerShare =
+      divRate != null && divRate > 0
+        ? divRate
+        : dividendYield != null && dividendYield > 0 && mktPrice != null && mktPrice > 0
+        ? (dividendYield / 100) * mktPrice
+        : null;
     const payoutRatio =
-      summary?.payoutRatio != null ? parseFloat((summary.payoutRatio * 100).toFixed(1)) : null;
+      summary?.payoutRatio != null && summary.payoutRatio > 0
+        ? parseFloat((summary.payoutRatio * 100).toFixed(1))
+        : annualDivPerShare != null && annualDivPerShare > 0 && trailingEps != null && trailingEps > 0
+        ? parseFloat(((annualDivPerShare / trailingEps) * 100).toFixed(1))
+        : null;
+
+    // fiveYearAvgDividendYield: already a % in summaryDetail
     const fiveYearAvgDividendYield = summary?.fiveYearAvgDividendYield ?? null;
 
     res.json({

@@ -162,8 +162,8 @@ export default function MacroInflationTab({ indicators }: Props) {
               <tr className="bg-muted/40 border-b border-border">
                 <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Indicator</th>
                 <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">Latest Value</th>
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden sm:table-cell">Source</th>
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden md:table-cell">Why It Matters</th>
+                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden sm:table-cell">Range vs 2% Target</th>
+                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden lg:table-cell">Why It Matters</th>
               </tr>
             </thead>
             <tbody>
@@ -177,8 +177,23 @@ export default function MacroInflationTab({ indicators }: Props) {
                   <td className={`px-4 py-3 text-right font-mono font-semibold ${signalClass(ind.signal)}`}>
                     {ind.value != null ? `${ind.value.toFixed(2)} ${ind.unitsLabel}` : "—"}
                   </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground hidden sm:table-cell">{ind.source}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground hidden md:table-cell max-w-xs">
+                  <td className="px-4 py-3 hidden sm:table-cell">
+                    {ind.value != null ? (
+                      <div className="space-y-1">
+                        <div className="relative h-1.5 bg-muted rounded-full overflow-hidden w-28">
+                          <div
+                            className={`h-full rounded-full ${ind.value <= 2 ? "bg-emerald-400" : ind.value <= 3.5 ? "bg-amber-400" : "bg-red-400"}`}
+                            style={{ width: `${Math.min(100, Math.max(2, (Math.abs(ind.value) / 7) * 100))}%` }}
+                          />
+                          <div className="absolute top-0 h-full w-px bg-primary/70" style={{ left: `${(2 / 7) * 100}%` }} />
+                        </div>
+                        <p className={`text-xs ${ind.value <= 2 ? "text-emerald-400" : ind.value <= 3.5 ? "text-amber-400" : "text-red-400"}`}>
+                          {ind.value <= 2 ? "✓ At/Below" : `+${(ind.value - 2).toFixed(1)}pp above`}
+                        </p>
+                      </div>
+                    ) : <span className="text-xs text-muted-foreground">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground hidden lg:table-cell max-w-xs">
                     {ind.whyItMatters ?? ind.explanation}
                   </td>
                 </tr>

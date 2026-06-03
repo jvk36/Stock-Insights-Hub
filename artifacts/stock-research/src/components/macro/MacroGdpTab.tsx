@@ -7,7 +7,7 @@ interface Props {
 }
 
 const GDP_IDS = [
-  "real_gdp", "gdpnow", "ism_mfg", "ism_svcs",
+  "real_gdp", "gdpnow", "cfnai",
   "indpro", "retail_ex_auto", "durable_goods", "building_permits",
 ];
 
@@ -32,7 +32,7 @@ function signalBadgeClass(signal: string | null | undefined): string {
 function fmtVal(ind: MacroIndicator): string {
   if (ind.value == null) return "—";
   const v = ind.value;
-  if (ind.unitsLabel === "K") return `${v.toFixed(0)}K`;
+  if (ind.unitsLabel === "K") return Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(2)}M` : `${v.toFixed(0)}K`;
   if (ind.unitsLabel === "$M") {
     if (Math.abs(v) >= 1000000) return `$${(v / 1000000).toFixed(1)}T`;
     if (Math.abs(v) >= 1000) return `$${(v / 1000).toFixed(1)}B`;
@@ -41,7 +41,7 @@ function fmtVal(ind: MacroIndicator): string {
   if (ind.unitsLabel.startsWith("% YoY")) return `${v.toFixed(2)}% YoY`;
   if (ind.unitsLabel.startsWith("% QoQ")) return `${v.toFixed(2)}% ann.`;
   if (ind.unitsLabel.startsWith("% ann")) return `${v.toFixed(2)}% ann.`;
-  if (ind.unitsLabel === "Index") return v.toFixed(1);
+  if (ind.unitsLabel === "Index") return v.toFixed(2);
   return `${v.toFixed(2)} ${ind.unitsLabel}`;
 }
 

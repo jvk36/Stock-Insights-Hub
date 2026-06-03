@@ -56,7 +56,7 @@ function getSignalInfo(ind: MacroIndicator): { label: string; cls: string } {
   if (ind.value == null) return { label: "N/A", cls: "text-muted-foreground" };
   const fn = SIGNAL_LABELS[ind.id];
   if (fn) return fn(ind.value);
-  return { label: ind.signalLabel ?? "—", cls: signalClass(ind.signal) };
+  return { label: ind.signalLabel ?? "Normal", cls: signalClass(ind.signal) };
 }
 
 interface SelectedIndicator {
@@ -70,7 +70,7 @@ export default function MacroGlobalTab({ indicators }: Props) {
   const [selected, setSelected] = useState<SelectedIndicator | null>(null);
 
   const byId = new Map(indicators.map((i) => [i.id, i]));
-  const rows = GLOBAL_IDS.map((id) => byId.get(id)).filter(Boolean) as MacroIndicator[];
+  const rows = GLOBAL_IDS.map((id) => byId.get(id)).filter((ind): ind is MacroIndicator => !!ind && ind.value !== null);
 
   function open(ind: MacroIndicator) {
     setSelected({ seriesId: ind.seriesId, title: ind.title, chartUnits: ind.chartUnits, unitsLabel: ind.unitsLabel });

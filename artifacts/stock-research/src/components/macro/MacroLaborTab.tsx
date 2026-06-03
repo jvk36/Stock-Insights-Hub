@@ -101,7 +101,7 @@ export default function MacroLaborTab({ indicators }: Props) {
                 </div>
                 <div className="mb-2">
                   <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${signalBadgeClass(ind.signal)}`}>
-                    {ind.signalLabel ?? "—"}
+                    {ind.signalLabel ?? "Normal"}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground leading-snug">
@@ -142,7 +142,7 @@ export default function MacroLaborTab({ indicators }: Props) {
                   <td className="px-4 py-3 text-xs text-muted-foreground hidden sm:table-cell">{ind.source}</td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${signalBadgeClass(ind.signal)}`}>
-                      {ind.signalLabel ?? "—"}
+                      {ind.signalLabel ?? "Normal"}
                     </span>
                   </td>
                 </tr>

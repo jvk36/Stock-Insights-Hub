@@ -44,14 +44,13 @@ const INDICATORS: IndicatorDef[] = [
   { id: "nfp_mom",          seriesId: "PAYEMS",           title: "Labor Market (NFP MoM)",         unitsLabel: "K",          chartUnits: "ch1", source: "BLS",           frequency: "Monthly",   category: "overview" },
   { id: "recession_prob",   seriesId: "RECPROUSM156N",    title: "Recession Probability",          unitsLabel: "%",          chartUnits: "lin", source: "Federal Reserve", frequency: "Monthly", category: "overview" },
   // GDP tab
-  { id: "real_gdp",         seriesId: "A191RL1Q225SBEA", title: "Real GDP (Annualized)",          unitsLabel: "% QoQ ann.", chartUnits: "lin", source: "BEA",           frequency: "Quarterly", category: "gdp",  type: "Activity" },
-  { id: "gdpnow",           seriesId: "GDPNOW",           title: "Atlanta Fed GDPNow",             unitsLabel: "% ann.",     chartUnits: "lin", source: "Atlanta Fed",   frequency: "Updates vary", category: "gdp", type: "Activity" },
-  { id: "ism_mfg",          seriesId: "NAPM",             title: "ISM Manufacturing PMI",          unitsLabel: "Index",      chartUnits: "lin", source: "ISM",           frequency: "Monthly",   category: "gdp",  type: "Survey" },
-  { id: "ism_svcs",         seriesId: "NMFCI",            title: "ISM Services PMI",               unitsLabel: "Index",      chartUnits: "lin", source: "ISM",           frequency: "Monthly",   category: "gdp",  type: "Survey" },
-  { id: "indpro",           seriesId: "INDPRO",           title: "Industrial Production",          unitsLabel: "Index",      chartUnits: "lin", source: "Federal Reserve", frequency: "Monthly", category: "gdp",  type: "Activity" },
-  { id: "retail_ex_auto",   seriesId: "RSXFS",            title: "Retail Sales (ex-auto)",         unitsLabel: "$M",         chartUnits: "lin", source: "Census Bureau", frequency: "Monthly",   category: "gdp",  type: "Activity" },
-  { id: "durable_goods",    seriesId: "DGORDER",          title: "Durable Goods Orders",           unitsLabel: "$M",         chartUnits: "lin", source: "Census Bureau", frequency: "Monthly",   category: "gdp",  type: "Activity" },
-  { id: "building_permits", seriesId: "PERMIT",           title: "Building Permits",               unitsLabel: "K",          chartUnits: "lin", source: "Census Bureau", frequency: "Monthly",   category: "gdp",  type: "Activity" },
+  { id: "real_gdp",         seriesId: "A191RL1Q225SBEA", title: "Real GDP (Annualized)",          unitsLabel: "% QoQ ann.", chartUnits: "lin", source: "BEA",           frequency: "Quarterly",   category: "gdp",  type: "Lagging" },
+  { id: "gdpnow",           seriesId: "GDPNOW",           title: "Atlanta Fed GDPNow",             unitsLabel: "% ann.",     chartUnits: "lin", source: "Atlanta Fed",   frequency: "Updates vary", category: "gdp", type: "Real-Time" },
+  { id: "cfnai",            seriesId: "CFNAI",            title: "Chicago Fed CFNAI",              unitsLabel: "Index",      chartUnits: "lin", source: "Chicago Fed",   frequency: "Monthly",     category: "gdp",  type: "Coincident" },
+  { id: "indpro",           seriesId: "INDPRO",           title: "Industrial Production",          unitsLabel: "% YoY",      chartUnits: "pc1", source: "Federal Reserve", frequency: "Monthly",  category: "gdp",  type: "Coincident" },
+  { id: "retail_ex_auto",   seriesId: "RSXFS",            title: "Retail Sales (ex-auto)",         unitsLabel: "% YoY",      chartUnits: "pc1", source: "Census Bureau", frequency: "Monthly",    category: "gdp",  type: "Coincident" },
+  { id: "durable_goods",    seriesId: "DGORDER",          title: "Durable Goods Orders",           unitsLabel: "% YoY",      chartUnits: "pc1", source: "Census Bureau", frequency: "Monthly",    category: "gdp",  type: "Leading" },
+  { id: "building_permits", seriesId: "PERMIT",           title: "Building Permits",               unitsLabel: "K",          chartUnits: "lin", source: "Census Bureau", frequency: "Monthly",    category: "gdp",  type: "Leading" },
   // Inflation - Headline Cards
   { id: "core_cpi_yoy",     seriesId: "CPILFESL",         title: "Core CPI (YoY)",                unitsLabel: "% YoY",      chartUnits: "pc1", source: "BLS",           frequency: "Monthly",   category: "inflation" },
   { id: "pce_yoy",          seriesId: "PCEPI",            title: "PCE Deflator (YoY)",            unitsLabel: "% YoY",      chartUnits: "pc1", source: "BEA",           frequency: "Monthly",   category: "inflation" },
@@ -261,7 +260,7 @@ function getSignal(id: string, value: number | null): { signal: Signal; label: s
 
     case "fed_funds":
       if (value >= 5) return { signal: "warning", label: "Restrictive", explanation: "Policy rate is well above neutral — restrictive stance" };
-      if (value >= 3) return { signal: "neutral", label: "Elevated", explanation: "Above neutral — moderately restrictive" };
+      if (value >= 3) return { signal: "warning", label: "Elevated", explanation: "Above neutral — moderately restrictive" };
       if (value >= 1) return { signal: "neutral", label: "Neutral", explanation: "Near neutral policy rate" };
       return { signal: "positive", label: "Accommodative", explanation: "Low rates support growth" };
 
@@ -321,8 +320,189 @@ function getSignal(id: string, value: number | null): { signal: Signal; label: s
     case "lfpr": case "prime_age_lfpr":
       return { signal: value >= 62 ? "positive" : "neutral", label: value >= 63 ? "Strong" : "Moderate", explanation: "Labor force participation reflects workforce engagement" };
 
+    case "cfnai":
+      if (value >= 0.2) return { signal: "positive", label: "Above Trend", explanation: "National activity above historical trend — growth broadening" };
+      if (value >= -0.7) return { signal: "neutral", label: "Near Trend", explanation: "Economic activity near historical average" };
+      return { signal: "warning", label: "Below Trend", explanation: "Activity below trend — recession risk elevated if sustained" };
+
+    case "gdpnow":
+      if (value >= 3) return { signal: "positive", label: "Strong", explanation: "GDPNow tracking above-trend growth" };
+      if (value >= 1) return { signal: "neutral", label: "Moderate", explanation: "GDPNow tracking moderate growth" };
+      if (value >= 0) return { signal: "warning", label: "Near Stall", explanation: "GDPNow near stall speed" };
+      return { signal: "negative", label: "Contraction", explanation: "GDPNow tracking negative growth" };
+
+    case "indpro":
+      if (value >= 3) return { signal: "positive", label: "Strong", explanation: "Industrial output growing robustly above trend" };
+      if (value >= 0) return { signal: "neutral", label: "Moderate", explanation: "Industrial production growing modestly" };
+      if (value >= -2) return { signal: "warning", label: "Slowing", explanation: "Industrial production declining mildly" };
+      return { signal: "negative", label: "Contracting", explanation: "Industrial production in sharp contraction" };
+
+    case "retail_ex_auto":
+      if (value >= 4) return { signal: "positive", label: "Strong", explanation: "Consumer spending showing robust growth" };
+      if (value >= 1) return { signal: "neutral", label: "Moderate", explanation: "Retail sales growing at a moderate pace" };
+      if (value >= -1) return { signal: "warning", label: "Slowing", explanation: "Consumer spending growth has stalled" };
+      return { signal: "negative", label: "Declining", explanation: "Retail sales are contracting" };
+
+    case "durable_goods":
+      if (value >= 5) return { signal: "positive", label: "Strong", explanation: "Business investment and capex orders accelerating" };
+      if (value >= 0) return { signal: "neutral", label: "Stable", explanation: "Durable goods orders holding steady" };
+      return { signal: "warning", label: "Weak", explanation: "Durable goods declining — business caution on investment" };
+
+    case "building_permits":
+      if (value >= 1500) return { signal: "positive", label: "Strong", explanation: "Housing supply strong, supports economic growth" };
+      if (value >= 1200) return { signal: "neutral", label: "Moderate", explanation: "Building permits at normal levels" };
+      if (value >= 900) return { signal: "warning", label: "Slowing", explanation: "Housing construction momentum fading" };
+      return { signal: "negative", label: "Weak", explanation: "Low permits signal housing downturn" };
+
+    case "shelter_oer":
+      if (value <= 3) return { signal: "positive", label: "Cooling", explanation: "Shelter inflation cooling toward 2% target" };
+      if (value <= 5) return { signal: "warning", label: "Elevated", explanation: "Shelter is the largest CPI component — still elevated" };
+      return { signal: "negative", label: "High", explanation: "High shelter costs keeping overall CPI elevated" };
+
+    case "supercore":
+      if (value <= 2.5) return { signal: "positive", label: "Controlled", explanation: "Services ex-energy near 2% target" };
+      if (value <= 4) return { signal: "warning", label: "Elevated", explanation: "Fed's preferred gauge above target — core inflation sticky" };
+      return { signal: "negative", label: "High", explanation: "High supercore — persistent services inflation" };
+
+    case "food_at_home":
+      if (value <= 2) return { signal: "positive", label: "Normal", explanation: "Grocery prices growing at normal pace" };
+      if (value <= 4) return { signal: "warning", label: "Elevated", explanation: "Food inflation above historical average" };
+      return { signal: "negative", label: "High", explanation: "High food inflation pressuring household budgets" };
+
+    case "energy_cpi":
+      if (value < -5) return { signal: "positive", label: "Deflationary", explanation: "Falling energy prices pulling CPI lower" };
+      if (value < 0) return { signal: "positive", label: "Declining", explanation: "Energy prices providing CPI relief" };
+      if (value < 5) return { signal: "neutral", label: "Moderate", explanation: "Energy prices adding modestly to headline CPI" };
+      return { signal: "warning", label: "Elevated", explanation: "High energy prices boosting headline CPI" };
+
+    case "new_vehicles":
+      if (value < 0) return { signal: "positive", label: "Deflationary", explanation: "Vehicle prices declining — post-pandemic normalization" };
+      if (value <= 2) return { signal: "neutral", label: "Normal", explanation: "Vehicle prices growing at a normal rate" };
+      return { signal: "warning", label: "Elevated", explanation: "Vehicle prices adding to inflation pressure" };
+
+    case "ppi":
+      if (value <= 2) return { signal: "positive", label: "Normal", explanation: "Producer prices near target — benign pipeline" };
+      if (value <= 4) return { signal: "warning", label: "Elevated", explanation: "PPI above target — potential pass-through to CPI" };
+      return { signal: "negative", label: "High", explanation: "High PPI signals inflation pipeline risk" };
+
+    case "breakeven_5y5y":
+      if (value <= 2.3) return { signal: "positive", label: "Anchored", explanation: "Long-term inflation expectations well-anchored" };
+      if (value <= 2.7) return { signal: "neutral", label: "Moderate", explanation: "Inflation expectations slightly above target" };
+      return { signal: "warning", label: "Unanchored", explanation: "Long-term expectations drifting — Fed credibility at risk" };
+
+    case "mich_infl_1y":
+      if (value <= 3) return { signal: "positive", label: "Anchored", explanation: "Consumer near-term inflation expectations near target" };
+      if (value <= 4) return { signal: "warning", label: "Elevated", explanation: "Consumers expect above-target inflation in the next year" };
+      return { signal: "negative", label: "High", explanation: "High consumer expectations can become self-fulfilling" };
+
+    case "avg_hrly_earn":
+      if (value <= 3.5) return { signal: "positive", label: "Balanced", explanation: "Wage growth consistent with 2% inflation target" };
+      if (value <= 5) return { signal: "warning", label: "Elevated", explanation: "Wage growth above trend — potential inflationary pressure" };
+      return { signal: "negative", label: "High", explanation: "Rapid wage growth risks wage-price spiral" };
+
+    case "jolts":
+      if (value >= 8000) return { signal: "positive", label: "Very Tight", explanation: "Very high job openings — labor demand extremely strong" };
+      if (value >= 6000) return { signal: "positive", label: "Tight", explanation: "High openings signal robust labor demand" };
+      if (value >= 5000) return { signal: "neutral", label: "Normal", explanation: "Job openings at historically normal levels" };
+      return { signal: "warning", label: "Cooling", explanation: "Declining openings signal labor market loosening" };
+
+    case "u6_unemp":
+      if (value <= 7.5) return { signal: "positive", label: "Low", explanation: "Broad unemployment (incl. underemployed) historically low" };
+      if (value <= 9) return { signal: "neutral", label: "Normal", explanation: "Broad unemployment in typical range" };
+      if (value <= 11) return { signal: "warning", label: "Elevated", explanation: "Rising slack — underemployment increasing" };
+      return { signal: "negative", label: "High", explanation: "Broad labor market slack significantly elevated" };
+
+    case "quits_rate":
+      if (value >= 2.5) return { signal: "positive", label: "Strong", explanation: "High quits reflect worker confidence — tight labor market" };
+      if (value >= 2) return { signal: "neutral", label: "Normal", explanation: "Quits rate at normal levels" };
+      return { signal: "warning", label: "Low", explanation: "Workers less willing to quit — labor market softening" };
+
+    case "jobless_claims":
+      if (value <= 250) return { signal: "positive", label: "Low", explanation: "Low initial claims reflect strong labor market" };
+      if (value <= 350) return { signal: "neutral", label: "Normal", explanation: "Jobless claims at historical average range" };
+      if (value <= 450) return { signal: "warning", label: "Rising", explanation: "Elevated claims suggest labor market softening" };
+      return { signal: "negative", label: "High", explanation: "High initial claims signal recession-level layoffs" };
+
+    case "cont_claims":
+      if (value <= 1800) return { signal: "positive", label: "Low", explanation: "Low continuing claims signal quick re-employment" };
+      if (value <= 2200) return { signal: "neutral", label: "Normal", explanation: "Continuing claims at normal levels" };
+      return { signal: "warning", label: "Elevated", explanation: "Rising continuing claims suggest harder to find new jobs" };
+
+    case "avg_wkly_hrs":
+      if (value >= 34.5) return { signal: "positive", label: "Strong", explanation: "Long average hours reflect strong labor demand" };
+      if (value >= 33.5) return { signal: "neutral", label: "Normal", explanation: "Average workweek at typical levels" };
+      return { signal: "warning", label: "Short", explanation: "Shorter workweek often precedes layoffs — leading indicator" };
+
+    case "mortgage30":
+      if (value <= 5) return { signal: "positive", label: "Low", explanation: "Low mortgage rates support housing and consumer spending" };
+      if (value <= 6.5) return { signal: "warning", label: "Elevated", explanation: "High mortgage rates weigh on housing affordability" };
+      return { signal: "negative", label: "High", explanation: "Very high rates severely restrict housing market" };
+
+    case "usd_index":
+      if (value <= 95) return { signal: "positive", label: "Weak USD", explanation: "Weak dollar boosts US exports and supports EM assets" };
+      if (value <= 105) return { signal: "neutral", label: "Neutral", explanation: "USD in typical historical range" };
+      if (value <= 115) return { signal: "warning", label: "Strong", explanation: "Strong USD tightens global conditions, weighs on EM" };
+      return { signal: "negative", label: "Very Strong", explanation: "Very strong USD — global liquidity tightening risk" };
+
+    case "wti_crude": case "brent_crude":
+      if (value <= 60) return { signal: "positive", label: "Low", explanation: "Low oil prices reduce inflation and energy costs" };
+      if (value <= 80) return { signal: "neutral", label: "Moderate", explanation: "Oil prices in a manageable range" };
+      if (value <= 100) return { signal: "warning", label: "Elevated", explanation: "High oil prices add to inflation pressure" };
+      return { signal: "negative", label: "High", explanation: "Very high oil — significant inflation and growth risk" };
+
+    case "m2_yoy":
+      if (value >= 5) return { signal: "warning", label: "High Growth", explanation: "Rapid money supply growth — inflationary pressure long-term" };
+      if (value >= 0) return { signal: "neutral", label: "Normal", explanation: "Money supply growing at moderate pace" };
+      return { signal: "positive", label: "Contracting", explanation: "Money supply contraction — disinflationary signal" };
+
+    case "ecb_rate":
+      if (value >= 3) return { signal: "warning", label: "Restrictive", explanation: "ECB deposit rate in restrictive territory" };
+      if (value >= 1) return { signal: "neutral", label: "Neutral", explanation: "ECB at roughly neutral rate" };
+      return { signal: "positive", label: "Accommodative", explanation: "ECB in accommodative territory" };
+
+    case "boe_rate":
+      if (value >= 4) return { signal: "warning", label: "Restrictive", explanation: "BoE rate in restrictive territory" };
+      if (value >= 1.5) return { signal: "neutral", label: "Neutral", explanation: "BoE at roughly neutral rate" };
+      return { signal: "positive", label: "Accommodative", explanation: "BoE in accommodative territory" };
+
+    case "ez_cpi_yoy": case "uk_cpi_yoy":
+      if (value <= 2) return { signal: "positive", label: "At Target", explanation: "Inflation at 2% central bank target" };
+      if (value <= 3) return { signal: "warning", label: "Near Target", explanation: "Inflation slightly above target" };
+      return { signal: "negative", label: "Above Target", explanation: "Inflation well above target — rate pressure remains" };
+
+    case "jp_cpi_yoy":
+      if (value >= 2) return { signal: "neutral", label: "At Target", explanation: "Japan at 2% target after decades of deflation" };
+      if (value > 0) return { signal: "positive", label: "Positive", explanation: "Japan exiting deflation — supports BoJ normalization" };
+      return { signal: "negative", label: "Deflation", explanation: "Japan back in deflation — BoJ ultra-easy policy likely" };
+
+    case "cn_cpi_yoy":
+      if (value < 0) return { signal: "negative", label: "Deflation", explanation: "China deflation weighs on global commodity demand" };
+      if (value < 1.5) return { signal: "warning", label: "Very Low", explanation: "Very low inflation signals weak domestic demand in China" };
+      if (value <= 3) return { signal: "neutral", label: "Normal", explanation: "China CPI in normal range" };
+      return { signal: "warning", label: "Elevated", explanation: "China inflation above normal — demand-driven" };
+
+    case "ez_unemp":
+      if (value <= 6) return { signal: "positive", label: "Low", explanation: "Eurozone unemployment at historically low levels" };
+      if (value <= 8) return { signal: "neutral", label: "Normal", explanation: "Eurozone unemployment in typical range" };
+      return { signal: "warning", label: "Elevated", explanation: "High unemployment limits ECB room to tighten" };
+
+    case "eurusd":
+      if (value >= 1.15) return { signal: "positive", label: "Strong EUR", explanation: "EUR strength reflects relative Eurozone resilience" };
+      if (value >= 1.05) return { signal: "neutral", label: "Normal", explanation: "EUR/USD near historical average" };
+      return { signal: "warning", label: "Weak EUR", explanation: "EUR weakness signals Fed/ECB rate divergence" };
+
+    case "usdjpy":
+      if (value <= 130) return { signal: "neutral", label: "Stable", explanation: "JPY near normal range — BoJ stance manageable" };
+      if (value <= 150) return { signal: "warning", label: "Weak JPY", explanation: "JPY weakness reflects BoJ ultra-easy policy" };
+      return { signal: "negative", label: "Very Weak JPY", explanation: "Extreme JPY weakness — BoJ intervention risk" };
+
+    case "usdcny":
+      if (value <= 7) return { signal: "neutral", label: "Stable", explanation: "CNY within PBoC's comfort zone" };
+      if (value <= 7.3) return { signal: "warning", label: "Weak CNY", explanation: "CNY weakness signals PBoC allowing some depreciation" };
+      return { signal: "negative", label: "Very Weak CNY", explanation: "Sharp CNY weakness — capital flow concerns" };
+
     default:
-      return { signal: "neutral", label: "—", explanation: "" };
+      return { signal: "neutral", label: "Normal", explanation: "" };
   }
 }
 
@@ -449,7 +629,7 @@ async function fetchAllIndicators() {
 
 router.get("/macro/indicators", async (req, res): Promise<void> => {
   const CACHE_KEY = "macro:indicators";
-  const CACHE_TTL = 30 * 60 * 1000; // 30-minute TTL
+  const CACHE_TTL = 24 * 60 * 60 * 1000; // 24-hour TTL (data is daily)
 
   const cached = fromCache<object>(CACHE_KEY);
 
@@ -552,7 +732,7 @@ async function fetchFredSubset(
 // Users always get the latest cached snapshot (instant after first cache write).
 export async function warmMacroCache(): Promise<void> {
   const CACHE_KEY = "macro:indicators";
-  const CACHE_TTL = 30 * 60 * 1000;
+  const CACHE_TTL = 24 * 60 * 60 * 1000; // 24-hour TTL (data is daily)
   if (fromCache(CACHE_KEY)) return; // already warm
 
   // Phase 1: initial fetch (Yahoo parallel + ~9 FRED series in serial)

@@ -135,7 +135,6 @@ export default function MacroOverviewTab({ indicators, marketCycle }: Props) {
               <CardContent className="px-4 pb-4">
                 <div className={`text-2xl font-bold font-mono mb-2 ${valueClass(ind.signal)}`}>
                   {fmtVal(ind)}
-                  <span className="text-xs font-normal text-muted-foreground ml-1">{ind.unitsLabel}</span>
                 </div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${signalBadgeClass(ind.signal)}`}>

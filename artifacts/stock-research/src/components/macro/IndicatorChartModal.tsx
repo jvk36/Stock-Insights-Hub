@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   AreaChart,
   Area,
@@ -21,6 +21,18 @@ import {
 } from "@workspace/api-client-react";
 import type { GetMacroSeriesObservationsUnits } from "@workspace/api-client-react";
 
+type Range = "1Y" | "2Y" | "5Y" | "10Y" | "Max";
+
+const RANGES: Range[] = ["1Y", "2Y", "5Y", "10Y", "Max"];
+
+const RANGE_MS: Record<Range, number> = {
+  "1Y":  1 * 365.25 * 24 * 60 * 60 * 1000,
+  "2Y":  2 * 365.25 * 24 * 60 * 60 * 1000,
+  "5Y":  5 * 365.25 * 24 * 60 * 60 * 1000,
+  "10Y": 10 * 365.25 * 24 * 60 * 60 * 1000,
+  "Max": Infinity,
+};
+
 interface IndicatorChartModalProps {
   open: boolean;
   onClose: () => void;
@@ -41,11 +53,12 @@ function formatDate(dateStr: string): string {
 
 function formatValue(v: number | null | undefined, unitsLabel: string): string {
   if (v == null) return "N/A";
-  if (unitsLabel.includes("$M") || unitsLabel.includes("K")) {
-    return v >= 1000 ? `${(v / 1000).toFixed(1)}B` : v.toFixed(0);
-  }
+  if (unitsLabel === "K") return v >= 1000 ? `${(v / 1000).toFixed(1)}M` : v.toFixed(0);
+  if (unitsLabel === "$M") return v >= 1000 ? `$${(v / 1000).toFixed(1)}B` : v.toFixed(0);
   return `${v.toFixed(2)}`;
 }
+
+const FETCH_LIMIT = 5000;
 
 export default function IndicatorChartModal({
   open,
@@ -55,22 +68,24 @@ export default function IndicatorChartModal({
   chartUnits,
   unitsLabel,
 }: IndicatorChartModalProps) {
+  const [range, setRange] = useState<Range>("5Y");
+
   const { data, isLoading, isError } = useGetMacroSeriesObservations(
     seriesId,
-    { units: chartUnits as GetMacroSeriesObservationsUnits, limit: 240 },
+    { units: chartUnits as GetMacroSeriesObservationsUnits, limit: FETCH_LIMIT },
     {
       query: {
         enabled: open && !!seriesId,
         queryKey: getGetMacroSeriesObservationsQueryKey(seriesId, {
           units: chartUnits as GetMacroSeriesObservationsUnits,
-          limit: 240,
+          limit: FETCH_LIMIT,
         }),
         staleTime: 10 * 60 * 1000,
       },
     }
   );
 
-  const chartData = useMemo(() => {
+  const allData = useMemo(() => {
     if (!data?.observations) return [];
     return data.observations
       .filter((o) => o.value != null)
@@ -80,6 +95,12 @@ export default function IndicatorChartModal({
         label: formatDate(o.date),
       }));
   }, [data?.observations]);
+
+  const chartData = useMemo(() => {
+    if (range === "Max") return allData;
+    const cutoff = Date.now() - RANGE_MS[range];
+    return allData.filter((d) => new Date(d.date + "T00:00:00").getTime() >= cutoff);
+  }, [allData, range]);
 
   const yMin = useMemo(() => {
     const vals = chartData.map((d) => d.value as number);
@@ -115,7 +136,28 @@ export default function IndicatorChartModal({
           <p className="text-xs text-muted-foreground">Units: {unitsLabel} · FRED Series: {seriesId}</p>
         </DialogHeader>
 
-        <div className="mt-2 h-72">
+        <div className="flex items-center gap-1">
+          {RANGES.map((r) => (
+            <button
+              key={r}
+              onClick={() => setRange(r)}
+              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                range === r
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70"
+              }`}
+            >
+              {r}
+            </button>
+          ))}
+          {chartData.length > 0 && (
+            <span className="ml-auto text-xs text-muted-foreground">
+              {chartData.length} data points
+            </span>
+          )}
+        </div>
+
+        <div className="h-72">
           {isLoading && (
             <div className="space-y-2 pt-4">
               <Skeleton className="h-4 w-full" />
@@ -129,7 +171,7 @@ export default function IndicatorChartModal({
           )}
           {!isLoading && !isError && chartData.length === 0 && (
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-              No data available
+              No data available for this time range
             </div>
           )}
           {!isLoading && !isError && chartData.length > 0 && (

@@ -78,6 +78,7 @@ export default function MacroGdpTab({ indicators }: Props) {
               <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden sm:table-cell">Source</th>
               <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden md:table-cell">Frequency</th>
               <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden lg:table-cell">Type</th>
+              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden xl:table-cell">Explanation</th>
             </tr>
           </thead>
           <tbody>
@@ -99,6 +100,9 @@ export default function MacroGdpTab({ indicators }: Props) {
                       {ind.type}
                     </span>
                   )}
+                </td>
+                <td className="px-4 py-3 text-xs text-muted-foreground hidden xl:table-cell max-w-xs">
+                  {ind.explanation}
                 </td>
               </tr>
             ))}

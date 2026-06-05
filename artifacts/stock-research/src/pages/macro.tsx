@@ -139,7 +139,7 @@ export default function MacroSummary() {
               </TabsContent>
 
               <TabsContent value="gdp" className="mt-0">
-                <MacroGdpTab indicators={indicators} />
+                <MacroGdpTab indicators={indicators} marketCycle={marketCycle} />
               </TabsContent>
 
               <TabsContent value="inflation" className="mt-0">

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { LineChart } from "lucide-react";
 import type { MacroIndicator, MarketCycle } from "@workspace/api-client-react";
 import IndicatorChartModal from "./IndicatorChartModal";
 
@@ -9,42 +9,208 @@ interface Props {
   marketCycle: MarketCycle;
 }
 
-const KEY_READING_IDS = ["gdp_growth", "cpi_yoy", "unemployment", "fed_funds", "t10y", "indpro_yoy"];
-const SIGNAL_CARD_IDS = ["yield_curve", "hy_oas", "nfp_mom", "recession_prob"];
-
-const CYCLE_PHASES = [
-  "Recovery",
-  "Early Expansion",
-  "Mid Expansion",
-  "Late Expansion",
-  "Early Contraction",
-  "Recession",
-];
+const KEY_READING_IDS = ["gdp_growth", "cpi_yoy", "unemployment", "fed_funds", "t10y", "ism_mfg"];
+const SIGNAL_CARD_IDS = ["yield_curve", "hy_oas", "nfp_mom", "lei", "consumer_conf", "sp500_200ma"];
 
 type Signal = "positive" | "negative" | "warning" | "neutral";
 
-function signalBadgeClass(signal: string | null | undefined): string {
+function dotCls(signal: string | null | undefined): string {
   switch (signal) {
-    case "positive": return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
-    case "negative": return "bg-red-500/15 text-red-400 border-red-500/30";
-    case "warning": return "bg-amber-500/15 text-amber-400 border-amber-500/30";
-    default: return "bg-muted text-muted-foreground border-border";
+    case "positive": return "bg-emerald-400";
+    case "negative": return "bg-red-400";
+    case "warning":  return "bg-amber-400";
+    default:         return "bg-slate-500";
   }
 }
 
-function valueClass(signal: string | null | undefined): string {
+function signalBadgeCls(signal: string | null | undefined): string {
+  switch (signal) {
+    case "positive": return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+    case "negative": return "bg-red-500/15 text-red-400 border-red-500/30";
+    case "warning":  return "bg-amber-500/15 text-amber-400 border-amber-500/30";
+    default:         return "bg-muted text-muted-foreground border-border";
+  }
+}
+
+function valueCls(signal: string | null | undefined): string {
   switch (signal) {
     case "positive": return "text-emerald-400";
     case "negative": return "text-red-400";
-    case "warning": return "text-amber-400";
-    default: return "text-foreground";
+    case "warning":  return "text-amber-400";
+    default:         return "text-foreground";
+  }
+}
+
+function rowAccentCls(signal: string | null | undefined): string {
+  switch (signal) {
+    case "positive": return "border-l-emerald-500";
+    case "negative": return "border-l-red-500";
+    case "warning":  return "border-l-amber-500";
+    default:         return "border-l-transparent";
   }
 }
 
 function fmtVal(ind: MacroIndicator): string {
   if (ind.value == null) return "—";
-  if (ind.unitsLabel === "K") return `${ind.value.toFixed(0)}K`;
-  return `${ind.value.toFixed(2)}${ind.unitsLabel.startsWith("%") ? "%" : ""}`;
+  const v = ind.value;
+  if (ind.unitsLabel === "bps") {
+    const sign = v >= 0 ? "+" : "−";
+    return `${sign}${Math.abs(v).toFixed(0)} bps`;
+  }
+  if (ind.unitsLabel === "% dev") {
+    const sign = v >= 0 ? "+" : "";
+    return `${sign}${v.toFixed(1)}%`;
+  }
+  if (ind.unitsLabel === "K") {
+    const sign = v >= 0 ? "+" : "";
+    return `${sign}${Math.abs(v).toFixed(0)}K`;
+  }
+  if (ind.unitsLabel === "% MoM") {
+    const sign = v >= 0 ? "+" : "";
+    return `${sign}${v.toFixed(2)}% MoM`;
+  }
+  if (ind.unitsLabel === "Index") return v.toFixed(1);
+  if (ind.unitsLabel.startsWith("%")) return `${v.toFixed(2)}%`;
+  return `${v.toFixed(2)} ${ind.unitsLabel}`;
+}
+
+function computeRecessionProb(byId: Map<string, MacroIndicator>): {
+  prob: number; label: string; signal: Signal; factors: string[];
+} {
+  let score = 0;
+  let maxScore = 0;
+  const factors: string[] = [];
+
+  const yc = byId.get("yield_curve");
+  if (yc?.value != null) {
+    maxScore += 30;
+    if (yc.value < -50) { score += 30; factors.push("Deep yield curve inversion"); }
+    else if (yc.value < 0) { score += 18; factors.push("Mild yield curve inversion"); }
+    else if (yc.value < 50) { score += 5; factors.push("Flat yield curve"); }
+    else factors.push("Normal yield curve slope");
+  }
+
+  const lei = byId.get("lei");
+  if (lei?.value != null) {
+    maxScore += 25;
+    if (lei.value < -1) { score += 25; factors.push("LEI in sharp decline"); }
+    else if (lei.value < 0) { score += 14; factors.push("LEI declining"); }
+    else if (lei.value < 0.3) { score += 4; factors.push("LEI flat"); }
+    else factors.push("LEI advancing");
+  }
+
+  const hy = byId.get("hy_oas");
+  if (hy?.value != null) {
+    maxScore += 25;
+    if (hy.value > 800) { score += 25; factors.push("HY spreads at crisis levels"); }
+    else if (hy.value > 500) { score += 14; factors.push("HY spreads widening sharply"); }
+    else if (hy.value > 400) { score += 7; factors.push("HY spreads above average"); }
+    else factors.push("HY credit spreads contained");
+  }
+
+  const nfp = byId.get("nfp_mom");
+  if (nfp?.value != null) {
+    maxScore += 20;
+    if (nfp.value < 0) { score += 20; factors.push("Job losses — recession signal"); }
+    else if (nfp.value < 75) { score += 10; factors.push("Payrolls very weak"); }
+    else if (nfp.value < 150) { score += 4; factors.push("Payrolls below trend"); }
+    else factors.push("Payrolls healthy");
+  }
+
+  if (maxScore === 0) return { prob: 12, label: "Low", signal: "positive", factors };
+  const prob = Math.min(95, Math.round((score / maxScore) * 100));
+  let label: string;
+  let signal: Signal;
+  if (prob <= 15) { label = "Low"; signal = "positive"; }
+  else if (prob <= 35) { label = "Moderate"; signal = "neutral"; }
+  else if (prob <= 60) { label = "Elevated"; signal = "warning"; }
+  else { label = "High"; signal = "negative"; }
+  return { prob, label, signal, factors };
+}
+
+interface AssetSignal {
+  signal: Signal;
+  label: string;
+  explanation: string;
+  factors: string[];
+}
+
+function computeAssetCompass(
+  type: "equities" | "fixed_income" | "commodities",
+  byId: Map<string, MacroIndicator>,
+): AssetSignal {
+  const getSig = (id: string) => byId.get(id)?.signal;
+  const getVal = (id: string) => byId.get(id)?.value ?? null;
+
+  if (type === "equities") {
+    let score = 0;
+    const factors: string[] = [];
+    if (getSig("gdp_growth") === "positive") { score += 2; factors.push("GDP expanding"); }
+    else if (getSig("gdp_growth") === "warning") { score -= 1; factors.push("Growth slowing"); }
+    else if (getSig("gdp_growth") === "negative") { score -= 2; factors.push("GDP contracting"); }
+    if (getSig("cpi_yoy") === "positive") { score += 1; factors.push("Inflation near target"); }
+    else if (getSig("cpi_yoy") === "warning") { score -= 1; factors.push("Inflation above target"); }
+    else if (getSig("cpi_yoy") === "negative") { score -= 2; factors.push("High inflation pressures"); }
+    if (getSig("nfp_mom") === "positive") { score += 2; factors.push("Labor market strong"); }
+    else if (getSig("nfp_mom") === "warning") { score -= 1; factors.push("Payrolls below trend"); }
+    else if (getSig("nfp_mom") === "negative") { score -= 2; factors.push("Job losses detected"); }
+    if (getSig("hy_oas") === "positive") { score += 1; factors.push("Credit spreads tight"); }
+    else if (getSig("hy_oas") === "negative") { score -= 2; factors.push("Credit stress elevated"); }
+    if (getSig("sp500_200ma") === "positive") { score += 1; factors.push("Price above 200d MA"); }
+    else if (getSig("sp500_200ma") === "negative") { score -= 1; factors.push("Price below 200d MA"); }
+    if (score >= 4) return { signal: "positive", label: "Positive", explanation: "Growth, labor, and credit all supportive — earnings resiliency favored.", factors };
+    if (score >= 1) return { signal: "neutral", label: "Neutral", explanation: "Mixed signals — selective approach, favor quality and dividend names.", factors };
+    if (score >= -2) return { signal: "warning", label: "Cautious", explanation: "Macro headwinds building — defensive tilt, reduce cyclical exposure.", factors };
+    return { signal: "negative", label: "Negative", explanation: "Recessionary signals dominant — defensive positioning, capital preservation.", factors };
+  }
+
+  if (type === "fixed_income") {
+    let score = 0;
+    const factors: string[] = [];
+    const ff = getVal("fed_funds");
+    const yc = getVal("yield_curve");
+    const t10 = getVal("t10y");
+    const be = getVal("breakeven_5y5y");
+    if (ff != null) {
+      if (ff >= 4.5) { score += 1; factors.push("High short-end: cash attractive"); }
+      else if (ff < 2.5) { score -= 1; factors.push("Low rates: limited income buffer"); }
+    }
+    if (yc != null) {
+      if (yc < 0) { score += 1; factors.push("Inverted curve: short-end elevated vs long"); }
+      else if (yc > 100) { score += 1; factors.push("Normal curve: duration supported"); }
+    }
+    if (t10 != null) {
+      if (t10 >= 4.5) { score += 2; factors.push(`10Y at ${t10.toFixed(2)}%: attractive entry`); }
+      else if (t10 >= 3) { score += 1; factors.push("Moderate 10Y: balanced opportunity"); }
+      else { score -= 1; factors.push("Low 10Y yield: limited upside"); }
+    }
+    if (be != null && be >= 2.5) { score += 1; factors.push("Elevated breakevens: TIPS as hedge"); }
+    if (score >= 3) return { signal: "positive", label: "Positive", explanation: "High yields offer attractive income entry; short-end and TIPS appealing.", factors };
+    if (score >= 1) return { signal: "neutral", label: "Neutral", explanation: "Balanced outlook — barbell approach (short duration + TIPS) recommended.", factors };
+    if (score >= -1) return { signal: "warning", label: "Cautious", explanation: "Rate uncertainty creates duration headwinds — favor floating-rate, short-duration.", factors };
+    return { signal: "negative", label: "Negative", explanation: "Unfavorable rate environment — minimize duration, prioritize short-dated quality.", factors };
+  }
+
+  let score = 0;
+  const factors: string[] = [];
+  const wti = getVal("wti_crude");
+  const usd = getVal("usd_index");
+  if (wti != null) {
+    if (wti > 85) { score += 2; factors.push(`Oil at $${wti.toFixed(0)}: energy supply tight`); }
+    else if (wti > 65) { score += 1; factors.push(`Oil at $${wti.toFixed(0)}: moderate levels`); }
+    else { score -= 1; factors.push(`Weak oil at $${wti.toFixed(0)}: demand concerns`); }
+  }
+  if (usd != null) {
+    if (usd > 106) { score -= 2; factors.push("Strong USD: major commodity headwind"); }
+    else if (usd > 101) { score -= 1; factors.push("Elevated USD: modest pressure"); }
+    else { score += 1; factors.push("Weaker USD: supportive for commodities"); }
+  }
+  if (getSig("gdp_growth") === "positive") { score += 1; factors.push("Growth drives industrial demand"); }
+  else if (getSig("gdp_growth") === "negative") { score -= 1; factors.push("Recession risk weighs on metals"); }
+  if (score >= 3) return { signal: "positive", label: "Positive", explanation: "Energy supply tightness and supportive USD underpin commodities; gold hedge attractive.", factors };
+  if (score >= 1) return { signal: "neutral", label: "Neutral", explanation: "Mixed signals — energy and USD diverging; selective approach recommended.", factors };
+  if (score >= -1) return { signal: "warning", label: "Cautious", explanation: "Strong USD and growth uncertainty create headwinds; gold may outperform.", factors };
+  return { signal: "negative", label: "Negative", explanation: "Recessionary demand destruction and strong USD create adverse environment.", factors };
 }
 
 interface SelectedIndicator {
@@ -54,16 +220,41 @@ interface SelectedIndicator {
   unitsLabel: string;
 }
 
+const REGIME_EXPLANATIONS: Record<string, string> = {
+  "Recovery":          "Economy healing after contraction — labor improving, credit recovering, early earnings rebound beginning.",
+  "Early Expansion":   "Growth accelerating from low levels — corporate earnings recovering, unemployment falling, consumer confidence rebuilding.",
+  "Mid Expansion":     "Healthy, self-sustaining growth — strong labor, solid consumer spending, moderate inflation, healthy corporate profits.",
+  "Late Expansion":    "Growth peaking — labor tight, inflation pressures building, yield curve flattening, central bank tightening.",
+  "Early Contraction": "Growth decelerating — leading indicators rolling over, credit tightening, confidence weakening.",
+  "Recession":         "Economic contraction — GDP declining, unemployment rising, credit spreads wide, central banks likely pivoting to easing.",
+};
+
+const TABLE_LEGEND = (
+  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-xs text-muted-foreground bg-muted/20 border-t border-border">
+    <span className="font-medium text-foreground/60">Legend:</span>
+    <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />Positive / Expansion</span>
+    <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-amber-400" />Caution / Slowing</span>
+    <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-red-400" />Warning / Contraction</span>
+    <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-slate-500" />No Data</span>
+    <span className="flex items-center gap-1.5 ml-auto"><LineChart className="w-3 h-3 text-primary/40" />Click row to view chart</span>
+  </div>
+);
+
 export default function MacroOverviewTab({ indicators, marketCycle }: Props) {
   const [selected, setSelected] = useState<SelectedIndicator | null>(null);
 
   const byId = new Map(indicators.map((i) => [i.id, i]));
-
   const keyReadings = KEY_READING_IDS.map((id) => byId.get(id)).filter(Boolean) as MacroIndicator[];
   const signalCards = SIGNAL_CARD_IDS.map((id) => byId.get(id)).filter(Boolean) as MacroIndicator[];
 
-  const cycleIndex = CYCLE_PHASES.indexOf(marketCycle.phase);
-  const yieldCurveInd = byId.get("yield_curve");
+  const recProb = computeRecessionProb(byId);
+  const equitiesSignal = computeAssetCompass("equities", byId);
+  const fiSignal = computeAssetCompass("fixed_income", byId);
+  const cmdSignal = computeAssetCompass("commodities", byId);
+
+  const regimeSignal: Signal =
+    marketCycle.phase === "Recession" ? "negative" :
+    ["Early Contraction", "Late Expansion"].includes(marketCycle.phase) ? "warning" : "positive";
 
   function open(ind: MacroIndicator) {
     setSelected({ seriesId: ind.seriesId, title: ind.title, chartUnits: ind.chartUnits, unitsLabel: ind.unitsLabel });
@@ -71,6 +262,7 @@ export default function MacroOverviewTab({ indicators, marketCycle }: Props) {
 
   return (
     <div className="space-y-8">
+
       {/* a) Latest Key Readings */}
       <section>
         <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
@@ -80,28 +272,32 @@ export default function MacroOverviewTab({ indicators, marketCycle }: Props) {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/40 border-b border-border">
-                <th className="text-left px-4 py-2 font-medium text-muted-foreground">Indicator</th>
-                <th className="text-right px-4 py-2 font-medium text-muted-foreground">Value</th>
-                <th className="text-center px-4 py-2 font-medium text-muted-foreground">Signal</th>
-                <th className="text-left px-4 py-2 font-medium text-muted-foreground hidden md:table-cell">Status</th>
+                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Indicator</th>
+                <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">Value</th>
+                <th className="text-center px-4 py-2.5 font-medium text-muted-foreground">Status</th>
+                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden md:table-cell">Reading</th>
               </tr>
             </thead>
             <tbody>
               {keyReadings.map((ind, i) => (
                 <tr
                   key={ind.id}
-                  className={`border-b border-border last:border-0 hover:bg-muted/20 cursor-pointer transition-colors ${i % 2 === 0 ? "" : "bg-muted/10"}`}
                   onClick={() => open(ind)}
+                  className={`border-b border-border last:border-0 hover:bg-muted/20 cursor-pointer transition-colors border-l-2 ${rowAccentCls(ind.signal)} ${i % 2 === 0 ? "" : "bg-muted/10"}`}
                 >
                   <td className="px-4 py-3">
-                    <span className="font-medium">{ind.title}</span>
-                    <span className="text-xs text-muted-foreground ml-2 hidden sm:inline">{ind.source}</span>
+                    <div className="flex items-center gap-1.5">
+                      <LineChart className="w-3.5 h-3.5 text-primary/40 flex-shrink-0" />
+                      <span className="font-medium">{ind.title}</span>
+                      <span className="text-xs text-muted-foreground ml-1 hidden sm:inline">· {ind.source}</span>
+                    </div>
                   </td>
-                  <td className={`px-4 py-3 text-right font-mono font-semibold ${valueClass(ind.signal)}`}>
+                  <td className={`px-4 py-3 text-right font-mono font-semibold tabular-nums ${valueCls(ind.signal)}`}>
                     {fmtVal(ind)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${signalBadgeClass(ind.signal)}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${signalBadgeCls(ind.signal)}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotCls(ind.signal)}`} />
                       {ind.signalLabel ?? "—"}
                     </span>
                   </td>
@@ -112,6 +308,7 @@ export default function MacroOverviewTab({ indicators, marketCycle }: Props) {
               ))}
             </tbody>
           </table>
+          {TABLE_LEGEND}
         </div>
       </section>
 
@@ -120,104 +317,153 @@ export default function MacroOverviewTab({ indicators, marketCycle }: Props) {
         <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           Signal Dashboard
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {signalCards.map((ind) => (
             <Card
               key={ind.id}
-              className="cursor-pointer hover:border-primary/50 transition-colors group"
+              className="cursor-pointer hover:border-primary/40 transition-colors group"
               onClick={() => open(ind)}
             >
               <CardHeader className="pb-2 pt-4 px-4">
-                <CardTitle className="text-xs font-medium text-muted-foreground leading-snug group-hover:text-foreground transition-colors">
-                  {ind.title}
-                </CardTitle>
+                <div className="flex items-start justify-between gap-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground leading-snug group-hover:text-foreground transition-colors">
+                    {ind.title}
+                  </CardTitle>
+                  <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
+                    <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${dotCls(ind.signal)}`} />
+                    <LineChart className="w-3 h-3 text-primary/30 group-hover:text-primary/60 transition-colors" />
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <div className={`text-2xl font-bold font-mono mb-2 ${valueClass(ind.signal)}`}>
+                <div className={`text-2xl font-bold font-mono mb-2 tabular-nums ${valueCls(ind.signal)}`}>
                   {fmtVal(ind)}
                 </div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${signalBadgeClass(ind.signal)}`}>
+                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${signalBadgeCls(ind.signal)}`}>
                     {ind.signalLabel ?? "—"}
                   </span>
+                  <span className="text-xs text-muted-foreground">{ind.date}</span>
                 </div>
                 <p className="text-xs text-muted-foreground leading-snug">{ind.explanation}</p>
               </CardContent>
             </Card>
           ))}
         </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 px-1 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground/60">Legend:</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />Risk-On / Positive</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-amber-400" />Caution</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-red-400" />Risk-Off / Warning</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-slate-500" />No Data</span>
+          <span className="flex items-center gap-1.5 ml-2"><LineChart className="w-3 h-3 text-primary/40" />Click card to view chart</span>
+        </div>
       </section>
 
-      {/* c) Market Cycle & Yield Curve */}
+      {/* c) Regime & Risk Gauges */}
       <section>
         <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-          Market Cycle & Yield Curve
+          Regime &amp; Risk Gauges
         </h3>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Market Cycle */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Market Cycle Phase</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Confidence: <span className="font-semibold text-foreground">{marketCycle.confidence.toFixed(0)}%</span>
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {CYCLE_PHASES.map((phase, idx) => {
-                  const isActive = phase === marketCycle.phase;
-                  const isPast = cycleIndex >= 0 && idx < cycleIndex;
-                  return (
-                    <span
-                      key={phase}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all
-                        ${isActive
-                          ? "bg-primary text-primary-foreground border-primary scale-105 shadow-sm"
-                          : isPast
-                          ? "bg-primary/20 text-primary border-primary/30"
-                          : "bg-muted/30 text-muted-foreground border-border"
-                        }`}
-                    >
-                      {phase}
-                    </span>
-                  );
-                })}
+            <CardHeader className="pb-2 pt-4 px-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm">Current Regime</CardTitle>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${signalBadgeCls(regimeSignal)}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${dotCls(regimeSignal)}`} />
+                  {marketCycle.phase}
+                </span>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Based on GDP growth, unemployment, yield curve, ISM PMI, and recession probability signals.
-                Current phase: <span className="font-semibold text-foreground">{marketCycle.phase}</span>.
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                {REGIME_EXPLANATIONS[marketCycle.phase] ?? "Composite regime signal based on GDP, labor, yield curve, ISM PMI, and credit indicators."}
               </p>
+              <div className="text-xs text-muted-foreground">
+                Model confidence: <span className="font-semibold text-foreground">{marketCycle.confidence.toFixed(0)}%</span>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Yield Curve Card */}
-          <Card
-            className="cursor-pointer hover:border-primary/50 transition-colors"
-            onClick={() => yieldCurveInd && open(yieldCurveInd)}
-          >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">US Treasury Yield Curve (2s10s)</CardTitle>
-              <p className="text-xs text-muted-foreground">Click to view long-term chart · Source: Federal Reserve</p>
+          <Card>
+            <CardHeader className="pb-2 pt-4 px-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm">12M Recession Probability</CardTitle>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${signalBadgeCls(recProb.signal)}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${dotCls(recProb.signal)}`} />
+                  {recProb.label}
+                </span>
+              </div>
             </CardHeader>
-            <CardContent>
-              {yieldCurveInd && (
-                <>
-                  <div className={`text-3xl font-bold font-mono mb-2 ${valueClass(yieldCurveInd.signal)}`}>
-                    {fmtVal(yieldCurveInd)}
-                  </div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${signalBadgeClass(yieldCurveInd.signal)}`}>
-                      {yieldCurveInd.signalLabel}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{yieldCurveInd.date}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-snug">
-                    {yieldCurveInd.explanation}. A negative spread (inversion) has historically preceded recessions by 12–18 months.
-                  </p>
-                </>
-              )}
+            <CardContent className="px-4 pb-4">
+              <div className={`text-3xl font-bold font-mono mb-2 tabular-nums ${valueCls(recProb.signal)}`}>
+                {recProb.prob}%
+              </div>
+              <div className="w-full bg-muted rounded-full h-1.5 mb-3">
+                <div
+                  className={`h-1.5 rounded-full transition-all ${
+                    recProb.signal === "positive" ? "bg-emerald-500" :
+                    recProb.signal === "negative" ? "bg-red-500" :
+                    recProb.signal === "warning"  ? "bg-amber-500" : "bg-slate-500"
+                  }`}
+                  style={{ width: `${recProb.prob}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground leading-snug mb-2">
+                Composite estimate: yield curve slope, LEI trend, HY credit spreads, payroll momentum.
+              </p>
+              <ul className="space-y-0.5">
+                {recProb.factors.slice(0, 4).map((f, i) => (
+                  <li key={i} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <span className="text-primary/40 flex-shrink-0">·</span>{f}
+                  </li>
+                ))}
+              </ul>
             </CardContent>
           </Card>
+        </div>
+      </section>
+
+      {/* d) Asset Class Compass */}
+      <section>
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+          Asset Class Compass
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {([
+            { label: "Equities",     sig: equitiesSignal, bases: "Earnings resiliency · Valuations · Quality/Dividend tilt" },
+            { label: "Fixed Income", sig: fiSignal,       bases: "Rate levels · Duration risk · Short-end · TIPS/inflation" },
+            { label: "Commodities",  sig: cmdSignal,      bases: "Energy supply · Gold as hedge · Copper growth proxy" },
+          ]).map(({ label, sig, bases }) => (
+            <Card key={label}>
+              <CardHeader className="pb-2 pt-4 px-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm">{label}</CardTitle>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${signalBadgeCls(sig.signal)}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${dotCls(sig.signal)}`} />
+                    {sig.label}
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <p className="text-xs text-muted-foreground leading-snug mb-2">{sig.explanation}</p>
+                <p className="text-xs text-muted-foreground/50 italic mb-2">{bases}</p>
+                <ul className="space-y-0.5 mt-2">
+                  {sig.factors.slice(0, 3).map((f, i) => (
+                    <li key={i} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                        /strong|tight|above|grow|healthy|normal|attract|low spread/i.test(f) ? "bg-emerald-400" :
+                        /weak|contrac|loss|below|crisis|sharp|reces/i.test(f)               ? "bg-red-400" :
+                        "bg-amber-400"
+                      }`} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </section>
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LineChart } from "lucide-react";
 import type { MacroIndicator } from "@workspace/api-client-react";
 import IndicatorChartModal from "./IndicatorChartModal";
 
@@ -35,7 +36,6 @@ function signalBadgeClass(signal: string | null | undefined): string {
 function fmtVal(ind: MacroIndicator): string {
   if (ind.value == null) return "—";
   const v = ind.value;
-  // ICSA/CCSA return raw person counts (e.g. 215,000), not pre-converted thousands
   if (ind.id === "jobless_claims" || ind.id === "cont_claims") {
     if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`;
     return `${(v / 1_000).toFixed(0)}K`;
@@ -52,7 +52,7 @@ function cardExplanation(id: string, label: string): string {
     case "nfp_mom":
       return ">200K: Strong · 100–200K: Moderate · <100K: Weak · <0: Job losses";
     case "unemployment":
-      return "<4.0%: Full employment · 4–5%: Normal · >5%: Slack · >6%: Recessionary";
+      return "<4%: Full employment · 4–5%: Normal · >5%: Slack · >6%: Recessionary";
     case "avg_hrly_earn":
       return ">4%: Inflationary pressure · 3–4%: Balanced · <3%: Weak wage growth";
     case "jolts":
@@ -68,6 +68,16 @@ interface SelectedIndicator {
   chartUnits: string;
   unitsLabel: string;
 }
+
+const TABLE_LEGEND = (
+  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-xs text-muted-foreground bg-muted/20 border-t border-border">
+    <span className="font-medium text-foreground/60">Legend:</span>
+    <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />Strong / Tight Labor Market</span>
+    <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-amber-400" />Cooling / Slowing</span>
+    <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-red-400" />Weak / Recessionary</span>
+    <span className="flex items-center gap-1.5 ml-auto"><LineChart className="w-3 h-3 text-primary/40" />Click to view chart</span>
+  </div>
+);
 
 export default function MacroLaborTab({ indicators }: Props) {
   const [selected, setSelected] = useState<SelectedIndicator | null>(null);
@@ -92,13 +102,16 @@ export default function MacroLaborTab({ indicators }: Props) {
           {healthCards.map((ind) => (
             <Card
               key={ind.id}
-              className="cursor-pointer hover:border-primary/50 transition-colors"
+              className="cursor-pointer hover:border-primary/50 transition-colors group"
               onClick={() => open(ind)}
             >
               <CardHeader className="pb-1 pt-4 px-4">
-                <CardTitle className="text-xs font-medium text-muted-foreground leading-snug">
-                  {ind.title}
-                </CardTitle>
+                <div className="flex items-center justify-between gap-1">
+                  <CardTitle className="text-xs font-medium text-muted-foreground leading-snug group-hover:text-foreground transition-colors">
+                    {ind.title}
+                  </CardTitle>
+                  <LineChart className="w-3 h-3 text-primary/30 flex-shrink-0 group-hover:text-primary/60 transition-colors" />
+                </div>
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 <div className={`text-2xl font-bold font-mono mb-1.5 ${signalClass(ind.signal)}`}>
@@ -115,6 +128,13 @@ export default function MacroLaborTab({ indicators }: Props) {
               </CardContent>
             </Card>
           ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 px-1 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground/60">Legend:</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />Strong / Tight</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-amber-400" />Normal / Cooling</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-red-400" />Weak / Recessionary</span>
+          <span className="flex items-center gap-1.5 ml-2"><LineChart className="w-3 h-3 text-primary/40" />Click card to view chart</span>
         </div>
       </section>
 
@@ -141,7 +161,12 @@ export default function MacroLaborTab({ indicators }: Props) {
                   className={`border-b border-border last:border-0 hover:bg-muted/20 cursor-pointer transition-colors ${i % 2 === 0 ? "" : "bg-muted/10"}`}
                   onClick={() => open(ind)}
                 >
-                  <td className="px-4 py-3 font-medium">{ind.title}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <LineChart className="w-3 h-3 text-primary/40 flex-shrink-0" />
+                      <span className="font-medium">{ind.title}</span>
+                    </div>
+                  </td>
                   <td className={`px-4 py-3 text-right font-mono font-semibold ${signalClass(ind.signal)}`}>
                     {fmtVal(ind)}
                   </td>
@@ -158,6 +183,7 @@ export default function MacroLaborTab({ indicators }: Props) {
               ))}
             </tbody>
           </table>
+          {TABLE_LEGEND}
         </div>
       </section>
 

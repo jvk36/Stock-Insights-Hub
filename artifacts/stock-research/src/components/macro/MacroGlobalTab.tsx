@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LineChart } from "lucide-react";
 import type { MacroIndicator } from "@workspace/api-client-react";
 import IndicatorChartModal from "./IndicatorChartModal";
 
@@ -12,22 +13,22 @@ const GLOBAL_IDS = [
 ];
 
 const IMPACT: Record<string, string> = {
-  ecb_rate: "Sets credit conditions for the Eurozone; divergence from Fed drives EUR/USD",
-  boe_rate: "UK monetary policy anchor; signals BoE's inflation-vs-growth tradeoff",
-  ez_cpi_yoy: "ECB's primary mandate; drives EUR rate expectations",
-  jp_cpi_yoy: "Japan exiting deflation matters for BoJ policy pivot and JPY",
-  uk_cpi_yoy: "BoE inflation target is 2%; persistent deviation = more hikes",
-  cn_cpi_yoy: "China deflation risk weighs on global demand and EM commodity prices",
-  ez_unemp: "Labor market slack determines ECB's ability to ease",
+  ecb_rate:    "Sets credit conditions for the Eurozone; divergence from Fed drives EUR/USD",
+  boe_rate:    "UK monetary policy anchor; signals BoE's inflation-vs-growth tradeoff",
+  ez_cpi_yoy:  "ECB's primary mandate; drives EUR rate expectations",
+  jp_cpi_yoy:  "Japan exiting deflation matters for BoJ policy pivot and JPY",
+  uk_cpi_yoy:  "BoE inflation target is 2%; persistent deviation = more hikes",
+  cn_cpi_yoy:  "China deflation risk weighs on global demand and EM commodity prices",
+  ez_unemp:    "Labor market slack determines ECB's ability to ease",
   brent_crude: "Global oil benchmark; higher prices pressure inflation worldwide",
-  eurusd: "Most-traded pair; reflects relative Fed vs ECB policy divergence",
-  usdjpy: "Yen weakness signals BoJ ultra-easy policy; sharp moves = intervention risk",
-  usdcny: "Managed float; PBOC tolerance of weakness signals stimulus vs control",
+  eurusd:      "Most-traded pair; reflects relative Fed vs ECB policy divergence",
+  usdjpy:      "Yen weakness signals BoJ ultra-easy policy; sharp moves = intervention risk",
+  usdcny:      "Managed float; PBOC tolerance of weakness signals stimulus vs control",
 };
 
 const SIGNAL_LABELS: Record<string, (v: number) => { label: string; cls: string }> = {
-  ecb_rate: (v) => ({ label: v >= 3 ? "Restrictive" : v >= 1 ? "Neutral" : "Accommodative", cls: v >= 3 ? "text-amber-400" : "text-emerald-400" }),
-  boe_rate: (v) => ({ label: v >= 4 ? "Restrictive" : "Neutral", cls: v >= 4 ? "text-amber-400" : "text-muted-foreground" }),
+  ecb_rate:   (v) => ({ label: v >= 3 ? "Restrictive" : v >= 1 ? "Neutral" : "Accommodative", cls: v >= 3 ? "text-amber-400" : "text-emerald-400" }),
+  boe_rate:   (v) => ({ label: v >= 4 ? "Restrictive" : "Neutral", cls: v >= 4 ? "text-amber-400" : "text-muted-foreground" }),
   ez_cpi_yoy: (v) => ({ label: v > 3 ? "Above Target" : v > 2 ? "Near Target" : "Below Target", cls: v > 3 ? "text-red-400" : v > 2 ? "text-amber-400" : "text-emerald-400" }),
   jp_cpi_yoy: (v) => ({ label: v > 2 ? "Above 2%" : v > 0 ? "Positive" : "Negative", cls: v > 2 ? "text-amber-400" : "text-emerald-400" }),
   uk_cpi_yoy: (v) => ({ label: v > 3 ? "Elevated" : "Near Target", cls: v > 3 ? "text-amber-400" : "text-emerald-400" }),
@@ -103,7 +104,12 @@ export default function MacroGlobalTab({ indicators }: Props) {
                   className={`border-b border-border last:border-0 hover:bg-muted/20 cursor-pointer transition-colors ${i % 2 === 0 ? "" : "bg-muted/10"}`}
                   onClick={() => open(ind)}
                 >
-                  <td className="px-4 py-3 font-medium">{ind.title}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <LineChart className="w-3 h-3 text-primary/40 flex-shrink-0" />
+                      <span className="font-medium">{ind.title}</span>
+                    </div>
+                  </td>
                   <td className={`px-4 py-3 text-right font-mono font-semibold ${signalClass(ind.signal)}`}>
                     {fmtVal(ind)}
                   </td>
@@ -117,6 +123,13 @@ export default function MacroGlobalTab({ indicators }: Props) {
             })}
           </tbody>
         </table>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-xs text-muted-foreground bg-muted/20 border-t border-border">
+          <span className="font-medium text-foreground/60">Legend:</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />Accommodative / At Target</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-amber-400" />Neutral / Near Target</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-red-400" />Restrictive / Well Above</span>
+          <span className="flex items-center gap-1.5 ml-auto"><LineChart className="w-3 h-3 text-primary/40" />Click row to view chart</span>
+        </div>
       </div>
 
       <IndicatorChartModal

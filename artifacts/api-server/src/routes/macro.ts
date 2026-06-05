@@ -39,10 +39,15 @@ const INDICATORS: IndicatorDef[] = [
   { id: "t10y",             seriesId: "DGS10",            title: "10-Year Treasury Yield",        unitsLabel: "%",          chartUnits: "lin", source: "Federal Reserve", frequency: "Daily",   category: "overview" },
   { id: "indpro_yoy",       seriesId: "INDPRO",           title: "Industrial Production (YoY)",   unitsLabel: "% YoY",      chartUnits: "pc1", source: "Federal Reserve", frequency: "Monthly", category: "overview" },
   // Overview - Signal Dashboard
-  { id: "yield_curve",      seriesId: "T10Y2Y",           title: "Yield Curve (2s10s)",           unitsLabel: "%",          chartUnits: "lin", source: "Federal Reserve", frequency: "Daily",   category: "overview" },
+  { id: "yield_curve",      seriesId: "T10Y2Y",           title: "Yield Curve (2s10s)",           unitsLabel: "bps",        chartUnits: "lin", source: "Federal Reserve", frequency: "Daily",   category: "overview" },
   { id: "hy_oas",           seriesId: "BAMLH0A0HYM2",    title: "Credit Spreads (HY OAS)",        unitsLabel: "bps",        chartUnits: "lin", source: "ICE BofA",      frequency: "Daily",    category: "overview" },
   { id: "nfp_mom",          seriesId: "PAYEMS",           title: "Labor Market (NFP MoM)",         unitsLabel: "K",          chartUnits: "ch1", source: "BLS",           frequency: "Monthly",   category: "overview", whyItMatters: "Monthly payroll jobs count — the most closely-watched labor market indicator. Defines hiring trends and labor demand." },
   { id: "recession_prob",   seriesId: "RECPROUSM156N",    title: "Recession Probability",          unitsLabel: "%",          chartUnits: "lin", source: "Federal Reserve", frequency: "Monthly", category: "overview" },
+  { id: "ism_mfg",          seriesId: "NAPMPMI",          title: "ISM Manufacturing PMI",          unitsLabel: "Index",      chartUnits: "lin", source: "ISM",             frequency: "Monthly",   category: "gdp",      type: "Leading" },
+  { id: "ism_svcs",         seriesId: "NMFPMI",           title: "ISM Services PMI",               unitsLabel: "Index",      chartUnits: "lin", source: "ISM",             frequency: "Monthly",   category: "gdp",      type: "Leading" },
+  { id: "lei",              seriesId: "USSLIND",          title: "Leading Index (LEI)",             unitsLabel: "% MoM",      chartUnits: "pch", source: "Philadelphia Fed", frequency: "Monthly",  category: "gdp",      type: "Leading" },
+  { id: "consumer_conf",    seriesId: "CSCICP03USM665S",  title: "Consumer Confidence (OECD)",     unitsLabel: "Index",      chartUnits: "lin", source: "OECD",            frequency: "Monthly",   category: "overview" },
+  { id: "sp500_200ma",      seriesId: "SP500",            title: "S&P 500 vs 200d MA",             unitsLabel: "% dev",      chartUnits: "lin", source: "Yahoo Finance",   frequency: "Daily",     category: "overview" },
   // GDP tab
   { id: "real_gdp",         seriesId: "A191RL1Q225SBEA", title: "Real GDP (Annualized)",          unitsLabel: "% QoQ ann.", chartUnits: "lin", source: "BEA",           frequency: "Quarterly",   category: "gdp",  type: "Lagging" },
   { id: "gdpnow",           seriesId: "GDPNOW",           title: "Atlanta Fed GDPNow",             unitsLabel: "% ann.",     chartUnits: "lin", source: "Atlanta Fed",   frequency: "Updates vary", category: "gdp", type: "Real-Time" },
@@ -162,7 +167,8 @@ async function yahooYieldCurve(): Promise<{ value: number | null; date: string |
     const v10 = q10y.regularMarketPrice;
     const v3m = q3m.regularMarketPrice;
     if (v10 != null && v3m != null) {
-      return { value: parseFloat((v10 - v3m).toFixed(3)), date: new Date().toISOString().split("T")[0] };
+      const spreadBps = (v10 - v3m) * 100;
+      return { value: parseFloat(spreadBps.toFixed(1)), date: new Date().toISOString().split("T")[0] };
     }
     return { value: null, date: null };
   } catch {
@@ -171,6 +177,32 @@ async function yahooYieldCurve(): Promise<{ value: number | null; date: string |
 }
 
 // ─── FRED helpers ─────────────────────────────────────────────────────────────
+
+async function yahooSP500vs200MA(): Promise<{ value: number | null; date: string | null }> {
+  try {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 310);
+    const data = await yf.historical("^GSPC", {
+      period1: start.toISOString().split("T")[0],
+      period2: end.toISOString().split("T")[0],
+      interval: "1d",
+    });
+    if (!data || data.length < 200) return { value: null, date: null };
+    const sorted = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const recent200 = sorted.slice(-200);
+    const ma200 = recent200.reduce((s, d) => s + (d.close ?? 0), 0) / 200;
+    const latest = sorted[sorted.length - 1];
+    if (!latest || ma200 === 0) return { value: null, date: null };
+    const pct = ((latest.close - ma200) / ma200) * 100;
+    const dateStr = latest.date instanceof Date
+      ? latest.date.toISOString().split("T")[0]
+      : String(latest.date).split("T")[0];
+    return { value: parseFloat(pct.toFixed(2)), date: dateStr };
+  } catch {
+    return { value: null, date: null };
+  }
+}
 
 const FRED_HEADERS = {
   "User-Agent": "Mozilla/5.0 (compatible; StockResearch/1.0; +https://replit.com)",
@@ -237,16 +269,15 @@ function getSignal(id: string, value: number | null): { signal: Signal; label: s
 
   switch (id) {
     case "gdp_growth": case "real_gdp":
-      if (value >= 3) return { signal: "positive", label: "Strong", explanation: "GDP growth above 3% is robust" };
-      if (value >= 1) return { signal: "neutral", label: "Moderate", explanation: "GDP growth is positive but below trend" };
-      if (value >= 0) return { signal: "warning", label: "Weak", explanation: "Growth near stall speed" };
-      return { signal: "negative", label: "Contraction", explanation: "Negative GDP growth indicates recession risk" };
+      if (value >= 2.5) return { signal: "positive", label: "Expansion", explanation: "GDP growing above trend — economy in solid expansion" };
+      if (value >= 0) return { signal: "neutral", label: "Moderate", explanation: "GDP positive but below trend — slow-growth regime" };
+      if (value >= -1) return { signal: "warning", label: "Near Recession", explanation: "GDP near stall speed — recession risk elevated" };
+      return { signal: "negative", label: "Recessionary", explanation: "Negative GDP growth — economy in contraction" };
 
     case "cpi_yoy": case "pce_yoy":
-      if (value <= 2) return { signal: "positive", label: "At Target", explanation: "At or below the Fed's 2% target" };
-      if (value <= 3) return { signal: "neutral", label: "Near Target", explanation: "Slightly above the 2% target" };
-      if (value <= 5) return { signal: "warning", label: "Elevated", explanation: "Inflation is elevated above target" };
-      return { signal: "negative", label: "High", explanation: "Inflation is significantly above target" };
+      if (value <= 2.5) return { signal: "positive", label: "At Target", explanation: "At or below the Fed's 2% inflation target" };
+      if (value <= 4) return { signal: "warning", label: "Above Target", explanation: "Inflation elevated above the 2% target — policy pressure persists" };
+      return { signal: "negative", label: "High", explanation: "Inflation significantly above target — persistent policy tightening risk" };
 
     case "core_cpi_yoy": case "core_pce_yoy":
       if (value <= 2.5) return { signal: "positive", label: "Controlled", explanation: "Core inflation near target" };
@@ -254,15 +285,15 @@ function getSignal(id: string, value: number | null): { signal: Signal; label: s
       return { signal: "negative", label: "Persistent", explanation: "Core inflation well above target — Fed remains hawkish" };
 
     case "unemployment":
-      if (value <= 4) return { signal: "positive", label: "Tight", explanation: "Near full employment" };
-      if (value <= 5) return { signal: "neutral", label: "Normal", explanation: "Labor market near natural unemployment" };
-      return { signal: "negative", label: "Loose", explanation: "Unemployment elevated above full employment" };
+      if (value <= 4) return { signal: "positive", label: "Full Employment", explanation: "At or near full employment — labor market very tight" };
+      if (value <= 5) return { signal: "neutral", label: "Normal", explanation: "Labor market near the natural rate of unemployment" };
+      if (value <= 6) return { signal: "warning", label: "Slack", explanation: "Unemployment above trend — labor market softening" };
+      return { signal: "negative", label: "Oversupply", explanation: "Unemployment significantly elevated — recessionary conditions" };
 
     case "fed_funds":
-      if (value >= 5) return { signal: "warning", label: "Restrictive", explanation: "Policy rate is well above neutral — restrictive stance" };
-      if (value >= 3) return { signal: "warning", label: "Elevated", explanation: "Above neutral — moderately restrictive" };
-      if (value >= 1) return { signal: "neutral", label: "Neutral", explanation: "Near neutral policy rate" };
-      return { signal: "positive", label: "Accommodative", explanation: "Low rates support growth" };
+      if (value < 2.5) return { signal: "positive", label: "Accommodative", explanation: "Policy rate below neutral — supportive of growth" };
+      if (value <= 4) return { signal: "neutral", label: "Neutral", explanation: "Policy rate near neutral — balanced stance" };
+      return { signal: "warning", label: "Restrictive", explanation: "Policy rate above neutral — deliberate tightening to slow inflation" };
 
     case "t10y": case "t2y":
       if (value >= 5) return { signal: "warning", label: "Very High", explanation: "High yields tighten financial conditions" };
@@ -271,10 +302,10 @@ function getSignal(id: string, value: number | null): { signal: Signal; label: s
       return { signal: "positive", label: "Low", explanation: "Low yields are supportive for equities and borrowing" };
 
     case "yield_curve":
-      if (value >= 0.5) return { signal: "positive", label: "Normal", explanation: "Positive slope indicates healthy growth expectations" };
-      if (value >= 0) return { signal: "neutral", label: "Flat", explanation: "Near zero — watch for inversion" };
-      if (value >= -0.5) return { signal: "warning", label: "Inverted", explanation: "Inversion historically signals recession risk" };
-      return { signal: "negative", label: "Deeply Inverted", explanation: "Deep inversion is a strong recession signal" };
+      if (value >= 50) return { signal: "positive", label: "Normal", explanation: "+50 bps: positive slope indicates healthy growth expectations" };
+      if (value >= 0) return { signal: "neutral", label: "Flat", explanation: "Near zero — curve flattening, watch for inversion" };
+      if (value >= -50) return { signal: "warning", label: "Inverted", explanation: "Mild inversion historically signals recession within 12–18 months" };
+      return { signal: "negative", label: "Deeply Inverted", explanation: "Deep inversion below −50 bps is a strong recession signal" };
 
     case "hy_oas":
       if (value <= 300) return { signal: "positive", label: "Tight", explanation: "Tight spreads reflect risk appetite / low default risk" };
@@ -501,6 +532,24 @@ function getSignal(id: string, value: number | null): { signal: Signal; label: s
       if (value <= 7.3) return { signal: "warning", label: "Weak CNY", explanation: "CNY weakness signals PBoC allowing some depreciation" };
       return { signal: "negative", label: "Very Weak CNY", explanation: "Sharp CNY weakness — capital flow concerns" };
 
+    case "lei":
+      if (value >= 0.3) return { signal: "positive", label: "Rising", explanation: "Leading Economic Index advancing — growth momentum building" };
+      if (value >= 0) return { signal: "neutral", label: "Stable", explanation: "LEI near flat — growth momentum stable but not accelerating" };
+      if (value >= -0.5) return { signal: "warning", label: "Slowing", explanation: "LEI declining — forward growth momentum fading" };
+      return { signal: "negative", label: "Falling", explanation: "LEI in sharp decline — recession signal strengthening" };
+
+    case "consumer_conf":
+      if (value >= 105) return { signal: "positive", label: "Confident", explanation: "Consumer confidence high — spending and growth outlook positive" };
+      if (value >= 95) return { signal: "neutral", label: "Neutral", explanation: "Consumer confidence near historical average" };
+      if (value >= 85) return { signal: "warning", label: "Cautious", explanation: "Consumer confidence below average — spending risk" };
+      return { signal: "negative", label: "Pessimistic", explanation: "Low consumer confidence signals spending contraction ahead" };
+
+    case "sp500_200ma":
+      if (value >= 5) return { signal: "positive", label: "Bullish", explanation: "S&P 500 well above 200d MA — strong uptrend confirmed" };
+      if (value >= 0) return { signal: "neutral", label: "Above MA", explanation: "S&P 500 above 200d MA — trend positive but momentum modest" };
+      if (value >= -5) return { signal: "warning", label: "Near MA", explanation: "S&P 500 near 200d MA — trend at critical support level" };
+      return { signal: "negative", label: "Bearish", explanation: "S&P 500 below 200d MA — downtrend; risk-off signal" };
+
     default:
       return { signal: "neutral", label: "Normal", explanation: "" };
   }
@@ -537,7 +586,7 @@ function inferMarketCycle(indicators: Map<string, number | null>) {
     confidence += 10;
   }
   if (yieldCurve != null) {
-    if (yieldCurve < -0.5) score -= 2;
+    if (yieldCurve < -50) score -= 2;
     else if (yieldCurve < 0) score -= 1;
     else score += 1;
     confidence += 10;
@@ -567,7 +616,7 @@ function inferMarketCycle(indicators: Map<string, number | null>) {
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 async function fetchAllIndicators() {
-  const YAHOO_IDS = new Set(["yield_curve", ...Object.keys(YAHOO_SYMBOLS)]);
+  const YAHOO_IDS = new Set(["yield_curve", "sp500_200ma", ...Object.keys(YAHOO_SYMBOLS)]);
 
   // Fetch Yahoo Finance indicators in parallel — fast, no rate limit concerns
   const yahooResultMap = new Map<string, { value: number | null; date: string | null }>();
@@ -576,6 +625,8 @@ async function fetchAllIndicators() {
       const result =
         def.id === "yield_curve"
           ? await yahooYieldCurve()
+          : def.id === "sp500_200ma"
+          ? await yahooSP500vs200MA()
           : await yahooLatest(YAHOO_SYMBOLS[def.id]!);
       yahooResultMap.set(def.id, result);
     }),
@@ -744,7 +795,7 @@ export async function warmMacroCache(): Promise<void> {
   }
 
   // Phase 2+: enrichment passes — 60-second pauses let FRED's rate limit window reset
-  const YAHOO_IDS = new Set(["yield_curve", ...Object.keys(YAHOO_SYMBOLS)]);
+  const YAHOO_IDS = new Set(["yield_curve", "sp500_200ma", ...Object.keys(YAHOO_SYMBOLS)]);
   const MAX_PASSES = 6;
   const BATCH_SIZE = 8;
 

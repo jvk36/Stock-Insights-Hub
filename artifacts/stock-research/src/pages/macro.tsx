@@ -57,7 +57,7 @@ export default function MacroSummary() {
               href="/indexes"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
             >
-              Stock Indexes
+              Stock Screens
             </Link>
             <button
               onClick={() => setLocation("/stock/AAPL")}

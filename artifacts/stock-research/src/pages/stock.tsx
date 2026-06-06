@@ -66,7 +66,7 @@ export default function StockDetail() {
               href="/indexes"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
             >
-              Stock Indexes
+              Stock Screens
             </Link>
             <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
               Stock Insights

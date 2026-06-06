@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useLocation, Link } from "wouter";
-import { Search, TrendingUp, BarChart2 } from "lucide-react";
+import { Search, TrendingUp, BarChart2, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -145,8 +145,9 @@ interface IndexTabContentProps {
 }
 
 function IndexTabContent({ stocks, isLoading, isError, indexName, fetchedAt, legendLabel, source }: IndexTabContentProps) {
-  const [filterText, setFilterText]     = useState("");
-  const [activeSector, setActiveSector] = useState<string | null>(null);
+  const [filterText, setFilterText]       = useState("");
+  const [activeSector, setActiveSector]   = useState<string | null>(null);
+  const [showSectors, setShowSectors]     = useState(false);
 
   const sectors = useMemo(
     () =>
@@ -166,21 +167,55 @@ function IndexTabContent({ stocks, isLoading, isError, indexName, fetchedAt, leg
     return list;
   }, [stocks, activeSector, filterText]);
 
+  const sectorActive = activeSector !== null;
+
   return (
     <div>
-      {/* Controls row */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="relative w-56">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+      {/* ── Filter ribbon ──────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2 mb-2">
+        <span className="text-xs font-medium text-muted-foreground shrink-0">
+          Filter by
+        </span>
+
+        {/* Symbol / name search */}
+        <div className="relative w-52">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
           <Input
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
-            placeholder="Filter by symbol or name…"
+            placeholder="Symbol or name…"
             className="pl-8 h-8 text-xs bg-background"
           />
         </div>
 
-        <div className="flex flex-wrap gap-1.5">
+        {/* Sector toggle */}
+        <button
+          onClick={() => setShowSectors((v) => !v)}
+          className={`inline-flex items-center gap-1 px-3 h-8 rounded-md border text-xs font-medium transition-colors ${
+            showSectors || sectorActive
+              ? "bg-primary text-primary-foreground border-primary"
+              : "bg-background text-muted-foreground border-border hover:bg-muted"
+          }`}
+        >
+          {legendLabel === "Color by Country" ? "Country" : "Sector"}
+          {sectorActive && !showSectors && (
+            <span className="ml-1 w-1.5 h-1.5 rounded-full bg-current opacity-70" />
+          )}
+          <ChevronDown
+            className={`w-3 h-3 transition-transform duration-150 ${showSectors ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        {/* ── future screener buttons land here ── */}
+
+        <span className="ml-auto text-xs text-muted-foreground">
+          {isLoading ? "Loading…" : `${filtered.length} constituents`}
+        </span>
+      </div>
+
+      {/* ── Collapsible sector / country pills ────────────────────────── */}
+      {showSectors && (
+        <div className="flex flex-wrap gap-1.5 pt-2 pb-3 border-t border-border mt-1">
           <button
             onClick={() => setActiveSector(null)}
             className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
@@ -205,11 +240,7 @@ function IndexTabContent({ stocks, isLoading, isError, indexName, fetchedAt, leg
             </button>
           ))}
         </div>
-
-        <span className="ml-auto text-xs text-muted-foreground">
-          {isLoading ? "Loading…" : `${filtered.length} constituents`}
-        </span>
-      </div>
+      )}
 
       {/* Grid */}
       <div className="rounded-xl border border-border bg-card p-4">
@@ -291,7 +322,7 @@ export default function StockIndexes() {
 
           <nav className="flex items-center gap-1">
             <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
-              Stock Indexes
+              Stock Screens
             </span>
             <Link
               href="/stock/AAPL"
@@ -326,10 +357,10 @@ export default function StockIndexes() {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
             <BarChart2 className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">Stock Indexes</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Stock Screens</h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            Browse index constituents — click any ticker to open its research page
+            Browse and screen index constituents — click any ticker to open its research page
           </p>
         </div>
 

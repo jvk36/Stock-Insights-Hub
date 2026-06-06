@@ -32,13 +32,21 @@ async function fetchWikiHtml(url: string): Promise<cheerio.CheerioAPI> {
   return cheerio.load(await res.text());
 }
 
-/** Returns the first .wikitable that appears after a heading containing `text`. */
+/**
+ * Returns the first .wikitable after a heading whose text includes `text`.
+ * Handles both old flat Wikipedia markup (<h2> as direct sibling of table)
+ * and the newer wrapped markup (<div class="mw-heading"><h2>…</h2></div>
+ * as sibling of the table) by falling back to the parent element's nextAll.
+ */
 function tableAfterHeading($: cheerio.CheerioAPI, text: string) {
   let $table: ReturnType<typeof $> | null = null;
   $("h2, h3").each((_, el) => {
-    if ($table) return; // already found — skip remaining headings
+    if ($table) return; // already found
     if ($(el).text().includes(text)) {
-      const $t = $(el).nextAll("table.wikitable").first();
+      // Try the heading itself first (old flat markup)
+      let $t = $(el).nextAll("table.wikitable").first();
+      // Fall back to parent wrapper div (new mw-heading markup)
+      if (!$t.length) $t = $(el).parent().nextAll("table.wikitable").first();
       if ($t.length) $table = $t;
     }
   });
@@ -130,19 +138,20 @@ router.get("/indexes/sp500", makeRoute(sp500Cache, scrapeSp500, "S&P 500"));
 
 // ─── Nasdaq-100 ───────────────────────────────────────────────────────────────
 // Source: https://en.wikipedia.org/wiki/Nasdaq-100
-// Table: under "Components" heading — cols: Company[0] | Ticker[1] | GICS Sector[2]
+// Table: under "Current components" heading — cols: Company[0] | Ticker[1] | GICS Sector[2]
 
 const nasdaq100Cache: IndexCache = { data: null, revalidating: false };
 
 async function scrapeNasdaq100(): Promise<IndexStock[]> {
   const $ = await fetchWikiHtml("https://en.wikipedia.org/wiki/Nasdaq-100");
   const stocks: IndexStock[] = [];
-  const $table = tableAfterHeading($, "Components") ?? $(".wikitable").first();
+  const $table = tableAfterHeading($, "Current components") ?? $(".wikitable").first();
+  // Headers: Ticker[0] | Company[1] | ICB Industry[2] | ICB Subsector[3]
   $table.find("tbody tr").each((_, row) => {
     const cells = $(row).find("td");
     if (cells.length < 2) return;
-    const name   = $(cells[0]).text().trim();
-    const symbol = $(cells[1]).text().trim().replace(/\s+/g, "");
+    const symbol = $(cells[0]).text().trim().replace(/\s+/g, "");
+    const name   = $(cells[1]).text().trim();
     const sector = cells.length >= 3 ? $(cells[2]).text().trim() : "";
     if (symbol && name) stocks.push({ symbol, name, sector });
   });
@@ -207,12 +216,15 @@ async function scrapeDjia(): Promise<IndexStock[]> {
   const $ = await fetchWikiHtml("https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average");
   const stocks: IndexStock[] = [];
   const $table = tableAfterHeading($, "Components") ?? $(".wikitable").first();
+  // Row structure: <th>Company</th> <td>Exchange</td> <td>Symbol</td> <td>Sector</td> <td>Date</td>
+  // Company is in a th element; find("td") gives: Exchange[0] | Symbol[1] | Sector[2] | Date[3]
   $table.find("tbody tr").each((_, row) => {
-    const cells = $(row).find("td");
-    if (cells.length < 3) return;
-    const name   = $(cells[0]).text().trim();
-    const symbol = $(cells[2]).text().trim().replace(/\s+/g, "");
-    const sector = cells.length >= 4 ? $(cells[3]).text().trim() : "";
+    const $row  = $(row);
+    const cells = $row.find("td");
+    if (cells.length < 2) return;
+    const name   = $row.find("th").first().text().trim();
+    const symbol = $(cells[1]).text().trim().replace(/\s+/g, "");
+    const sector = cells.length >= 3 ? $(cells[2]).text().trim() : "";
     if (symbol && name) stocks.push({ symbol, name, sector });
   });
   return stocks;

@@ -6,16 +6,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  useGetIndexSp500,   getGetIndexSp500QueryKey,
+  useGetIndexSp500,    getGetIndexSp500QueryKey,
   useGetIndexNasdaq100, getGetIndexNasdaq100QueryKey,
-  useGetIndexSp400,   getGetIndexSp400QueryKey,
-  useGetIndexSp600,   getGetIndexSp600QueryKey,
-  useGetIndexDjia,    getGetIndexDjiaQueryKey,
+  useGetIndexSp400,    getGetIndexSp400QueryKey,
+  useGetIndexSp600,    getGetIndexSp600QueryKey,
+  useGetIndexDjia,     getGetIndexDjiaQueryKey,
+  useGetIndexAdrs,     getGetIndexAdrsQueryKey,
 } from "@workspace/api-client-react";
 
-// ─── Sector color palette ─────────────────────────────────────────────────────
+// ─── Color palette (GICS sectors + ADR countries) ────────────────────────────
 
 const SECTOR_COLORS: Record<string, string> = {
+  // GICS sectors (US indexes)
   "Information Technology":  "bg-blue-500/10 text-blue-600 border-blue-200",
   "Health Care":             "bg-emerald-500/10 text-emerald-600 border-emerald-200",
   "Financials":              "bg-amber-500/10 text-amber-700 border-amber-200",
@@ -27,6 +29,38 @@ const SECTOR_COLORS: Record<string, string> = {
   "Utilities":               "bg-teal-500/10 text-teal-600 border-teal-200",
   "Real Estate":             "bg-pink-500/10 text-pink-600 border-pink-200",
   "Materials":               "bg-stone-500/10 text-stone-600 border-stone-200",
+  // Countries (ADR tab)
+  "United Kingdom":          "bg-blue-600/10 text-blue-700 border-blue-300",
+  "Japan":                   "bg-red-600/10 text-red-700 border-red-300",
+  "China":                   "bg-rose-500/10 text-rose-700 border-rose-300",
+  "Canada":                  "bg-red-400/10 text-red-600 border-red-200",
+  "India":                   "bg-orange-600/10 text-orange-700 border-orange-300",
+  "Brazil":                  "bg-green-600/10 text-green-700 border-green-300",
+  "Australia":               "bg-yellow-600/10 text-yellow-700 border-yellow-300",
+  "Germany":                 "bg-gray-600/10 text-gray-700 border-gray-300",
+  "France":                  "bg-indigo-500/10 text-indigo-700 border-indigo-300",
+  "Switzerland":             "bg-red-500/10 text-red-600 border-red-200",
+  "Netherlands":             "bg-orange-500/10 text-orange-700 border-orange-300",
+  "South Korea":             "bg-cyan-500/10 text-cyan-700 border-cyan-300",
+  "Taiwan":                  "bg-teal-600/10 text-teal-700 border-teal-300",
+  "Hong Kong":               "bg-purple-500/10 text-purple-700 border-purple-300",
+  "Mexico":                  "bg-green-500/10 text-green-700 border-green-300",
+  "Spain":                   "bg-yellow-500/10 text-yellow-700 border-yellow-300",
+  "Israel":                  "bg-blue-400/10 text-blue-600 border-blue-200",
+  "Sweden":                  "bg-sky-600/10 text-sky-700 border-sky-300",
+  "Denmark":                 "bg-rose-600/10 text-rose-700 border-rose-300",
+  "Ireland":                 "bg-emerald-600/10 text-emerald-700 border-emerald-300",
+  "Singapore":               "bg-pink-600/10 text-pink-700 border-pink-300",
+  "Argentina":               "bg-cyan-400/10 text-cyan-600 border-cyan-200",
+  "Chile":                   "bg-red-300/10 text-red-600 border-red-200",
+  "Colombia":                "bg-yellow-400/10 text-yellow-600 border-yellow-200",
+  "South Africa":            "bg-lime-600/10 text-lime-700 border-lime-300",
+  "Russia":                  "bg-stone-600/10 text-stone-700 border-stone-300",
+  "Italy":                   "bg-green-400/10 text-green-600 border-green-200",
+  "Finland":                 "bg-sky-400/10 text-sky-600 border-sky-200",
+  "Norway":                  "bg-blue-300/10 text-blue-600 border-blue-200",
+  "Belgium":                 "bg-amber-600/10 text-amber-700 border-amber-300",
+  "Portugal":                "bg-lime-500/10 text-lime-600 border-lime-200",
 };
 
 function sectorColor(sector: string) {
@@ -105,9 +139,11 @@ interface IndexTabContentProps {
   isError: boolean;
   indexName: string;
   fetchedAt?: string;
+  legendLabel?: string;
+  source?: string;
 }
 
-function IndexTabContent({ stocks, isLoading, isError, indexName, fetchedAt }: IndexTabContentProps) {
+function IndexTabContent({ stocks, isLoading, isError, indexName, fetchedAt, legendLabel, source }: IndexTabContentProps) {
   const [filterText, setFilterText]     = useState("");
   const [activeSector, setActiveSector] = useState<string | null>(null);
 
@@ -181,7 +217,10 @@ function IndexTabContent({ stocks, isLoading, isError, indexName, fetchedAt }: I
         ) : isError ? (
           <div className="py-16 text-center">
             <p className="text-muted-foreground text-sm">
-              Could not load {indexName} data. The server may still be fetching from Wikipedia.
+              Could not load {indexName} data.{" "}
+              {source
+                ? `The server may still be fetching from ${source}.`
+                : "The server may still be fetching from Wikipedia."}
             </p>
           </div>
         ) : filtered.length === 0 ? (
@@ -197,7 +236,7 @@ function IndexTabContent({ stocks, isLoading, isError, indexName, fetchedAt }: I
       {!isLoading && !isError && sectors.length > 0 && (
         <div className="mt-4">
           <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">
-            Color by GICS Sector
+            {legendLabel ?? "Color by GICS Sector"}
           </p>
           <SectorLegend sectors={sectors} />
         </div>
@@ -205,7 +244,7 @@ function IndexTabContent({ stocks, isLoading, isError, indexName, fetchedAt }: I
 
       {fetchedAt && (
         <p className="text-xs text-muted-foreground mt-3">
-          Source: Wikipedia · as of{" "}
+          Source: {source ?? "Wikipedia"} · as of{" "}
           {new Date(fetchedAt).toLocaleString(undefined, {
             dateStyle: "medium",
             timeStyle: "short",
@@ -237,6 +276,7 @@ export default function StockIndexes() {
   const sp400    = useGetIndexSp400(   { query: { queryKey: getGetIndexSp400QueryKey(),    staleTime: STALE_TIME } });
   const sp600    = useGetIndexSp600(   { query: { queryKey: getGetIndexSp600QueryKey(),    staleTime: STALE_TIME } });
   const djia     = useGetIndexDjia(    { query: { queryKey: getGetIndexDjiaQueryKey(),     staleTime: STALE_TIME } });
+  const adrs     = useGetIndexAdrs(    { query: { queryKey: getGetIndexAdrsQueryKey(),     staleTime: STALE_TIME } });
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -299,6 +339,7 @@ export default function StockIndexes() {
             <TabsTrigger value="sp400">S&amp;P MidCap 400</TabsTrigger>
             <TabsTrigger value="sp600">S&amp;P SmallCap 600</TabsTrigger>
             <TabsTrigger value="djia">Dow Jones</TabsTrigger>
+            <TabsTrigger value="adrs">Top ADRs</TabsTrigger>
           </TabsList>
 
           <TabsContent value="sp500">
@@ -348,6 +389,18 @@ export default function StockIndexes() {
               isError={djia.isError}
               indexName="Dow Jones Industrial Average"
               fetchedAt={djia.data?.fetchedAt}
+            />
+          </TabsContent>
+
+          <TabsContent value="adrs">
+            <IndexTabContent
+              stocks={adrs.data?.stocks ?? []}
+              isLoading={adrs.isLoading}
+              isError={adrs.isError}
+              indexName="Top ADRs"
+              fetchedAt={adrs.data?.fetchedAt}
+              legendLabel="Color by Country"
+              source="BNY Mellon DR Directory"
             />
           </TabsContent>
         </Tabs>

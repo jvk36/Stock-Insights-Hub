@@ -668,6 +668,29 @@ export const GetIndexDjiaResponse = zod.object({
 });
 
 /**
+ * Returns sponsored ADRs listed on NYSE/NASDAQ sourced from BNY Mellon DR Directory. The sector field holds the country name. Stale-while-revalidate, 24-hour TTL.
+ * @summary Get top ADRs listed on NYSE and NASDAQ
+ */
+export const GetIndexAdrsResponse = zod.object({
+  stocks: zod.array(
+    zod.object({
+      symbol: zod.string().describe("Ticker symbol"),
+      name: zod.string().describe("Company name"),
+      sector: zod.string().describe("GICS sector"),
+    }),
+  ),
+  fetchedAt: zod
+    .string()
+    .describe("ISO timestamp of when the data was last fetched from Wikipedia"),
+  cached: zod.boolean().describe("Whether the response was served from cache"),
+  stale: zod
+    .boolean()
+    .describe(
+      "Whether the cached data is past its TTL (revalidation triggered in background)",
+    ),
+});
+
+/**
  * @summary Get historical observations for a FRED series (for charts)
  */
 export const GetMacroSeriesObservationsParams = zod.object({

@@ -464,6 +464,26 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /indexes/adrs:
+    get:
+      operationId: getIndexAdrs
+      tags: [indexes]
+      summary: Get top ADRs listed on NYSE and NASDAQ
+      description: Returns sponsored ADRs listed on NYSE/NASDAQ sourced from BNY Mellon DR Directory. The sector field holds the country name. Stale-while-revalidate, 24-hour TTL.
+      responses:
+        "200":
+          description: Top ADR list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndexConstituentsResponse"
+        "502":
+          description: Failed to fetch data from BNY Mellon DR Directory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /macro/series/{seriesId}/observations:
     get:
       operationId: getMacroSeriesObservations

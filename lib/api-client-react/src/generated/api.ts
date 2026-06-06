@@ -1692,6 +1692,82 @@ export function useGetIndexDjia<
 }
 
 /**
+ * Returns sponsored ADRs listed on NYSE/NASDAQ sourced from BNY Mellon DR Directory. The sector field holds the country name. Stale-while-revalidate, 24-hour TTL.
+ * @summary Get top ADRs listed on NYSE and NASDAQ
+ */
+export const getGetIndexAdrsUrl = () => {
+  return `/api/indexes/adrs`;
+};
+
+export const getIndexAdrs = async (
+  options?: RequestInit,
+): Promise<IndexConstituentsResponse> => {
+  return customFetch<IndexConstituentsResponse>(getGetIndexAdrsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetIndexAdrsQueryKey = () => {
+  return [`/api/indexes/adrs`] as const;
+};
+
+export const getGetIndexAdrsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getIndexAdrs>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexAdrs>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetIndexAdrsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getIndexAdrs>>> = ({
+    signal,
+  }) => getIndexAdrs({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexAdrs>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetIndexAdrsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getIndexAdrs>>
+>;
+export type GetIndexAdrsQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get top ADRs listed on NYSE and NASDAQ
+ */
+
+export function useGetIndexAdrs<
+  TData = Awaited<ReturnType<typeof getIndexAdrs>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexAdrs>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetIndexAdrsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Get historical observations for a FRED series (for charts)
  */
 export const getGetMacroSeriesObservationsUrl = (

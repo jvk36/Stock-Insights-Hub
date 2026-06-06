@@ -232,4 +232,67 @@ async function scrapeDjia(): Promise<IndexStock[]> {
 
 router.get("/indexes/djia", makeRoute(djiaCache, scrapeDjia, "DJIA"));
 
+// ─── Top ADRs ─────────────────────────────────────────────────────────────────
+// Source: BNY Mellon DR Directory API (https://www.adrbny.com/directory/dr-directory.html)
+// Fetches all sponsored ADRs, then keeps only those listed on NYSE / NASDAQ / NYSE American.
+// The API returns a double-JSON-encoded string — JSON.parse() must be called twice.
+
+const ADRS_EXCHANGES = new Set([
+  "New York Stock Exchange",
+  "NASDAQ Stock Market",
+  "NYSE American LLC",
+]);
+
+const adrsCache: IndexCache = { data: null, revalidating: false };
+
+interface BnyDrRecord {
+  drTicker: string;
+  drTx: string;
+  ctryNm: string;
+  instRgnNm: string;
+  indstryTx: string;
+  drExchange: string;
+}
+
+async function fetchAdrs(): Promise<IndexStock[]> {
+  const url =
+    "https://www.adrbny.com/bin/adr/export/drDirectoryList" +
+    "?sponsorship=S&drPage=directory&count=2000&start=0" +
+    "&region=&countryCode=&industryCode=&depositaryBank=&capitalRaised=&letter=&exchange=";
+
+  const res = await fetch(url, {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; StockResearchBot/1.0)" },
+  });
+  if (!res.ok) throw new Error(`BNY DR Directory API error ${res.status}`);
+
+  // The API returns a JSON string that itself contains a JSON string
+  const outer = await res.text();
+  const inner: unknown = JSON.parse(outer);
+  const data = JSON.parse(inner as string) as {
+    count: number;
+    data?: { drdirectory?: BnyDrRecord[] };
+  };
+
+  const records: BnyDrRecord[] = data?.data?.drdirectory ?? [];
+
+  const stocks: IndexStock[] = [];
+  for (const r of records) {
+    if (!ADRS_EXCHANGES.has(r.drExchange)) continue;
+    const symbol = (r.drTicker ?? "").trim();
+    const name   = (r.drTx ?? "").trim().replace(/^\^/, ""); // strip leading ^
+    const sector = (r.ctryNm ?? r.instRgnNm ?? "").trim();   // country as grouping
+    if (symbol && name) stocks.push({ symbol, name, sector });
+  }
+
+  // Deduplicate by symbol (same ADR can rarely appear on both exchanges)
+  const seen = new Set<string>();
+  return stocks.filter((s) => {
+    if (seen.has(s.symbol)) return false;
+    seen.add(s.symbol);
+    return true;
+  });
+}
+
+router.get("/indexes/adrs", makeRoute(adrsCache, fetchAdrs, "Top ADRs"));
+
 export default router;

@@ -369,14 +369,94 @@ paths:
       operationId: getIndexSp500
       tags: [indexes]
       summary: Get all S&P 500 constituents
-      description: Returns ticker symbols, company names, and sectors scraped from Wikipedia. Cached for 24 hours.
+      description: Returns ticker symbols, company names, and sectors scraped from Wikipedia. Stale-while-revalidate, 24-hour TTL.
       responses:
         "200":
           description: S&P 500 constituent list
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Sp500Response"
+                $ref: "#/components/schemas/IndexConstituentsResponse"
+        "502":
+          description: Failed to fetch data from Wikipedia
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /indexes/nasdaq100:
+    get:
+      operationId: getIndexNasdaq100
+      tags: [indexes]
+      summary: Get all Nasdaq-100 constituents
+      description: Returns ticker symbols, company names, and sectors scraped from Wikipedia. Stale-while-revalidate, 24-hour TTL.
+      responses:
+        "200":
+          description: Nasdaq-100 constituent list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndexConstituentsResponse"
+        "502":
+          description: Failed to fetch data from Wikipedia
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /indexes/sp400:
+    get:
+      operationId: getIndexSp400
+      tags: [indexes]
+      summary: Get all S&P MidCap 400 constituents
+      description: Returns ticker symbols, company names, and sectors scraped from Wikipedia. Stale-while-revalidate, 24-hour TTL.
+      responses:
+        "200":
+          description: S&P MidCap 400 constituent list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndexConstituentsResponse"
+        "502":
+          description: Failed to fetch data from Wikipedia
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /indexes/sp600:
+    get:
+      operationId: getIndexSp600
+      tags: [indexes]
+      summary: Get all S&P SmallCap 600 constituents
+      description: Returns ticker symbols, company names, and sectors scraped from Wikipedia. Stale-while-revalidate, 24-hour TTL.
+      responses:
+        "200":
+          description: S&P SmallCap 600 constituent list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndexConstituentsResponse"
+        "502":
+          description: Failed to fetch data from Wikipedia
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /indexes/djia:
+    get:
+      operationId: getIndexDjia
+      tags: [indexes]
+      summary: Get all Dow Jones Industrial Average constituents
+      description: Returns ticker symbols, company names, and sectors scraped from Wikipedia. Stale-while-revalidate, 24-hour TTL.
+      responses:
+        "200":
+          description: DJIA constituent list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndexConstituentsResponse"
         "502":
           description: Failed to fetch data from Wikipedia
           content:
@@ -1570,7 +1650,7 @@ components:
         - symbol
         - filings
 
-    Sp500Stock:
+    IndexStock:
       type: object
       properties:
         symbol:
@@ -1587,19 +1667,24 @@ components:
         - name
         - sector
 
-    Sp500Response:
+    IndexConstituentsResponse:
       type: object
       properties:
         stocks:
           type: array
           items:
-            $ref: "#/components/schemas/Sp500Stock"
+            $ref: "#/components/schemas/IndexStock"
         fetchedAt:
           type: string
-          description: ISO timestamp of when the data was last fetched
+          description: ISO timestamp of when the data was last fetched from Wikipedia
         cached:
           type: boolean
+          description: Whether the response was served from cache
+        stale:
+          type: boolean
+          description: Whether the cached data is past its TTL (revalidation triggered in background)
       required:
         - stocks
         - fetchedAt
         - cached
+        - stale

@@ -25,12 +25,12 @@ import type {
   GetStockChartParams,
   GetStockFinancialsParams,
   HealthStatus,
+  IndexConstituentsResponse,
   InsiderTransactionsResponse,
   MacroIndicatorsResponse,
   NewsResponse,
   ScreenerData,
   SecFilingsResponse,
-  Sp500Response,
   StockAnalysis,
   StockIndicators,
   StockModels,
@@ -1312,7 +1312,7 @@ export function useGetMacroIndicators<
 }
 
 /**
- * Returns ticker symbols, company names, and sectors scraped from Wikipedia. Cached for 24 hours.
+ * Returns ticker symbols, company names, and sectors scraped from Wikipedia. Stale-while-revalidate, 24-hour TTL.
  * @summary Get all S&P 500 constituents
  */
 export const getGetIndexSp500Url = () => {
@@ -1321,8 +1321,8 @@ export const getGetIndexSp500Url = () => {
 
 export const getIndexSp500 = async (
   options?: RequestInit,
-): Promise<Sp500Response> => {
-  return customFetch<Sp500Response>(getGetIndexSp500Url(), {
+): Promise<IndexConstituentsResponse> => {
+  return customFetch<IndexConstituentsResponse>(getGetIndexSp500Url(), {
     ...options,
     method: "GET",
   });
@@ -1379,6 +1379,310 @@ export function useGetIndexSp500<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetIndexSp500QueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns ticker symbols, company names, and sectors scraped from Wikipedia. Stale-while-revalidate, 24-hour TTL.
+ * @summary Get all Nasdaq-100 constituents
+ */
+export const getGetIndexNasdaq100Url = () => {
+  return `/api/indexes/nasdaq100`;
+};
+
+export const getIndexNasdaq100 = async (
+  options?: RequestInit,
+): Promise<IndexConstituentsResponse> => {
+  return customFetch<IndexConstituentsResponse>(getGetIndexNasdaq100Url(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetIndexNasdaq100QueryKey = () => {
+  return [`/api/indexes/nasdaq100`] as const;
+};
+
+export const getGetIndexNasdaq100QueryOptions = <
+  TData = Awaited<ReturnType<typeof getIndexNasdaq100>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexNasdaq100>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetIndexNasdaq100QueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getIndexNasdaq100>>
+  > = ({ signal }) => getIndexNasdaq100({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexNasdaq100>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetIndexNasdaq100QueryResult = NonNullable<
+  Awaited<ReturnType<typeof getIndexNasdaq100>>
+>;
+export type GetIndexNasdaq100QueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get all Nasdaq-100 constituents
+ */
+
+export function useGetIndexNasdaq100<
+  TData = Awaited<ReturnType<typeof getIndexNasdaq100>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexNasdaq100>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetIndexNasdaq100QueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns ticker symbols, company names, and sectors scraped from Wikipedia. Stale-while-revalidate, 24-hour TTL.
+ * @summary Get all S&P MidCap 400 constituents
+ */
+export const getGetIndexSp400Url = () => {
+  return `/api/indexes/sp400`;
+};
+
+export const getIndexSp400 = async (
+  options?: RequestInit,
+): Promise<IndexConstituentsResponse> => {
+  return customFetch<IndexConstituentsResponse>(getGetIndexSp400Url(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetIndexSp400QueryKey = () => {
+  return [`/api/indexes/sp400`] as const;
+};
+
+export const getGetIndexSp400QueryOptions = <
+  TData = Awaited<ReturnType<typeof getIndexSp400>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexSp400>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetIndexSp400QueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getIndexSp400>>> = ({
+    signal,
+  }) => getIndexSp400({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexSp400>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetIndexSp400QueryResult = NonNullable<
+  Awaited<ReturnType<typeof getIndexSp400>>
+>;
+export type GetIndexSp400QueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get all S&P MidCap 400 constituents
+ */
+
+export function useGetIndexSp400<
+  TData = Awaited<ReturnType<typeof getIndexSp400>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexSp400>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetIndexSp400QueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns ticker symbols, company names, and sectors scraped from Wikipedia. Stale-while-revalidate, 24-hour TTL.
+ * @summary Get all S&P SmallCap 600 constituents
+ */
+export const getGetIndexSp600Url = () => {
+  return `/api/indexes/sp600`;
+};
+
+export const getIndexSp600 = async (
+  options?: RequestInit,
+): Promise<IndexConstituentsResponse> => {
+  return customFetch<IndexConstituentsResponse>(getGetIndexSp600Url(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetIndexSp600QueryKey = () => {
+  return [`/api/indexes/sp600`] as const;
+};
+
+export const getGetIndexSp600QueryOptions = <
+  TData = Awaited<ReturnType<typeof getIndexSp600>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexSp600>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetIndexSp600QueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getIndexSp600>>> = ({
+    signal,
+  }) => getIndexSp600({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexSp600>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetIndexSp600QueryResult = NonNullable<
+  Awaited<ReturnType<typeof getIndexSp600>>
+>;
+export type GetIndexSp600QueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get all S&P SmallCap 600 constituents
+ */
+
+export function useGetIndexSp600<
+  TData = Awaited<ReturnType<typeof getIndexSp600>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexSp600>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetIndexSp600QueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns ticker symbols, company names, and sectors scraped from Wikipedia. Stale-while-revalidate, 24-hour TTL.
+ * @summary Get all Dow Jones Industrial Average constituents
+ */
+export const getGetIndexDjiaUrl = () => {
+  return `/api/indexes/djia`;
+};
+
+export const getIndexDjia = async (
+  options?: RequestInit,
+): Promise<IndexConstituentsResponse> => {
+  return customFetch<IndexConstituentsResponse>(getGetIndexDjiaUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetIndexDjiaQueryKey = () => {
+  return [`/api/indexes/djia`] as const;
+};
+
+export const getGetIndexDjiaQueryOptions = <
+  TData = Awaited<ReturnType<typeof getIndexDjia>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexDjia>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetIndexDjiaQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getIndexDjia>>> = ({
+    signal,
+  }) => getIndexDjia({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexDjia>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetIndexDjiaQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getIndexDjia>>
+>;
+export type GetIndexDjiaQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get all Dow Jones Industrial Average constituents
+ */
+
+export function useGetIndexDjia<
+  TData = Awaited<ReturnType<typeof getIndexDjia>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexDjia>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetIndexDjiaQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

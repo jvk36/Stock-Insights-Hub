@@ -5,42 +5,54 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { useGetIndexSp500, getGetIndexSp500QueryKey } from "@workspace/api-client-react";
+import {
+  useGetIndexSp500,   getGetIndexSp500QueryKey,
+  useGetIndexNasdaq100, getGetIndexNasdaq100QueryKey,
+  useGetIndexSp400,   getGetIndexSp400QueryKey,
+  useGetIndexSp600,   getGetIndexSp600QueryKey,
+  useGetIndexDjia,    getGetIndexDjiaQueryKey,
+} from "@workspace/api-client-react";
+
+// ─── Sector color palette ─────────────────────────────────────────────────────
 
 const SECTOR_COLORS: Record<string, string> = {
-  "Information Technology": "bg-blue-500/10 text-blue-600 border-blue-200",
-  "Health Care": "bg-emerald-500/10 text-emerald-600 border-emerald-200",
-  "Financials": "bg-amber-500/10 text-amber-700 border-amber-200",
-  "Consumer Discretionary": "bg-orange-500/10 text-orange-600 border-orange-200",
-  "Communication Services": "bg-violet-500/10 text-violet-600 border-violet-200",
-  "Industrials": "bg-sky-500/10 text-sky-600 border-sky-200",
-  "Consumer Staples": "bg-lime-500/10 text-lime-700 border-lime-200",
-  "Energy": "bg-red-500/10 text-red-600 border-red-200",
-  "Utilities": "bg-teal-500/10 text-teal-600 border-teal-200",
-  "Real Estate": "bg-pink-500/10 text-pink-600 border-pink-200",
-  "Materials": "bg-stone-500/10 text-stone-600 border-stone-200",
+  "Information Technology":  "bg-blue-500/10 text-blue-600 border-blue-200",
+  "Health Care":             "bg-emerald-500/10 text-emerald-600 border-emerald-200",
+  "Financials":              "bg-amber-500/10 text-amber-700 border-amber-200",
+  "Consumer Discretionary":  "bg-orange-500/10 text-orange-600 border-orange-200",
+  "Communication Services":  "bg-violet-500/10 text-violet-600 border-violet-200",
+  "Industrials":             "bg-sky-500/10 text-sky-600 border-sky-200",
+  "Consumer Staples":        "bg-lime-500/10 text-lime-700 border-lime-200",
+  "Energy":                  "bg-red-500/10 text-red-600 border-red-200",
+  "Utilities":               "bg-teal-500/10 text-teal-600 border-teal-200",
+  "Real Estate":             "bg-pink-500/10 text-pink-600 border-pink-200",
+  "Materials":               "bg-stone-500/10 text-stone-600 border-stone-200",
 };
 
 function sectorColor(sector: string) {
   return SECTOR_COLORS[sector] ?? "bg-muted text-muted-foreground border-border";
 }
 
+// ─── Shared sub-components ────────────────────────────────────────────────────
+
 function TickerGrid({ stocks }: { stocks: { symbol: string; name: string; sector: string }[] }) {
   const [, setLocation] = useLocation();
   return (
-    <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))" }}>
+    <div
+      className="grid gap-1.5"
+      style={{ gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))" }}
+    >
       {stocks.map((s) => (
         <Tooltip key={s.symbol} delayDuration={120}>
           <TooltipTrigger asChild>
             <button
               onClick={() => setLocation(`/stock/${s.symbol}`)}
               className={`
-                relative px-2 py-2 rounded-md border text-xs font-mono font-semibold
+                px-2 py-2 rounded-md border text-xs font-mono font-semibold
                 tracking-tight text-center transition-all duration-100
-                hover:scale-105 hover:shadow-sm hover:z-10 focus-visible:outline-none
-                focus-visible:ring-2 focus-visible:ring-primary cursor-pointer
-                ${sectorColor(s.sector)}
+                hover:scale-105 hover:shadow-sm hover:z-10
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
+                cursor-pointer ${sectorColor(s.sector)}
               `}
             >
               {s.symbol}
@@ -56,11 +68,15 @@ function TickerGrid({ stocks }: { stocks: { symbol: string; name: string; sector
   );
 }
 
-function SectorLegend() {
+function SectorLegend({ sectors }: { sectors: string[] }) {
+  if (sectors.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2 text-xs">
-      {Object.entries(SECTOR_COLORS).map(([sector, cls]) => (
-        <span key={sector} className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border ${cls}`}>
+      {sectors.map((sector) => (
+        <span
+          key={sector}
+          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border ${sectorColor(sector)}`}
+        >
           {sector}
         </span>
       ))}
@@ -70,7 +86,10 @@ function SectorLegend() {
 
 function LoadingSkeleton() {
   return (
-    <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))" }}>
+    <div
+      className="grid gap-1.5"
+      style={{ gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))" }}
+    >
       {Array.from({ length: 60 }).map((_, i) => (
         <Skeleton key={i} className="h-9 rounded-md" />
       ))}
@@ -78,11 +97,132 @@ function LoadingSkeleton() {
   );
 }
 
+// ─── Per-tab content (owns its own filter/sector state) ───────────────────────
+
+interface IndexTabContentProps {
+  stocks: { symbol: string; name: string; sector: string }[];
+  isLoading: boolean;
+  isError: boolean;
+  indexName: string;
+  fetchedAt?: string;
+}
+
+function IndexTabContent({ stocks, isLoading, isError, indexName, fetchedAt }: IndexTabContentProps) {
+  const [filterText, setFilterText]     = useState("");
+  const [activeSector, setActiveSector] = useState<string | null>(null);
+
+  const sectors = useMemo(
+    () =>
+      Array.from(new Set(stocks.map((s) => s.sector).filter(Boolean))).sort(),
+    [stocks],
+  );
+
+  const filtered = useMemo(() => {
+    let list = stocks;
+    if (activeSector) list = list.filter((s) => s.sector === activeSector);
+    if (filterText.trim()) {
+      const q = filterText.trim().toUpperCase();
+      list = list.filter(
+        (s) => s.symbol.toUpperCase().includes(q) || s.name.toUpperCase().includes(q),
+      );
+    }
+    return list;
+  }, [stocks, activeSector, filterText]);
+
+  return (
+    <div>
+      {/* Controls row */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="relative w-56">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            placeholder="Filter by symbol or name…"
+            className="pl-8 h-8 text-xs bg-background"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setActiveSector(null)}
+            className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+              activeSector === null
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-muted text-muted-foreground border-border hover:bg-muted/70"
+            }`}
+          >
+            All
+          </button>
+          {sectors.map((s) => (
+            <button
+              key={s}
+              onClick={() => setActiveSector(activeSector === s ? null : s)}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                activeSector === s
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : `${sectorColor(s)} hover:opacity-80`
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        <span className="ml-auto text-xs text-muted-foreground">
+          {isLoading ? "Loading…" : `${filtered.length} constituents`}
+        </span>
+      </div>
+
+      {/* Grid */}
+      <div className="rounded-xl border border-border bg-card p-4">
+        {isLoading ? (
+          <LoadingSkeleton />
+        ) : isError ? (
+          <div className="py-16 text-center">
+            <p className="text-muted-foreground text-sm">
+              Could not load {indexName} data. The server may still be fetching from Wikipedia.
+            </p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-16 text-center text-muted-foreground text-sm">
+            No tickers match your filter.
+          </div>
+        ) : (
+          <TickerGrid stocks={filtered} />
+        )}
+      </div>
+
+      {/* Legend */}
+      {!isLoading && !isError && sectors.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">
+            Color by GICS Sector
+          </p>
+          <SectorLegend sectors={sectors} />
+        </div>
+      )}
+
+      {fetchedAt && (
+        <p className="text-xs text-muted-foreground mt-3">
+          Source: Wikipedia · as of{" "}
+          {new Date(fetchedAt).toLocaleString(undefined, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          })}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+const STALE_TIME = 24 * 60 * 60 * 1000;
+
 export default function StockIndexes() {
   const [, setLocation] = useLocation();
   const [searchInput, setSearchInput] = useState("");
-  const [filterText, setFilterText] = useState("");
-  const [activeSector, setActiveSector] = useState<string | null>(null);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,28 +232,11 @@ export default function StockIndexes() {
     }
   };
 
-  const { data, isLoading, isError } = useGetIndexSp500({
-    query: { queryKey: getGetIndexSp500QueryKey(), staleTime: 24 * 60 * 60 * 1000 },
-  });
-
-  const allStocks = data?.stocks ?? [];
-
-  const sectors = useMemo(
-    () => Array.from(new Set(allStocks.map((s) => s.sector).filter(Boolean))).sort(),
-    [allStocks],
-  );
-
-  const filtered = useMemo(() => {
-    let list = allStocks;
-    if (activeSector) list = list.filter((s) => s.sector === activeSector);
-    if (filterText.trim()) {
-      const q = filterText.trim().toUpperCase();
-      list = list.filter(
-        (s) => s.symbol.toUpperCase().includes(q) || s.name.toUpperCase().includes(q),
-      );
-    }
-    return list;
-  }, [allStocks, activeSector, filterText]);
+  const sp500    = useGetIndexSp500(   { query: { queryKey: getGetIndexSp500QueryKey(),    staleTime: STALE_TIME } });
+  const nasdaq100= useGetIndexNasdaq100({ query: { queryKey: getGetIndexNasdaq100QueryKey(), staleTime: STALE_TIME } });
+  const sp400    = useGetIndexSp400(   { query: { queryKey: getGetIndexSp400QueryKey(),    staleTime: STALE_TIME } });
+  const sp600    = useGetIndexSp600(   { query: { queryKey: getGetIndexSp600QueryKey(),    staleTime: STALE_TIME } });
+  const djia     = useGetIndexDjia(    { query: { queryKey: getGetIndexDjiaQueryKey(),     staleTime: STALE_TIME } });
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -172,90 +295,60 @@ export default function StockIndexes() {
         <Tabs defaultValue="sp500">
           <TabsList className="mb-4">
             <TabsTrigger value="sp500">S&amp;P 500</TabsTrigger>
+            <TabsTrigger value="nasdaq100">Nasdaq-100</TabsTrigger>
+            <TabsTrigger value="sp400">S&amp;P MidCap 400</TabsTrigger>
+            <TabsTrigger value="sp600">S&amp;P SmallCap 600</TabsTrigger>
+            <TabsTrigger value="djia">Dow Jones</TabsTrigger>
           </TabsList>
 
           <TabsContent value="sp500">
-            {/* Controls row */}
-            <div className="flex flex-wrap items-center gap-3 mb-4">
-              <div className="relative w-56">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-                <Input
-                  value={filterText}
-                  onChange={(e) => setFilterText(e.target.value)}
-                  placeholder="Filter by symbol or name…"
-                  className="pl-8 h-8 text-xs bg-background"
-                />
-              </div>
+            <IndexTabContent
+              stocks={sp500.data?.stocks ?? []}
+              isLoading={sp500.isLoading}
+              isError={sp500.isError}
+              indexName="S&P 500"
+              fetchedAt={sp500.data?.fetchedAt}
+            />
+          </TabsContent>
 
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  onClick={() => setActiveSector(null)}
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                    activeSector === null
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-muted text-muted-foreground border-border hover:bg-muted/70"
-                  }`}
-                >
-                  All
-                </button>
-                {sectors.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setActiveSector(activeSector === s ? null : s)}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                      activeSector === s
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : `${sectorColor(s)} hover:opacity-80`
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
+          <TabsContent value="nasdaq100">
+            <IndexTabContent
+              stocks={nasdaq100.data?.stocks ?? []}
+              isLoading={nasdaq100.isLoading}
+              isError={nasdaq100.isError}
+              indexName="Nasdaq-100"
+              fetchedAt={nasdaq100.data?.fetchedAt}
+            />
+          </TabsContent>
 
-              <span className="ml-auto text-xs text-muted-foreground">
-                {isLoading ? "Loading…" : `${filtered.length} constituents`}
-              </span>
-            </div>
+          <TabsContent value="sp400">
+            <IndexTabContent
+              stocks={sp400.data?.stocks ?? []}
+              isLoading={sp400.isLoading}
+              isError={sp400.isError}
+              indexName="S&P MidCap 400"
+              fetchedAt={sp400.data?.fetchedAt}
+            />
+          </TabsContent>
 
-            {/* Grid */}
-            <div className="rounded-xl border border-border bg-card p-4">
-              {isLoading ? (
-                <LoadingSkeleton />
-              ) : isError ? (
-                <div className="py-16 text-center">
-                  <p className="text-muted-foreground text-sm">
-                    Could not load S&P 500 data. The server may still be fetching from Wikipedia.
-                  </p>
-                </div>
-              ) : filtered.length === 0 ? (
-                <div className="py-16 text-center text-muted-foreground text-sm">
-                  No tickers match your filter.
-                </div>
-              ) : (
-                <TickerGrid stocks={filtered} />
-              )}
-            </div>
+          <TabsContent value="sp600">
+            <IndexTabContent
+              stocks={sp600.data?.stocks ?? []}
+              isLoading={sp600.isLoading}
+              isError={sp600.isError}
+              indexName="S&P SmallCap 600"
+              fetchedAt={sp600.data?.fetchedAt}
+            />
+          </TabsContent>
 
-            {/* Legend */}
-            {!isLoading && !isError && (
-              <div className="mt-4">
-                <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">
-                  Color by GICS Sector
-                </p>
-                <SectorLegend />
-              </div>
-            )}
-
-            {data && (
-              <p className="text-xs text-muted-foreground mt-3">
-                Source: Wikipedia · as of{" "}
-                {new Date(data.fetchedAt).toLocaleString(undefined, {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                })}
-              </p>
-            )}
+          <TabsContent value="djia">
+            <IndexTabContent
+              stocks={djia.data?.stocks ?? []}
+              isLoading={djia.isLoading}
+              isError={djia.isError}
+              indexName="Dow Jones Industrial Average"
+              fetchedAt={djia.data?.fetchedAt}
+            />
           </TabsContent>
         </Tabs>
       </main>

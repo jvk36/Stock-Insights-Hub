@@ -440,7 +440,7 @@ export interface SecFilingsResponse {
   filings: SecFiling[];
 }
 
-export interface Sp500Stock {
+export interface IndexStock {
   /** Ticker symbol */
   symbol: string;
   /** Company name */
@@ -449,11 +449,14 @@ export interface Sp500Stock {
   sector: string;
 }
 
-export interface Sp500Response {
-  stocks: Sp500Stock[];
-  /** ISO timestamp of when the data was last fetched */
+export interface IndexConstituentsResponse {
+  stocks: IndexStock[];
+  /** ISO timestamp of when the data was last fetched from Wikipedia */
   fetchedAt: string;
+  /** Whether the response was served from cache */
   cached: boolean;
+  /** Whether the cached data is past its TTL (revalidation triggered in background) */
+  stale: boolean;
 }
 
 export type GetStockChartParams = {

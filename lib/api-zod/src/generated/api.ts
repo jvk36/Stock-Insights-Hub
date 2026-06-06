@@ -553,7 +553,7 @@ export const GetMacroIndicatorsResponse = zod.object({
 });
 
 /**
- * Returns ticker symbols, company names, and sectors scraped from Wikipedia. Cached for 24 hours.
+ * Returns ticker symbols, company names, and sectors scraped from Wikipedia. Stale-while-revalidate, 24-hour TTL.
  * @summary Get all S&P 500 constituents
  */
 export const GetIndexSp500Response = zod.object({
@@ -566,8 +566,105 @@ export const GetIndexSp500Response = zod.object({
   ),
   fetchedAt: zod
     .string()
-    .describe("ISO timestamp of when the data was last fetched"),
-  cached: zod.boolean(),
+    .describe("ISO timestamp of when the data was last fetched from Wikipedia"),
+  cached: zod.boolean().describe("Whether the response was served from cache"),
+  stale: zod
+    .boolean()
+    .describe(
+      "Whether the cached data is past its TTL (revalidation triggered in background)",
+    ),
+});
+
+/**
+ * Returns ticker symbols, company names, and sectors scraped from Wikipedia. Stale-while-revalidate, 24-hour TTL.
+ * @summary Get all Nasdaq-100 constituents
+ */
+export const GetIndexNasdaq100Response = zod.object({
+  stocks: zod.array(
+    zod.object({
+      symbol: zod.string().describe("Ticker symbol"),
+      name: zod.string().describe("Company name"),
+      sector: zod.string().describe("GICS sector"),
+    }),
+  ),
+  fetchedAt: zod
+    .string()
+    .describe("ISO timestamp of when the data was last fetched from Wikipedia"),
+  cached: zod.boolean().describe("Whether the response was served from cache"),
+  stale: zod
+    .boolean()
+    .describe(
+      "Whether the cached data is past its TTL (revalidation triggered in background)",
+    ),
+});
+
+/**
+ * Returns ticker symbols, company names, and sectors scraped from Wikipedia. Stale-while-revalidate, 24-hour TTL.
+ * @summary Get all S&P MidCap 400 constituents
+ */
+export const GetIndexSp400Response = zod.object({
+  stocks: zod.array(
+    zod.object({
+      symbol: zod.string().describe("Ticker symbol"),
+      name: zod.string().describe("Company name"),
+      sector: zod.string().describe("GICS sector"),
+    }),
+  ),
+  fetchedAt: zod
+    .string()
+    .describe("ISO timestamp of when the data was last fetched from Wikipedia"),
+  cached: zod.boolean().describe("Whether the response was served from cache"),
+  stale: zod
+    .boolean()
+    .describe(
+      "Whether the cached data is past its TTL (revalidation triggered in background)",
+    ),
+});
+
+/**
+ * Returns ticker symbols, company names, and sectors scraped from Wikipedia. Stale-while-revalidate, 24-hour TTL.
+ * @summary Get all S&P SmallCap 600 constituents
+ */
+export const GetIndexSp600Response = zod.object({
+  stocks: zod.array(
+    zod.object({
+      symbol: zod.string().describe("Ticker symbol"),
+      name: zod.string().describe("Company name"),
+      sector: zod.string().describe("GICS sector"),
+    }),
+  ),
+  fetchedAt: zod
+    .string()
+    .describe("ISO timestamp of when the data was last fetched from Wikipedia"),
+  cached: zod.boolean().describe("Whether the response was served from cache"),
+  stale: zod
+    .boolean()
+    .describe(
+      "Whether the cached data is past its TTL (revalidation triggered in background)",
+    ),
+});
+
+/**
+ * Returns ticker symbols, company names, and sectors scraped from Wikipedia. Stale-while-revalidate, 24-hour TTL.
+ * @summary Get all Dow Jones Industrial Average constituents
+ */
+export const GetIndexDjiaResponse = zod.object({
+  stocks: zod.array(
+    zod.object({
+      symbol: zod.string().describe("Ticker symbol"),
+      name: zod.string().describe("Company name"),
+      sector: zod.string().describe("GICS sector"),
+    }),
+  ),
+  fetchedAt: zod
+    .string()
+    .describe("ISO timestamp of when the data was last fetched from Wikipedia"),
+  cached: zod.boolean().describe("Whether the response was served from cache"),
+  stale: zod
+    .boolean()
+    .describe(
+      "Whether the cached data is past its TTL (revalidation triggered in background)",
+    ),
 });
 
 /**

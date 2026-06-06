@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Sp500Stock {
+export interface IndexStock {
   /** Ticker symbol */
   symbol: string;
   /** Company name */

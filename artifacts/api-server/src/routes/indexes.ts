@@ -1,5 +1,6 @@
 import { Router } from "express";
 import * as cheerio from "cheerio";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -15,6 +16,7 @@ interface CacheEntry {
 }
 
 let sp500Cache: CacheEntry | null = null;
+let revalidating = false;
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours — index rarely changes
 
 async function scrapeSp500(): Promise<Sp500Stock[]> {
@@ -45,23 +47,56 @@ async function scrapeSp500(): Promise<Sp500Stock[]> {
   return stocks;
 }
 
+function revalidateInBackground() {
+  if (revalidating) return;
+  revalidating = true;
+  scrapeSp500()
+    .then((stocks) => {
+      sp500Cache = { stocks, fetchedAt: Date.now() };
+      logger.info("S&P 500 cache revalidated in background");
+    })
+    .catch((err) => {
+      logger.error({ err }, "Background S&P 500 revalidation failed — keeping stale cache");
+    })
+    .finally(() => {
+      revalidating = false;
+    });
+}
+
 router.get("/indexes/sp500", async (req, res) => {
   try {
-    if (sp500Cache && Date.now() - sp500Cache.fetchedAt < CACHE_TTL_MS) {
+    const now = Date.now();
+    const isStale = sp500Cache && now - sp500Cache.fetchedAt >= CACHE_TTL_MS;
+
+    // Case 1: Cache is fresh — instant response
+    if (sp500Cache && !isStale) {
       return res.json({
         stocks: sp500Cache.stocks,
         fetchedAt: new Date(sp500Cache.fetchedAt).toISOString(),
         cached: true,
+        stale: false,
       });
     }
 
+    // Case 2: Cache is stale — serve old data immediately, revalidate in background
+    if (sp500Cache && isStale) {
+      revalidateInBackground();
+      return res.json({
+        stocks: sp500Cache.stocks,
+        fetchedAt: new Date(sp500Cache.fetchedAt).toISOString(),
+        cached: true,
+        stale: true,
+      });
+    }
+
+    // Case 3: No cache at all (cold start) — block once
     const stocks = await scrapeSp500();
     sp500Cache = { stocks, fetchedAt: Date.now() };
-
     return res.json({
       stocks,
       fetchedAt: new Date(sp500Cache.fetchedAt).toISOString(),
       cached: false,
+      stale: false,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to scrape S&P 500 list from Wikipedia");

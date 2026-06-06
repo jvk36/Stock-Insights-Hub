@@ -14,6 +14,8 @@ tags:
     description: Stock data operations
   - name: macro
     description: Macroeconomic indicator operations
+  - name: indexes
+    description: Market index constituent operations
 paths:
   /healthz:
     get:
@@ -357,6 +359,26 @@ paths:
                 $ref: "#/components/schemas/MacroIndicatorsResponse"
         "500":
           description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /indexes/sp500:
+    get:
+      operationId: getIndexSp500
+      tags: [indexes]
+      summary: Get all S&P 500 constituents
+      description: Returns ticker symbols, company names, and sectors scraped from Wikipedia. Cached for 24 hours.
+      responses:
+        "200":
+          description: S&P 500 constituent list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sp500Response"
+        "502":
+          description: Failed to fetch data from Wikipedia
           content:
             application/json:
               schema:
@@ -1547,3 +1569,37 @@ components:
       required:
         - symbol
         - filings
+
+    Sp500Stock:
+      type: object
+      properties:
+        symbol:
+          type: string
+          description: Ticker symbol
+        name:
+          type: string
+          description: Company name
+        sector:
+          type: string
+          description: GICS sector
+      required:
+        - symbol
+        - name
+        - sector
+
+    Sp500Response:
+      type: object
+      properties:
+        stocks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Sp500Stock"
+        fetchedAt:
+          type: string
+          description: ISO timestamp of when the data was last fetched
+        cached:
+          type: boolean
+      required:
+        - stocks
+        - fetchedAt
+        - cached

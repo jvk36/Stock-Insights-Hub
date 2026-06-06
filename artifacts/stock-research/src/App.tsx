@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import StockDetail from "@/pages/stock";
 import MacroSummary from "@/pages/macro";
+import StockIndexes from "@/pages/indexes";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,7 +21,7 @@ const queryClient = new QueryClient({
 function HomeRedirect() {
   const [, setLocation] = useLocation();
   useEffect(() => {
-    setLocation("/stock/AAPL");
+    setLocation("/indexes");
   }, [setLocation]);
   return null;
 }
@@ -29,6 +30,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={HomeRedirect} />
+      <Route path="/indexes" component={StockIndexes} />
       <Route path="/stock/:symbol" component={StockDetail} />
       <Route path="/macro" component={MacroSummary} />
       <Route component={NotFound} />

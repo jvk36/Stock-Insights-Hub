@@ -54,6 +54,8 @@ export * from "./rivData";
 export * from "./screenerData";
 export * from "./secFiling";
 export * from "./secFilingsResponse";
+export * from "./sp500Response";
+export * from "./sp500Stock";
 export * from "./stockAnalysis";
 export * from "./stockIndicators";
 export * from "./stockModels";

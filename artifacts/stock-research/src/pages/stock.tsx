@@ -62,6 +62,12 @@ export default function StockDetail() {
 
           {/* Nav menu */}
           <nav className="flex items-center gap-1">
+            <Link
+              href="/indexes"
+              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+            >
+              Stock Indexes
+            </Link>
             <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
               Stock Insights
             </span>

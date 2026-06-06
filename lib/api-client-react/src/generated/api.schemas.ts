@@ -440,6 +440,22 @@ export interface SecFilingsResponse {
   filings: SecFiling[];
 }
 
+export interface Sp500Stock {
+  /** Ticker symbol */
+  symbol: string;
+  /** Company name */
+  name: string;
+  /** GICS sector */
+  sector: string;
+}
+
+export interface Sp500Response {
+  stocks: Sp500Stock[];
+  /** ISO timestamp of when the data was last fetched */
+  fetchedAt: string;
+  cached: boolean;
+}
+
 export type GetStockChartParams = {
   range?: GetStockChartRange;
 };

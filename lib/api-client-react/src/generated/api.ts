@@ -30,6 +30,7 @@ import type {
   NewsResponse,
   ScreenerData,
   SecFilingsResponse,
+  Sp500Response,
   StockAnalysis,
   StockIndicators,
   StockModels,
@@ -1302,6 +1303,82 @@ export function useGetMacroIndicators<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetMacroIndicatorsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns ticker symbols, company names, and sectors scraped from Wikipedia. Cached for 24 hours.
+ * @summary Get all S&P 500 constituents
+ */
+export const getGetIndexSp500Url = () => {
+  return `/api/indexes/sp500`;
+};
+
+export const getIndexSp500 = async (
+  options?: RequestInit,
+): Promise<Sp500Response> => {
+  return customFetch<Sp500Response>(getGetIndexSp500Url(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetIndexSp500QueryKey = () => {
+  return [`/api/indexes/sp500`] as const;
+};
+
+export const getGetIndexSp500QueryOptions = <
+  TData = Awaited<ReturnType<typeof getIndexSp500>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexSp500>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetIndexSp500QueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getIndexSp500>>> = ({
+    signal,
+  }) => getIndexSp500({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexSp500>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetIndexSp500QueryResult = NonNullable<
+  Awaited<ReturnType<typeof getIndexSp500>>
+>;
+export type GetIndexSp500QueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get all S&P 500 constituents
+ */
+
+export function useGetIndexSp500<
+  TData = Awaited<ReturnType<typeof getIndexSp500>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexSp500>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetIndexSp500QueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

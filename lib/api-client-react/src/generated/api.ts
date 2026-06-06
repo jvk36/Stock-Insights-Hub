@@ -1692,7 +1692,7 @@ export function useGetIndexDjia<
 }
 
 /**
- * Returns sponsored ADRs listed on NYSE/NASDAQ sourced from BNY Mellon DR Directory. The sector field holds the country name. Stale-while-revalidate, 24-hour TTL.
+ * Returns sponsored ADRs listed on NYSE/NASDAQ sourced from BNY Mellon DR Directory. The sector field holds the country name; industry holds the BNY industry classification. Stale-while-revalidate, 24-hour TTL.
  * @summary Get top ADRs listed on NYSE and NASDAQ
  */
 export const getGetIndexAdrsUrl = () => {

@@ -11,6 +11,8 @@ export interface IndexStock {
   symbol: string;
   /** Company name */
   name: string;
-  /** GICS sector */
+  /** GICS sector (or country for ADR tab) */
   sector: string;
+  /** Industry classification (optional; populated for ADRs) */
+  industry?: string;
 }

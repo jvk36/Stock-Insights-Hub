@@ -561,7 +561,11 @@ export const GetIndexSp500Response = zod.object({
     zod.object({
       symbol: zod.string().describe("Ticker symbol"),
       name: zod.string().describe("Company name"),
-      sector: zod.string().describe("GICS sector"),
+      sector: zod.string().describe("GICS sector (or country for ADR tab)"),
+      industry: zod
+        .string()
+        .optional()
+        .describe("Industry classification (optional; populated for ADRs)"),
     }),
   ),
   fetchedAt: zod
@@ -584,7 +588,11 @@ export const GetIndexNasdaq100Response = zod.object({
     zod.object({
       symbol: zod.string().describe("Ticker symbol"),
       name: zod.string().describe("Company name"),
-      sector: zod.string().describe("GICS sector"),
+      sector: zod.string().describe("GICS sector (or country for ADR tab)"),
+      industry: zod
+        .string()
+        .optional()
+        .describe("Industry classification (optional; populated for ADRs)"),
     }),
   ),
   fetchedAt: zod
@@ -607,7 +615,11 @@ export const GetIndexSp400Response = zod.object({
     zod.object({
       symbol: zod.string().describe("Ticker symbol"),
       name: zod.string().describe("Company name"),
-      sector: zod.string().describe("GICS sector"),
+      sector: zod.string().describe("GICS sector (or country for ADR tab)"),
+      industry: zod
+        .string()
+        .optional()
+        .describe("Industry classification (optional; populated for ADRs)"),
     }),
   ),
   fetchedAt: zod
@@ -630,7 +642,11 @@ export const GetIndexSp600Response = zod.object({
     zod.object({
       symbol: zod.string().describe("Ticker symbol"),
       name: zod.string().describe("Company name"),
-      sector: zod.string().describe("GICS sector"),
+      sector: zod.string().describe("GICS sector (or country for ADR tab)"),
+      industry: zod
+        .string()
+        .optional()
+        .describe("Industry classification (optional; populated for ADRs)"),
     }),
   ),
   fetchedAt: zod
@@ -653,7 +669,11 @@ export const GetIndexDjiaResponse = zod.object({
     zod.object({
       symbol: zod.string().describe("Ticker symbol"),
       name: zod.string().describe("Company name"),
-      sector: zod.string().describe("GICS sector"),
+      sector: zod.string().describe("GICS sector (or country for ADR tab)"),
+      industry: zod
+        .string()
+        .optional()
+        .describe("Industry classification (optional; populated for ADRs)"),
     }),
   ),
   fetchedAt: zod
@@ -668,7 +688,7 @@ export const GetIndexDjiaResponse = zod.object({
 });
 
 /**
- * Returns sponsored ADRs listed on NYSE/NASDAQ sourced from BNY Mellon DR Directory. The sector field holds the country name. Stale-while-revalidate, 24-hour TTL.
+ * Returns sponsored ADRs listed on NYSE/NASDAQ sourced from BNY Mellon DR Directory. The sector field holds the country name; industry holds the BNY industry classification. Stale-while-revalidate, 24-hour TTL.
  * @summary Get top ADRs listed on NYSE and NASDAQ
  */
 export const GetIndexAdrsResponse = zod.object({
@@ -676,7 +696,11 @@ export const GetIndexAdrsResponse = zod.object({
     zod.object({
       symbol: zod.string().describe("Ticker symbol"),
       name: zod.string().describe("Company name"),
-      sector: zod.string().describe("GICS sector"),
+      sector: zod.string().describe("GICS sector (or country for ADR tab)"),
+      industry: zod
+        .string()
+        .optional()
+        .describe("Industry classification (optional; populated for ADRs)"),
     }),
   ),
   fetchedAt: zod

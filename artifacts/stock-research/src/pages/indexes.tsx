@@ -69,7 +69,7 @@ function sectorColor(sector: string) {
 
 // ─── Shared sub-components ────────────────────────────────────────────────────
 
-function TickerGrid({ stocks }: { stocks: { symbol: string; name: string; sector: string }[] }) {
+function TickerGrid({ stocks }: { stocks: { symbol: string; name: string; sector: string; industry?: string }[] }) {
   const [, setLocation] = useLocation();
   return (
     <div
@@ -92,9 +92,10 @@ function TickerGrid({ stocks }: { stocks: { symbol: string; name: string; sector
               {s.symbol}
             </button>
           </TooltipTrigger>
-          <TooltipContent side="top" className="max-w-[200px] text-center">
+          <TooltipContent side="top" className="max-w-[220px] text-center">
             <p className="font-semibold text-sm">{s.name}</p>
             {s.sector && <p className="text-xs text-muted-foreground mt-0.5">{s.sector}</p>}
+            {s.industry && <p className="text-xs text-muted-foreground/75 mt-0.5">{s.industry}</p>}
           </TooltipContent>
         </Tooltip>
       ))}

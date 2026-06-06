@@ -8,6 +8,7 @@ export interface IndexStock {
   symbol: string;
   name: string;
   sector: string;
+  industry?: string;
 }
 
 interface CacheEntry {
@@ -58,6 +59,7 @@ function makeRoute(
   cache: IndexCache,
   scraper: () => Promise<IndexStock[]>,
   label: string,
+  errorStatus = 502,
 ) {
   return async (req: Request, res: Response) => {
     try {
@@ -109,7 +111,7 @@ function makeRoute(
       });
     } catch (err) {
       req.log.error({ err }, `Failed to fetch ${label} data`);
-      return res.status(502).json({ error: `Failed to fetch ${label} data` });
+      return res.status(errorStatus).json({ error: `Failed to fetch ${label} data` });
     }
   };
 }
@@ -280,8 +282,9 @@ async function fetchAdrs(): Promise<IndexStock[]> {
     if (!ADRS_EXCHANGES.has(r.drExchange)) continue;
     const symbol = (r.drTicker ?? "").trim();
     const name   = (r.drTx ?? "").trim().replace(/^\^/, ""); // strip leading ^
-    const sector = (r.ctryNm ?? r.instRgnNm ?? "").trim();   // country as grouping
-    if (symbol && name) stocks.push({ symbol, name, sector });
+    const sector   = (r.ctryNm ?? r.instRgnNm ?? "").trim(); // country as grouping
+    const industry = (r.indstryTx ?? "").trim() || undefined;
+    if (symbol && name) stocks.push({ symbol, name, sector, industry });
   }
 
   // Deduplicate by symbol (same ADR can rarely appear on both exchanges)
@@ -293,6 +296,6 @@ async function fetchAdrs(): Promise<IndexStock[]> {
   });
 }
 
-router.get("/indexes/adrs", makeRoute(adrsCache, fetchAdrs, "Top ADRs"));
+router.get("/indexes/adrs", makeRoute(adrsCache, fetchAdrs, "Top ADRs", 503));
 
 export default router;

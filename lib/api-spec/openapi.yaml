@@ -469,7 +469,7 @@ paths:
       operationId: getIndexAdrs
       tags: [indexes]
       summary: Get top ADRs listed on NYSE and NASDAQ
-      description: Returns sponsored ADRs listed on NYSE/NASDAQ sourced from BNY Mellon DR Directory. The sector field holds the country name. Stale-while-revalidate, 24-hour TTL.
+      description: Returns sponsored ADRs listed on NYSE/NASDAQ sourced from BNY Mellon DR Directory. The sector field holds the country name; industry holds the BNY industry classification. Stale-while-revalidate, 24-hour TTL.
       responses:
         "200":
           description: Top ADR list
@@ -477,7 +477,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/IndexConstituentsResponse"
-        "502":
+        "503":
           description: Failed to fetch data from BNY Mellon DR Directory
           content:
             application/json:
@@ -1681,7 +1681,10 @@ components:
           description: Company name
         sector:
           type: string
-          description: GICS sector
+          description: GICS sector (or country for ADR tab)
+        industry:
+          type: string
+          description: Industry classification (optional; populated for ADRs)
       required:
         - symbol
         - name

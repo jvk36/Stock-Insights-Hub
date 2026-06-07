@@ -1,4 +1,6 @@
 import { Router, type Request, type Response } from "express";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import * as cheerio from "cheerio";
 import YahooFinance from "yahoo-finance2";
 import { logger } from "../lib/logger";
@@ -25,6 +27,60 @@ interface IndexCache {
 }
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+// ─── Metrics disk-cache helpers ───────────────────────────────────────────────
+
+const METRICS_CACHE_DIR = new URL("../data/", import.meta.url).pathname;
+
+/** Tracks which indexes have already had their disk-cache load attempted this process. */
+const diskLoadAttempted = new Set<string>();
+
+/**
+ * Tries to populate `indexMetricsCache[indexId]` from the corresponding JSON
+ * file on disk. Runs at most once per index per process lifetime.
+ * Fresh = age < 24 h → ready immediately (no enrichment needed).
+ * Stale = age ≥ 24 h → loaded so it can be served while background
+ *                       re-enrichment runs, same as the in-memory stale path.
+ * Missing / corrupt → silently skipped; normal cold-start enrichment takes over.
+ */
+async function tryLoadFromDisk(indexId: string): Promise<void> {
+  if (diskLoadAttempted.has(indexId)) return;
+  diskLoadAttempted.add(indexId);
+  try {
+    const filePath = join(METRICS_CACHE_DIR, `metrics-${indexId}.json`);
+    const raw      = await readFile(filePath, "utf8");
+    const entry    = JSON.parse(raw) as MetricsCacheEntry;
+    const ageMin   = Math.round((Date.now() - entry.fetchedAt) / 60_000);
+    const mc       = indexMetricsCache[indexId];
+    mc.data  = entry;
+    mc.ready = true;
+    if (Date.now() - entry.fetchedAt < CACHE_TTL_MS) {
+      logger.info(`Loaded fresh metrics cache from disk for ${indexId} (age ${ageMin} min)`);
+    } else {
+      logger.info(`Loaded stale metrics cache from disk for ${indexId} (age ${ageMin} min) — revalidation will follow`);
+    }
+  } catch {
+    // File absent or corrupt — silently skip; enrichment handles the cold start
+  }
+}
+
+/**
+ * Writes `entry` atomically to disk via a temp-file-then-rename pattern so a
+ * concurrent read never sees a partial file.  Write errors are non-fatal and
+ * only logged as warnings — they must never propagate to the caller.
+ */
+async function saveMetricsCacheToDisk(indexId: string, entry: MetricsCacheEntry): Promise<void> {
+  try {
+    await mkdir(METRICS_CACHE_DIR, { recursive: true });
+    const filePath = join(METRICS_CACHE_DIR, `metrics-${indexId}.json`);
+    const tmpPath  = `${filePath}.tmp`;
+    await writeFile(tmpPath, JSON.stringify(entry), "utf8");
+    await rename(tmpPath, filePath);
+    logger.info(`Metrics cache written to disk for ${indexId}`);
+  } catch (err) {
+    logger.warn({ err }, `Failed to write metrics cache for ${indexId} — continuing`);
+  }
+}
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -517,6 +573,7 @@ async function enrichIndexMetrics(indexId: string, symbols: string[]): Promise<v
     mc.data = { metrics: metricsMap, fetchedAt: Date.now() };
     mc.ready = true;
     logger.info(`Metrics enrichment complete for ${indexId}`);
+    await saveMetricsCacheToDisk(indexId, mc.data);
   } finally {
     mc.enriching = false;
   }
@@ -528,6 +585,9 @@ router.get("/indexes/:indexId/metrics", async (req: Request, res: Response) => {
   if (!VALID_INDEX_IDS.includes(indexId)) {
     return res.status(404).json({ error: "not_found", message: `Unknown index: ${indexId}` });
   }
+
+  // Seed in-memory cache from disk on first request per index (no-op thereafter)
+  await tryLoadFromDisk(indexId);
 
   const mc  = indexMetricsCache[indexId];
   const now = Date.now();

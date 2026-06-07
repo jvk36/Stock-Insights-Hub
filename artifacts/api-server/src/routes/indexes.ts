@@ -30,7 +30,7 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 // ─── Metrics disk-cache helpers ───────────────────────────────────────────────
 
-const METRICS_CACHE_DIR = new URL("../data/", import.meta.url).pathname;
+const METRICS_CACHE_DIR = join(process.cwd(), "data");
 
 /** Tracks which indexes have already had their disk-cache load attempted this process. */
 const diskLoadAttempted = new Set<string>();

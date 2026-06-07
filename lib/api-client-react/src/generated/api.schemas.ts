@@ -461,6 +461,73 @@ export interface IndexConstituentsResponse {
   stale: boolean;
 }
 
+/**
+ * Financial metrics for a single stock, normalized for screener range sliders. All numeric values; null fields replaced with neutral sentinels server-side.
+ */
+export interface StockMetrics {
+  /** Forward EPS growth estimate (%) */
+  epsGrowth?: number;
+  /** PEG ratio (999 when unavailable) */
+  pegRatio?: number;
+  /** Forward P/E ratio (999 when unavailable) */
+  forwardPE?: number;
+  /** Forward revenue growth estimate (%) */
+  revenueGrowth?: number;
+  /** Return on equity (%) */
+  roe?: number;
+  /** Net profit margin (%) */
+  netMargin?: number;
+  /** Debt-to-equity ratio (999 when unavailable) */
+  debtEquity?: number;
+  /** Trailing P/E ratio (999 when unavailable) */
+  trailingPE?: number;
+  /** Price-to-book ratio (999 when unavailable) */
+  priceToBook?: number;
+  /** EV/EBITDA multiple (999 when unavailable) */
+  evEbitda?: number;
+  /** Free cash flow yield (%) */
+  fcfYield?: number;
+  /** 52-week price return (%) */
+  return52w?: number;
+  /** 52-week return minus S&P 500 return (%) */
+  returnVsSp?: number;
+  /** 3-month return from defaultKeyStatistics (%) */
+  return3m?: number;
+  /** Percent below 52-week high (%) */
+  pctBelowHigh?: number;
+  /** Return on assets (%) */
+  roa?: number;
+  /** Operating margin (%) */
+  operatingMargin?: number;
+  /** Gross margin (%) */
+  grossMargin?: number;
+  /** Current ratio */
+  currentRatio?: number;
+  /** Dividend yield (%) */
+  dividendYield?: number;
+  /** Dividend payout ratio (%) */
+  payoutRatio?: number;
+  /** 5-year average dividend yield (%) */
+  fiveYrYield?: number;
+}
+
+/**
+ * Map of ticker symbol to its financial metrics
+ */
+export type IndexMetricsResponseMetrics = { [key: string]: StockMetrics };
+
+/**
+ * Financial metrics for all constituents of an index, used by screener panels.
+ */
+export interface IndexMetricsResponse {
+  /** Map of ticker symbol to its financial metrics */
+  metrics: IndexMetricsResponseMetrics;
+  /** ISO timestamp of when enrichment was last completed */
+  fetchedAt: string;
+  /** Whether metrics enrichment has completed; false while running in background */
+  metricsReady: boolean;
+}
+
 export type GetStockChartParams = {
   range?: GetStockChartRange;
 };

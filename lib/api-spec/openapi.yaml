@@ -484,6 +484,39 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /indexes/{indexId}/metrics:
+    get:
+      operationId: getIndexMetrics
+      tags: [indexes]
+      summary: Get financial metrics for all constituents of an index
+      description: >
+        Returns Yahoo Finance financial metrics for each constituent of the specified index,
+        used to power the screener range-slider panels (GARP, Deep Value, Momentum, Quality,
+        Dividend Growth). Enrichment runs in the background after the constituent list loads.
+        Returns metricsReady=false while enrichment is still in progress.
+        Results are cached for 24 hours (stale-while-revalidate).
+      parameters:
+        - name: indexId
+          in: path
+          required: true
+          description: Index identifier
+          schema:
+            type: string
+            enum: [sp500, nasdaq100, sp400, sp600, djia, adrs]
+      responses:
+        "200":
+          description: Index metrics response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndexMetricsResponse"
+        "404":
+          description: Unknown index ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /macro/series/{seriesId}/observations:
     get:
       operationId: getMacroSeriesObservations
@@ -1711,3 +1744,94 @@ components:
         - fetchedAt
         - cached
         - stale
+
+    StockMetrics:
+      type: object
+      description: Financial metrics for a single stock, normalized for screener range sliders. All numeric values; null fields replaced with neutral sentinels server-side.
+      properties:
+        epsGrowth:
+          type: number
+          description: Forward EPS growth estimate (%)
+        pegRatio:
+          type: number
+          description: PEG ratio (999 when unavailable)
+        forwardPE:
+          type: number
+          description: Forward P/E ratio (999 when unavailable)
+        revenueGrowth:
+          type: number
+          description: Forward revenue growth estimate (%)
+        roe:
+          type: number
+          description: Return on equity (%)
+        netMargin:
+          type: number
+          description: Net profit margin (%)
+        debtEquity:
+          type: number
+          description: Debt-to-equity ratio (999 when unavailable)
+        trailingPE:
+          type: number
+          description: Trailing P/E ratio (999 when unavailable)
+        priceToBook:
+          type: number
+          description: Price-to-book ratio (999 when unavailable)
+        evEbitda:
+          type: number
+          description: EV/EBITDA multiple (999 when unavailable)
+        fcfYield:
+          type: number
+          description: Free cash flow yield (%)
+        return52w:
+          type: number
+          description: 52-week price return (%)
+        returnVsSp:
+          type: number
+          description: 52-week return minus S&P 500 return (%)
+        return3m:
+          type: number
+          description: 3-month return from defaultKeyStatistics (%)
+        pctBelowHigh:
+          type: number
+          description: Percent below 52-week high (%)
+        roa:
+          type: number
+          description: Return on assets (%)
+        operatingMargin:
+          type: number
+          description: Operating margin (%)
+        grossMargin:
+          type: number
+          description: Gross margin (%)
+        currentRatio:
+          type: number
+          description: Current ratio
+        dividendYield:
+          type: number
+          description: Dividend yield (%)
+        payoutRatio:
+          type: number
+          description: Dividend payout ratio (%)
+        fiveYrYield:
+          type: number
+          description: 5-year average dividend yield (%)
+
+    IndexMetricsResponse:
+      type: object
+      description: Financial metrics for all constituents of an index, used by screener panels.
+      properties:
+        metrics:
+          type: object
+          description: Map of ticker symbol to its financial metrics
+          additionalProperties:
+            $ref: "#/components/schemas/StockMetrics"
+        fetchedAt:
+          type: string
+          description: ISO timestamp of when enrichment was last completed
+        metricsReady:
+          type: boolean
+          description: Whether metrics enrichment has completed; false while running in background
+      required:
+        - metrics
+        - fetchedAt
+        - metricsReady

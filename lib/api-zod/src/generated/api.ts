@@ -715,6 +715,119 @@ export const GetIndexAdrsResponse = zod.object({
 });
 
 /**
+ * Returns Yahoo Finance financial metrics for each constituent of the specified index, used to power the screener range-slider panels (GARP, Deep Value, Momentum, Quality, Dividend Growth). Enrichment runs in the background after the constituent list loads. Returns metricsReady=false while enrichment is still in progress. Results are cached for 24 hours (stale-while-revalidate).
+
+ * @summary Get financial metrics for all constituents of an index
+ */
+export const GetIndexMetricsParams = zod.object({
+  indexId: zod
+    .enum(["sp500", "nasdaq100", "sp400", "sp600", "djia", "adrs"])
+    .describe("Index identifier"),
+});
+
+export const GetIndexMetricsResponse = zod
+  .object({
+    metrics: zod
+      .record(
+        zod.string(),
+        zod
+          .object({
+            epsGrowth: zod
+              .number()
+              .optional()
+              .describe("Forward EPS growth estimate (%)"),
+            pegRatio: zod
+              .number()
+              .optional()
+              .describe("PEG ratio (999 when unavailable)"),
+            forwardPE: zod
+              .number()
+              .optional()
+              .describe("Forward P\/E ratio (999 when unavailable)"),
+            revenueGrowth: zod
+              .number()
+              .optional()
+              .describe("Forward revenue growth estimate (%)"),
+            roe: zod.number().optional().describe("Return on equity (%)"),
+            netMargin: zod
+              .number()
+              .optional()
+              .describe("Net profit margin (%)"),
+            debtEquity: zod
+              .number()
+              .optional()
+              .describe("Debt-to-equity ratio (999 when unavailable)"),
+            trailingPE: zod
+              .number()
+              .optional()
+              .describe("Trailing P\/E ratio (999 when unavailable)"),
+            priceToBook: zod
+              .number()
+              .optional()
+              .describe("Price-to-book ratio (999 when unavailable)"),
+            evEbitda: zod
+              .number()
+              .optional()
+              .describe("EV\/EBITDA multiple (999 when unavailable)"),
+            fcfYield: zod
+              .number()
+              .optional()
+              .describe("Free cash flow yield (%)"),
+            return52w: zod
+              .number()
+              .optional()
+              .describe("52-week price return (%)"),
+            returnVsSp: zod
+              .number()
+              .optional()
+              .describe("52-week return minus S&P 500 return (%)"),
+            return3m: zod
+              .number()
+              .optional()
+              .describe("3-month return from defaultKeyStatistics (%)"),
+            pctBelowHigh: zod
+              .number()
+              .optional()
+              .describe("Percent below 52-week high (%)"),
+            roa: zod.number().optional().describe("Return on assets (%)"),
+            operatingMargin: zod
+              .number()
+              .optional()
+              .describe("Operating margin (%)"),
+            grossMargin: zod.number().optional().describe("Gross margin (%)"),
+            currentRatio: zod.number().optional().describe("Current ratio"),
+            dividendYield: zod
+              .number()
+              .optional()
+              .describe("Dividend yield (%)"),
+            payoutRatio: zod
+              .number()
+              .optional()
+              .describe("Dividend payout ratio (%)"),
+            fiveYrYield: zod
+              .number()
+              .optional()
+              .describe("5-year average dividend yield (%)"),
+          })
+          .describe(
+            "Financial metrics for a single stock, normalized for screener range sliders. All numeric values; null fields replaced with neutral sentinels server-side.",
+          ),
+      )
+      .describe("Map of ticker symbol to its financial metrics"),
+    fetchedAt: zod
+      .string()
+      .describe("ISO timestamp of when enrichment was last completed"),
+    metricsReady: zod
+      .boolean()
+      .describe(
+        "Whether metrics enrichment has completed; false while running in background",
+      ),
+  })
+  .describe(
+    "Financial metrics for all constituents of an index, used by screener panels.",
+  );
+
+/**
  * @summary Get historical observations for a FRED series (for charts)
  */
 export const GetMacroSeriesObservationsParams = zod.object({

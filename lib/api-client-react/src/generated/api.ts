@@ -26,6 +26,7 @@ import type {
   GetStockFinancialsParams,
   HealthStatus,
   IndexConstituentsResponse,
+  IndexMetricsResponse,
   InsiderTransactionsResponse,
   MacroIndicatorsResponse,
   NewsResponse,
@@ -1759,6 +1760,100 @@ export function useGetIndexAdrs<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetIndexAdrsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns Yahoo Finance financial metrics for each constituent of the specified index, used to power the screener range-slider panels (GARP, Deep Value, Momentum, Quality, Dividend Growth). Enrichment runs in the background after the constituent list loads. Returns metricsReady=false while enrichment is still in progress. Results are cached for 24 hours (stale-while-revalidate).
+
+ * @summary Get financial metrics for all constituents of an index
+ */
+export const getGetIndexMetricsUrl = (
+  indexId: "sp500" | "nasdaq100" | "sp400" | "sp600" | "djia" | "adrs",
+) => {
+  return `/api/indexes/${indexId}/metrics`;
+};
+
+export const getIndexMetrics = async (
+  indexId: "sp500" | "nasdaq100" | "sp400" | "sp600" | "djia" | "adrs",
+  options?: RequestInit,
+): Promise<IndexMetricsResponse> => {
+  return customFetch<IndexMetricsResponse>(getGetIndexMetricsUrl(indexId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetIndexMetricsQueryKey = (
+  indexId: "sp500" | "nasdaq100" | "sp400" | "sp600" | "djia" | "adrs",
+) => {
+  return [`/api/indexes/${indexId}/metrics`] as const;
+};
+
+export const getGetIndexMetricsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getIndexMetrics>>,
+  TError = ErrorType<ApiError>,
+>(
+  indexId: "sp500" | "nasdaq100" | "sp400" | "sp600" | "djia" | "adrs",
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getIndexMetrics>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetIndexMetricsQueryKey(indexId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getIndexMetrics>>> = ({
+    signal,
+  }) => getIndexMetrics(indexId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!indexId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getIndexMetrics>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetIndexMetricsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getIndexMetrics>>
+>;
+export type GetIndexMetricsQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get financial metrics for all constituents of an index
+ */
+
+export function useGetIndexMetrics<
+  TData = Awaited<ReturnType<typeof getIndexMetrics>>,
+  TError = ErrorType<ApiError>,
+>(
+  indexId: "sp500" | "nasdaq100" | "sp400" | "sp600" | "djia" | "adrs",
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getIndexMetrics>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetIndexMetricsQueryOptions(indexId, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

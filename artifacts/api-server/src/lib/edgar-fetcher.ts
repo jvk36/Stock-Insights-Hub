@@ -206,8 +206,18 @@ function parsePrimaryDocTotal(xml: string): number | null {
 
 // ─── EDGAR API helpers ────────────────────────────────────────────────────────
 
-async function secFetch(url: string): Promise<Response> {
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** Fetches a SEC EDGAR URL with exponential-backoff retry on 503 (rate-limit). */
+async function secFetch(url: string, attempt = 0): Promise<Response> {
   const res = await fetch(url, { headers: SEC_HEADERS });
+  if (res.status === 503 && attempt < 4) {
+    // SEC CDN rate-limit — back off then retry
+    const wait = [10_000, 20_000, 40_000, 60_000][attempt] ?? 60_000;
+    logger.warn({ url, attempt, waitMs: wait }, "SEC EDGAR 503 — backing off");
+    await sleep(wait);
+    return secFetch(url, attempt + 1);
+  }
   if (!res.ok) throw new Error(`SEC EDGAR fetch failed ${res.status}: ${url}`);
   return res;
 }
@@ -322,8 +332,8 @@ function findXmlDocs(docs: FilingDoc[]): { infotable: string | null; primary: st
 /** Maximum quarters to fetch per fund (10 years). */
 const MAX_QUARTERS = 40;
 
-/** Delay between consecutive filing fetches to avoid hammering SEC servers. */
-const FETCH_DELAY_MS = 1500;
+/** Delay between consecutive filing fetches to stay within SEC fair-access policy. */
+const FETCH_DELAY_MS = 3000;
 
 /**
  * Seeds (or refreshes) all 13F-HR filings for a given fund CIK.
@@ -514,10 +524,12 @@ export async function initEdgarFetcher(): Promise<void> {
     .values({ cik: "1067983", name: "Berkshire Hathaway", slug: "berkshire-hathaway" })
     .onConflictDoNothing();
 
-  // Seed on startup (async, non-blocking)
-  seedFundFilings("1067983").catch((err) =>
-    logger.error({ err }, "Initial 13F seed failed"),
-  );
+  // Seed on startup after a brief delay to let the server finish initialising
+  setTimeout(() => {
+    seedFundFilings("1067983").catch((err) =>
+      logger.error({ err }, "Initial 13F seed failed"),
+    );
+  }, 5_000);
 
   // Schedule periodic refresh checks
   const CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 hours

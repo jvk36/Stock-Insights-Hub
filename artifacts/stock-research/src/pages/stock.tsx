@@ -63,16 +63,16 @@ export default function StockDetail() {
           {/* Nav menu */}
           <nav className="flex items-center gap-1">
             <Link
+              href="/13f"
+              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+            >
+              Top Hedge Funds - Insights
+            </Link>
+            <Link
               href="/indexes"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
             >
               Stock Screens
-            </Link>
-            <Link
-              href="/13f"
-              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-            >
-              13F Insights
             </Link>
             <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
               Stock Insights

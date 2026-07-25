@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { warmMacroCache } from "./routes/macro";
+import { initEdgarFetcher } from "./lib/edgar-fetcher";
 
 const rawPort = process.env["PORT"];
 
@@ -26,4 +27,7 @@ app.listen(port, (err) => {
 
   // Pre-warm macro indicators cache in background so first user request is fast
   warmMacroCache().catch(() => { /* non-fatal */ });
+
+  // Initialize 13F EDGAR fetcher: seeds Berkshire data and starts refresh scheduler
+  initEdgarFetcher().catch((e) => logger.error({ err: e }, "EDGAR fetcher init failed"));
 });

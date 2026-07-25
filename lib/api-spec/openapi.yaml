@@ -580,6 +580,93 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /13f/funds:
+    get:
+      operationId: list13fFunds
+      tags: [thirteenf]
+      summary: List all tracked hedge funds
+      responses:
+        "200":
+          description: List of tracked hedge funds
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HedgeFundsResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /13f/funds/{cik}/quarters:
+    get:
+      operationId: get13fFundQuarters
+      tags: [thirteenf]
+      summary: List available 13F filing quarters for a hedge fund
+      parameters:
+        - name: cik
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Available quarters newest-first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ThirteenFQuartersResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /13f/funds/{cik}/holdings:
+    get:
+      operationId: get13fFundHoldings
+      tags: [thirteenf]
+      summary: Get quarter-over-quarter 13F holdings comparison for a hedge fund
+      parameters:
+        - name: cik
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: currentQ
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Current quarter label (e.g. "Q1 2026"). Defaults to most recent.
+        - name: priorQ
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Prior quarter label (e.g. "Q4 2025"). Defaults to quarter preceding currentQ.
+      responses:
+        "200":
+          description: Holdings comparison data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ThirteenFHoldingsResponse"
+        "404":
+          description: Fund or quarter not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
 components:
   schemas:
     HealthStatus:
@@ -1835,3 +1922,123 @@ components:
         - metrics
         - fetchedAt
         - metricsReady
+
+    HedgeFund:
+      type: object
+      properties:
+        cik:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+      required:
+        - cik
+        - name
+        - slug
+
+    HedgeFundsResponse:
+      type: object
+      properties:
+        funds:
+          type: array
+          items:
+            $ref: "#/components/schemas/HedgeFund"
+      required:
+        - funds
+
+    ThirteenFQuartersResponse:
+      type: object
+      properties:
+        cik:
+          type: string
+        quarters:
+          type: array
+          items:
+            type: string
+          description: Quarter labels newest first (e.g. ["Q1 2026", "Q4 2025", ...])
+      required:
+        - cik
+        - quarters
+
+    ThirteenFHoldingRow:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Issuer name from 13F (deduplicated)
+        ticker:
+          type: string
+          nullable: true
+          description: Resolved ticker symbol (null if CUSIP lookup failed)
+        cusip:
+          type: string
+        currentMarketValue:
+          type: number
+          description: Market value in dollars for the current quarter
+        currentShares:
+          type: number
+          description: Shares held in the current quarter
+        currentPctAllocation:
+          type: number
+          description: Percentage of total portfolio (current quarter)
+        priorMarketValue:
+          type: number
+          nullable: true
+          description: Market value in dollars for the prior quarter (null if new position)
+        priorShares:
+          type: number
+          nullable: true
+          description: Shares held in the prior quarter (null if new position)
+        priorPctAllocation:
+          type: number
+          nullable: true
+          description: Percentage of total portfolio (prior quarter)
+        pctChangeShares:
+          type: number
+          nullable: true
+          description: Percentage change in shares vs prior quarter (null if new position)
+        colorClass:
+          type: string
+          description: "Color coding: new | increase-high | increase-low | decrease-high | decrease-low | empty string"
+      required:
+        - name
+        - cusip
+        - currentMarketValue
+        - currentShares
+        - currentPctAllocation
+        - colorClass
+
+    ThirteenFHoldingsResponse:
+      type: object
+      properties:
+        fundName:
+          type: string
+        cik:
+          type: string
+        currentQ:
+          type: string
+          nullable: true
+        priorQ:
+          type: string
+          nullable: true
+        currentTotalValue:
+          type: number
+          description: Total portfolio value in dollars for the current quarter
+        priorTotalValue:
+          type: number
+          nullable: true
+          description: Total portfolio value in dollars for the prior quarter
+        seedingInProgress:
+          type: boolean
+          description: True if the initial data fetch from SEC EDGAR has not completed yet
+        holdings:
+          type: array
+          items:
+            $ref: "#/components/schemas/ThirteenFHoldingRow"
+      required:
+        - fundName
+        - cik
+        - currentTotalValue
+        - seedingInProgress
+        - holdings

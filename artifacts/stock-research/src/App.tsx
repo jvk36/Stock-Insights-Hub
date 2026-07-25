@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import StockDetail from "@/pages/stock";
 import MacroSummary from "@/pages/macro";
 import StockIndexes from "@/pages/indexes";
+import ThirteenFInsights from "@/pages/thirteen-f";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,6 +32,7 @@ function Router() {
     <Switch>
       <Route path="/" component={HomeRedirect} />
       <Route path="/indexes" component={StockIndexes} />
+      <Route path="/13f" component={ThirteenFInsights} />
       <Route path="/stock/:symbol" component={StockDetail} />
       <Route path="/macro" component={MacroSummary} />
       <Route component={NotFound} />

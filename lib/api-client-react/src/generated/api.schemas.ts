@@ -528,6 +528,60 @@ export interface IndexMetricsResponse {
   metricsReady: boolean;
 }
 
+export interface HedgeFund {
+  cik: string;
+  name: string;
+  slug: string;
+}
+
+export interface HedgeFundsResponse {
+  funds: HedgeFund[];
+}
+
+export interface ThirteenFQuartersResponse {
+  cik: string;
+  /** Quarter labels newest first (e.g. ["Q1 2026", "Q4 2025", ...]) */
+  quarters: string[];
+}
+
+export interface ThirteenFHoldingRow {
+  /** Issuer name from 13F (deduplicated) */
+  name: string;
+  /** Resolved ticker symbol (null if CUSIP lookup failed) */
+  ticker?: string | null;
+  cusip: string;
+  /** Market value in dollars for the current quarter */
+  currentMarketValue: number;
+  /** Shares held in the current quarter */
+  currentShares: number;
+  /** Percentage of total portfolio (current quarter) */
+  currentPctAllocation: number;
+  /** Market value in dollars for the prior quarter (null if new position) */
+  priorMarketValue?: number | null;
+  /** Shares held in the prior quarter (null if new position) */
+  priorShares?: number | null;
+  /** Percentage of total portfolio (prior quarter) */
+  priorPctAllocation?: number | null;
+  /** Percentage change in shares vs prior quarter (null if new position) */
+  pctChangeShares?: number | null;
+  /** Color coding: new | increase-high | increase-low | decrease-high | decrease-low | empty string */
+  colorClass: string;
+}
+
+export interface ThirteenFHoldingsResponse {
+  fundName: string;
+  cik: string;
+  currentQ?: string | null;
+  priorQ?: string | null;
+  /** Total portfolio value in dollars for the current quarter */
+  currentTotalValue: number;
+  /** Total portfolio value in dollars for the prior quarter */
+  priorTotalValue?: number | null;
+  /** True if the initial data fetch from SEC EDGAR has not completed yet */
+  seedingInProgress: boolean;
+  holdings: ThirteenFHoldingRow[];
+}
+
 export type GetStockChartParams = {
   range?: GetStockChartRange;
 };
@@ -578,3 +632,14 @@ export const GetMacroSeriesObservationsUnits = {
   cca: "cca",
   log: "log",
 } as const;
+
+export type Get13fFundHoldingsParams = {
+  /**
+   * Current quarter label (e.g. "Q1 2026"). Defaults to most recent.
+   */
+  currentQ?: string;
+  /**
+   * Prior quarter label (e.g. "Q4 2025"). Defaults to quarter preceding currentQ.
+   */
+  priorQ?: string;
+};

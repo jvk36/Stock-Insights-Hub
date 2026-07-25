@@ -879,3 +879,117 @@ export const GetSecFilingsResponse = zod.object({
     }),
   ),
 });
+
+/**
+ * @summary List all tracked hedge funds
+ */
+export const List13fFundsResponse = zod.object({
+  funds: zod.array(
+    zod.object({
+      cik: zod.string(),
+      name: zod.string(),
+      slug: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary List available 13F filing quarters for a hedge fund
+ */
+export const Get13fFundQuartersParams = zod.object({
+  cik: zod.coerce.string(),
+});
+
+export const Get13fFundQuartersResponse = zod.object({
+  cik: zod.string(),
+  quarters: zod
+    .array(zod.string())
+    .describe(
+      'Quarter labels newest first (e.g. [\"Q1 2026\", \"Q4 2025\", ...])',
+    ),
+});
+
+/**
+ * @summary Get quarter-over-quarter 13F holdings comparison for a hedge fund
+ */
+export const Get13fFundHoldingsParams = zod.object({
+  cik: zod.coerce.string(),
+});
+
+export const Get13fFundHoldingsQueryParams = zod.object({
+  currentQ: zod.coerce
+    .string()
+    .optional()
+    .describe(
+      'Current quarter label (e.g. \"Q1 2026\"). Defaults to most recent.',
+    ),
+  priorQ: zod.coerce
+    .string()
+    .optional()
+    .describe(
+      'Prior quarter label (e.g. \"Q4 2025\"). Defaults to quarter preceding currentQ.',
+    ),
+});
+
+export const Get13fFundHoldingsResponse = zod.object({
+  fundName: zod.string(),
+  cik: zod.string(),
+  currentQ: zod.string().nullish(),
+  priorQ: zod.string().nullish(),
+  currentTotalValue: zod
+    .number()
+    .describe("Total portfolio value in dollars for the current quarter"),
+  priorTotalValue: zod
+    .number()
+    .nullish()
+    .describe("Total portfolio value in dollars for the prior quarter"),
+  seedingInProgress: zod
+    .boolean()
+    .describe(
+      "True if the initial data fetch from SEC EDGAR has not completed yet",
+    ),
+  holdings: zod.array(
+    zod.object({
+      name: zod.string().describe("Issuer name from 13F (deduplicated)"),
+      ticker: zod
+        .string()
+        .nullish()
+        .describe("Resolved ticker symbol (null if CUSIP lookup failed)"),
+      cusip: zod.string(),
+      currentMarketValue: zod
+        .number()
+        .describe("Market value in dollars for the current quarter"),
+      currentShares: zod
+        .number()
+        .describe("Shares held in the current quarter"),
+      currentPctAllocation: zod
+        .number()
+        .describe("Percentage of total portfolio (current quarter)"),
+      priorMarketValue: zod
+        .number()
+        .nullish()
+        .describe(
+          "Market value in dollars for the prior quarter (null if new position)",
+        ),
+      priorShares: zod
+        .number()
+        .nullish()
+        .describe("Shares held in the prior quarter (null if new position)"),
+      priorPctAllocation: zod
+        .number()
+        .nullish()
+        .describe("Percentage of total portfolio (prior quarter)"),
+      pctChangeShares: zod
+        .number()
+        .nullish()
+        .describe(
+          "Percentage change in shares vs prior quarter (null if new position)",
+        ),
+      colorClass: zod
+        .string()
+        .describe(
+          "Color coding: new | increase-high | increase-low | decrease-high | decrease-low | empty string",
+        ),
+    }),
+  ),
+});

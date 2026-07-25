@@ -1,0 +1,202 @@
+import { Router, type Request, type Response } from "express";
+import { eq, desc } from "drizzle-orm";
+import { db } from "@workspace/db";
+import {
+  hedgeFundsTable,
+  sec13fFilingsTable,
+  sec13fHoldingsTable,
+} from "@workspace/db";
+
+const router = Router();
+
+// ─── GET /13f/funds ───────────────────────────────────────────────────────────
+
+router.get("/13f/funds", async (req: Request, res: Response) => {
+  try {
+    const funds = await db
+      .select({ cik: hedgeFundsTable.cik, name: hedgeFundsTable.name, slug: hedgeFundsTable.slug })
+      .from(hedgeFundsTable)
+      .orderBy(hedgeFundsTable.name);
+    return res.json({ funds });
+  } catch (err) {
+    req.log.error({ err }, "Failed to list 13F funds");
+    return res.status(500).json({ error: "Failed to list funds", message: String(err) });
+  }
+});
+
+// ─── GET /13f/funds/:cik/quarters ────────────────────────────────────────────
+
+router.get("/13f/funds/:cik/quarters", async (req: Request, res: Response) => {
+  const cik = req.params["cik"] as string;
+  try {
+    const filings = await db
+      .select({
+        periodLabel: sec13fFilingsTable.periodLabel,
+        reportDate: sec13fFilingsTable.reportDate,
+      })
+      .from(sec13fFilingsTable)
+      .where(eq(sec13fFilingsTable.fundCik, cik))
+      .orderBy(desc(sec13fFilingsTable.reportDate));
+
+    return res.json({
+      cik,
+      quarters: filings.map((f) => f.periodLabel),
+    });
+  } catch (err) {
+    req.log.error({ err, cik }, "Failed to list 13F quarters");
+    return res.status(500).json({ error: "Failed to list quarters", message: String(err) });
+  }
+});
+
+// ─── GET /13f/funds/:cik/holdings ────────────────────────────────────────────
+// Query params: currentQ (e.g. "Q1 2026"), priorQ (e.g. "Q4 2025")
+// Defaults to the two most recent available quarters.
+
+router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
+  const cik = req.params["cik"] as string;
+  let { currentQ, priorQ } = req.query as { currentQ?: string; priorQ?: string };
+
+  try {
+    // Get fund info
+    const [fund] = await db
+      .select()
+      .from(hedgeFundsTable)
+      .where(eq(hedgeFundsTable.cik, cik))
+      .limit(1);
+
+    if (!fund) {
+      return res.status(404).json({ error: "Fund not found", message: `No fund with CIK ${cik}` });
+    }
+
+    // Get all available filings ordered newest first
+    const allFilings = await db
+      .select()
+      .from(sec13fFilingsTable)
+      .where(eq(sec13fFilingsTable.fundCik, cik))
+      .orderBy(desc(sec13fFilingsTable.reportDate));
+
+    // If no filings yet, return seeding-in-progress response
+    if (allFilings.length === 0) {
+      return res.json({
+        fundName: fund.name,
+        cik,
+        currentQ: currentQ ?? null,
+        priorQ: priorQ ?? null,
+        currentTotalValue: 0,
+        priorTotalValue: null,
+        seedingInProgress: true,
+        holdings: [],
+      });
+    }
+
+    // Resolve which quarters to compare
+    if (!currentQ) {
+      currentQ = allFilings[0]!.periodLabel;
+    }
+    if (!priorQ) {
+      const currentIdx = allFilings.findIndex((f) => f.periodLabel === currentQ);
+      priorQ = currentIdx >= 0 && currentIdx + 1 < allFilings.length
+        ? allFilings[currentIdx + 1]!.periodLabel
+        : undefined;
+    }
+
+    // Look up filing records
+    const currentFiling = allFilings.find((f) => f.periodLabel === currentQ);
+    const priorFiling   = priorQ ? allFilings.find((f) => f.periodLabel === priorQ) : undefined;
+
+    if (!currentFiling) {
+      return res.status(404).json({
+        error: "Quarter not found",
+        message: `No filing for quarter "${currentQ}"`,
+      });
+    }
+
+    // Fetch holdings for both quarters
+    const currentHoldings = await db
+      .select()
+      .from(sec13fHoldingsTable)
+      .where(eq(sec13fHoldingsTable.filingId, currentFiling.id));
+
+    const priorHoldingsRaw = priorFiling
+      ? await db
+          .select()
+          .from(sec13fHoldingsTable)
+          .where(eq(sec13fHoldingsTable.filingId, priorFiling.id))
+      : [];
+
+    // Build a lookup map for prior holdings by name
+    const priorByName = new Map(priorHoldingsRaw.map((h) => [h.name, h]));
+
+    // Total values (in thousands → convert to dollars)
+    const currentTotalValue = (currentFiling.totalValueThousands ?? 0) * 1000;
+    const priorTotalValue = priorFiling
+      ? (priorFiling.totalValueThousands ?? 0) * 1000
+      : null;
+
+    // Build comparison rows
+    const rows = currentHoldings.map((curr) => {
+      const prior = priorByName.get(curr.name);
+
+      const currentMv    = curr.marketValueThousands * 1000;
+      const currentShares = curr.shares;
+      const currentPct   = currentTotalValue > 0 ? (currentMv / currentTotalValue) * 100 : 0;
+
+      const priorMv     = prior ? prior.marketValueThousands * 1000 : null;
+      const priorShares = prior ? prior.shares : null;
+      const priorPct    = priorTotalValue && priorMv != null
+        ? (priorMv / priorTotalValue) * 100
+        : null;
+
+      let pctChangeShares: number | null = null;
+      let colorClass = "";
+
+      if (priorShares === null || priorShares === undefined) {
+        // New position
+        colorClass = "new";
+      } else if (priorShares === 0) {
+        colorClass = "increase-high";
+        pctChangeShares = 100;
+      } else {
+        pctChangeShares = ((currentShares - priorShares) / priorShares) * 100;
+        if (pctChangeShares >= 10) colorClass = "increase-high";
+        else if (pctChangeShares > 0) colorClass = "increase-low";
+        else if (pctChangeShares <= -10) colorClass = "decrease-high";
+        else if (pctChangeShares < 0) colorClass = "decrease-low";
+        else colorClass = "";
+      }
+
+      return {
+        name: curr.name,
+        ticker: curr.ticker ?? null,
+        cusip: curr.cusip,
+        currentMarketValue: currentMv,
+        currentShares,
+        currentPctAllocation: currentPct,
+        priorMarketValue: priorMv,
+        priorShares,
+        priorPctAllocation: priorPct,
+        pctChangeShares,
+        colorClass,
+      };
+    });
+
+    // Sort descending by current market value
+    rows.sort((a, b) => b.currentMarketValue - a.currentMarketValue);
+
+    return res.json({
+      fundName: fund.name,
+      cik,
+      currentQ,
+      priorQ: priorQ ?? null,
+      currentTotalValue,
+      priorTotalValue,
+      seedingInProgress: false,
+      holdings: rows,
+    });
+  } catch (err) {
+    req.log.error({ err, cik }, "Failed to get 13F holdings");
+    return res.status(500).json({ error: "Failed to get holdings", message: String(err) });
+  }
+});
+
+export default router;

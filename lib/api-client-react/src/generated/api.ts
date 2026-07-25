@@ -21,10 +21,12 @@ import type {
   FinancialStatements,
   FredObservationsResponse,
   FundamentalSummary,
+  Get13fFundHoldingsParams,
   GetMacroSeriesObservationsParams,
   GetStockChartParams,
   GetStockFinancialsParams,
   HealthStatus,
+  HedgeFundsResponse,
   IndexConstituentsResponse,
   IndexMetricsResponse,
   InsiderTransactionsResponse,
@@ -36,6 +38,8 @@ import type {
   StockIndicators,
   StockModels,
   StockQuote,
+  ThirteenFHoldingsResponse,
+  ThirteenFQuartersResponse,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -2062,6 +2066,284 @@ export function useGetSecFilings<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetSecFilingsQueryOptions(symbol, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all tracked hedge funds
+ */
+export const getList13fFundsUrl = () => {
+  return `/api/13f/funds`;
+};
+
+export const list13fFunds = async (
+  options?: RequestInit,
+): Promise<HedgeFundsResponse> => {
+  return customFetch<HedgeFundsResponse>(getList13fFundsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getList13fFundsQueryKey = () => {
+  return [`/api/13f/funds`] as const;
+};
+
+export const getList13fFundsQueryOptions = <
+  TData = Awaited<ReturnType<typeof list13fFunds>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof list13fFunds>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getList13fFundsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof list13fFunds>>> = ({
+    signal,
+  }) => list13fFunds({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof list13fFunds>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type List13fFundsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof list13fFunds>>
+>;
+export type List13fFundsQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary List all tracked hedge funds
+ */
+
+export function useList13fFunds<
+  TData = Awaited<ReturnType<typeof list13fFunds>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof list13fFunds>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getList13fFundsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List available 13F filing quarters for a hedge fund
+ */
+export const getGet13fFundQuartersUrl = (cik: string) => {
+  return `/api/13f/funds/${cik}/quarters`;
+};
+
+export const get13fFundQuarters = async (
+  cik: string,
+  options?: RequestInit,
+): Promise<ThirteenFQuartersResponse> => {
+  return customFetch<ThirteenFQuartersResponse>(getGet13fFundQuartersUrl(cik), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGet13fFundQuartersQueryKey = (cik: string) => {
+  return [`/api/13f/funds/${cik}/quarters`] as const;
+};
+
+export const getGet13fFundQuartersQueryOptions = <
+  TData = Awaited<ReturnType<typeof get13fFundQuarters>>,
+  TError = ErrorType<ApiError>,
+>(
+  cik: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof get13fFundQuarters>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGet13fFundQuartersQueryKey(cik);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof get13fFundQuarters>>
+  > = ({ signal }) => get13fFundQuarters(cik, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!cik,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof get13fFundQuarters>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type Get13fFundQuartersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof get13fFundQuarters>>
+>;
+export type Get13fFundQuartersQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary List available 13F filing quarters for a hedge fund
+ */
+
+export function useGet13fFundQuarters<
+  TData = Awaited<ReturnType<typeof get13fFundQuarters>>,
+  TError = ErrorType<ApiError>,
+>(
+  cik: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof get13fFundQuarters>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGet13fFundQuartersQueryOptions(cik, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get quarter-over-quarter 13F holdings comparison for a hedge fund
+ */
+export const getGet13fFundHoldingsUrl = (
+  cik: string,
+  params?: Get13fFundHoldingsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/13f/funds/${cik}/holdings?${stringifiedParams}`
+    : `/api/13f/funds/${cik}/holdings`;
+};
+
+export const get13fFundHoldings = async (
+  cik: string,
+  params?: Get13fFundHoldingsParams,
+  options?: RequestInit,
+): Promise<ThirteenFHoldingsResponse> => {
+  return customFetch<ThirteenFHoldingsResponse>(
+    getGet13fFundHoldingsUrl(cik, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGet13fFundHoldingsQueryKey = (
+  cik: string,
+  params?: Get13fFundHoldingsParams,
+) => {
+  return [
+    `/api/13f/funds/${cik}/holdings`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGet13fFundHoldingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof get13fFundHoldings>>,
+  TError = ErrorType<ApiError>,
+>(
+  cik: string,
+  params?: Get13fFundHoldingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof get13fFundHoldings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGet13fFundHoldingsQueryKey(cik, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof get13fFundHoldings>>
+  > = ({ signal }) =>
+    get13fFundHoldings(cik, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!cik,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof get13fFundHoldings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type Get13fFundHoldingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof get13fFundHoldings>>
+>;
+export type Get13fFundHoldingsQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get quarter-over-quarter 13F holdings comparison for a hedge fund
+ */
+
+export function useGet13fFundHoldings<
+  TData = Awaited<ReturnType<typeof get13fFundHoldings>>,
+  TError = ErrorType<ApiError>,
+>(
+  cik: string,
+  params?: Get13fFundHoldingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof get13fFundHoldings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGet13fFundHoldingsQueryOptions(cik, params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

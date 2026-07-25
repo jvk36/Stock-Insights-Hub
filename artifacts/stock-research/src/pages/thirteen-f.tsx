@@ -67,14 +67,14 @@ function HoldingsTable({
   priorQ: string | null | undefined;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="rounded-xl border border-border bg-card overflow-auto max-h-[calc(100vh-370px)]">
       <table className="w-full text-xs border-collapse">
-        <thead>
-          <tr className="border-b border-border bg-muted/50">
-            <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap sticky left-0 bg-muted/50 z-10 min-w-[180px]">
+        <thead className="sticky top-0 z-20">
+          <tr className="border-b border-border bg-muted/80 backdrop-blur-sm">
+            <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap sticky left-0 bg-muted/80 z-30 min-w-[180px]">
               Name (Ticker)
             </th>
-            <th className="text-right px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap min-w-[110px]">
+            <th className="text-right px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap min-w-[160px]">
               Mkt Value<br /><span className="font-normal opacity-70">{currentQ}</span>
             </th>
             <th className="text-right px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap min-w-[120px]">
@@ -85,7 +85,7 @@ function HoldingsTable({
             </th>
             {priorQ && (
               <>
-                <th className="text-right px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap min-w-[110px]">
+                <th className="text-right px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap min-w-[160px]">
                   Mkt Value<br /><span className="font-normal opacity-70">{priorQ}</span>
                 </th>
                 <th className="text-right px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap min-w-[120px]">
@@ -111,7 +111,7 @@ function HoldingsTable({
                 className="border-b border-border/50 hover:bg-muted/30 transition-colors"
               >
                 {/* Name (Ticker) — color-coded */}
-                <td className={`px-3 py-2 sticky left-0 z-10 ${bg}`}>
+                <td className={`px-3 py-2 sticky left-0 z-10 ${bg || "bg-card"}`}>
                   <span className={`font-medium ${badge}`}>
                     {row.name}
                     {row.ticker && (
@@ -271,33 +271,31 @@ function FundHoldingsView({
       </div>
 
       {/* Holdings table */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        {isLoading ? (
-          <div className="p-4 space-y-2">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} className="h-8 w-full rounded" />
-            ))}
-          </div>
-        ) : holdingsData?.seedingInProgress ? (
-          <div className="py-20 text-center">
-            <Building2 className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-sm font-medium text-muted-foreground">Loading 13F holdings from SEC EDGAR…</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">
-              This takes a few minutes on the first load. Please check back shortly.
-            </p>
-          </div>
-        ) : holdingsData && holdingsData.holdings.length > 0 ? (
-          <HoldingsTable
-            rows={holdingsData.holdings}
-            currentQ={holdingsData.currentQ ?? currentQ ?? ""}
-            priorQ={holdingsData.priorQ}
-          />
-        ) : (
-          <div className="py-20 text-center">
-            <p className="text-sm text-muted-foreground">No equity holdings found for this quarter.</p>
-          </div>
-        )}
-      </div>
+      {isLoading ? (
+        <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-full rounded" />
+          ))}
+        </div>
+      ) : holdingsData?.seedingInProgress ? (
+        <div className="rounded-xl border border-border bg-card py-20 text-center">
+          <Building2 className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
+          <p className="text-sm font-medium text-muted-foreground">Loading 13F holdings from SEC EDGAR…</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">
+            This takes a few minutes on the first load. Please check back shortly.
+          </p>
+        </div>
+      ) : holdingsData && holdingsData.holdings.length > 0 ? (
+        <HoldingsTable
+          rows={holdingsData.holdings}
+          currentQ={holdingsData.currentQ ?? currentQ ?? ""}
+          priorQ={holdingsData.priorQ}
+        />
+      ) : (
+        <div className="rounded-xl border border-border bg-card py-20 text-center">
+          <p className="text-sm text-muted-foreground">No equity holdings found for this quarter.</p>
+        </div>
+      )}
 
       {/* Legend */}
       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">

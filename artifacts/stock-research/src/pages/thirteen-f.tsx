@@ -47,12 +47,10 @@ function fmtChange(val: number | null | undefined): string {
 // ─── Color helpers ────────────────────────────────────────────────────────────
 
 const COLOR_CLASSES: Record<string, { cell: string; badge: string }> = {
-  new:           { cell: "bg-green-50 dark:bg-green-950/30",    badge: "text-green-700 dark:text-green-400 font-semibold" },
-  "increase-high": { cell: "bg-blue-50 dark:bg-blue-950/30",   badge: "text-blue-700 dark:text-blue-400 font-semibold" },
-  "increase-low":  { cell: "bg-sky-50/60 dark:bg-sky-950/20",  badge: "text-sky-700 dark:text-sky-400 font-semibold" },
-  "decrease-high": { cell: "bg-pink-50 dark:bg-pink-950/30",   badge: "text-pink-700 dark:text-pink-400 font-semibold" },
-  "decrease-low":  { cell: "bg-rose-50/60 dark:bg-rose-950/20",badge: "text-rose-700 dark:text-rose-400 font-semibold" },
-  "":            { cell: "",                                    badge: "text-foreground" },
+  new:      { cell: "bg-green-50 dark:bg-green-950/30", badge: "text-green-700 dark:text-green-400 font-semibold" },
+  increase: { cell: "bg-blue-50 dark:bg-blue-950/30",  badge: "text-blue-700 dark:text-blue-400 font-semibold" },
+  decrease: { cell: "bg-red-50 dark:bg-red-950/30",    badge: "text-red-700 dark:text-red-400 font-semibold" },
+  "":       { cell: "",                                 badge: "text-foreground" },
 };
 
 function cellBg(colorClass: string): string {
@@ -310,11 +308,9 @@ function FundHoldingsView({
       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
         <span className="font-medium">Color key:</span>
         {[
-          { cls: "new",           label: "New position" },
-          { cls: "increase-high", label: "≥10% increase" },
-          { cls: "increase-low",  label: "<10% increase" },
-          { cls: "decrease-low",  label: "<10% decrease" },
-          { cls: "decrease-high", label: "≥10% decrease" },
+          { cls: "new",      label: "New position" },
+          { cls: "increase", label: "Increase" },
+          { cls: "decrease", label: "Decrease" },
         ].map(({ cls, label }) => (
           <span key={cls} className={`px-2 py-0.5 rounded border border-border ${cellBg(cls)} ${badgeStyle(cls)}`}>
             {label}

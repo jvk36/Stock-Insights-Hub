@@ -127,21 +127,21 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
     // Build a lookup map for prior holdings by name
     const priorByName = new Map(priorHoldingsRaw.map((h) => [h.name, h]));
 
-    // Total values (in thousands → convert to dollars)
-    const currentTotalValue = (currentFiling.totalValueThousands ?? 0) * 1000;
+    // Total values — stored as actual dollars from the XML <value> field
+    const currentTotalValue = currentFiling.totalValueThousands ?? 0;
     const priorTotalValue = priorFiling
-      ? (priorFiling.totalValueThousands ?? 0) * 1000
+      ? (priorFiling.totalValueThousands ?? 0)
       : null;
 
     // Build comparison rows
     const rows = currentHoldings.map((curr) => {
       const prior = priorByName.get(curr.name);
 
-      const currentMv    = curr.marketValueThousands * 1000;
+      const currentMv    = curr.marketValueThousands; // stored as actual dollars from XML
       const currentShares = curr.shares;
       const currentPct   = currentTotalValue > 0 ? (currentMv / currentTotalValue) * 100 : 0;
 
-      const priorMv     = prior ? prior.marketValueThousands * 1000 : null;
+      const priorMv     = prior ? prior.marketValueThousands : null;
       const priorShares = prior ? prior.shares : null;
       const priorPct    = priorTotalValue && priorMv != null
         ? (priorMv / priorTotalValue) * 100
@@ -154,14 +154,12 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
         // New position
         colorClass = "new";
       } else if (priorShares === 0) {
-        colorClass = "increase-high";
+        colorClass = "increase";
         pctChangeShares = 100;
       } else {
         pctChangeShares = ((currentShares - priorShares) / priorShares) * 100;
-        if (pctChangeShares >= 10) colorClass = "increase-high";
-        else if (pctChangeShares > 0) colorClass = "increase-low";
-        else if (pctChangeShares <= -10) colorClass = "decrease-high";
-        else if (pctChangeShares < 0) colorClass = "decrease-low";
+        if (pctChangeShares > 0) colorClass = "increase";
+        else if (pctChangeShares < 0) colorClass = "decrease";
         else colorClass = "";
       }
 

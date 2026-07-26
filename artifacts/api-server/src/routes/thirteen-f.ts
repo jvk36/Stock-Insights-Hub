@@ -148,23 +148,75 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
     const priorByNormName   = new Map(priorUnmatched.map((h) => [normalizeName(h.name), h]));
     const currentByNormName = new Map(currentUnmatched.map((h) => [normalizeName(h.name), h]));
 
-    // CUSIPs consumed via name-fallback (skip them in the main loop to avoid duplicates)
+    // Known CUSIP succession chains from corporate reorganisations / rebrands.
+    // Each entry maps an OLD cusip → its direct SUCCESSOR cusip.
+    // The chain is walked, so multi-hop transitions are resolved automatically.
+    const CUSIP_SUCCESSOR: Record<string, string> = {
+      "531229409": "531229722", // Liberty Media Corp Delaware → Liberty Media Corp Del (new series, Q2→Q3 2023)
+      "531229722": "530909100", // Liberty Media Corp Del → Liberty Live Holdings (Q3→Q4 2025)
+    };
+    const CUSIP_PREDECESSOR: Record<string, string> = Object.fromEntries(
+      Object.entries(CUSIP_SUCCESSOR).map(([old, succ]) => [succ, old]),
+    );
+
+    // Walk the successor chain from `cusip` until we find one that exists in `map`, or exhaust.
+    function walkChain(
+      cusip: string,
+      map: Map<string, unknown>,
+      direction: "successor" | "predecessor",
+    ): string | null {
+      const lookup = direction === "successor" ? CUSIP_SUCCESSOR : CUSIP_PREDECESSOR;
+      let cur = cusip;
+      for (let i = 0; i < 10; i++) {
+        const next = lookup[cur];
+        if (!next) break;
+        if (map.has(next)) return next;
+        cur = next;
+      }
+      return null;
+    }
+
+    // CUSIPs consumed via fallback matching (skip in main loop to avoid duplicates)
     const priorConsumed   = new Set<string>();
     const currentConsumed = new Set<string>();
 
-    // Pairs resolved by name: [currentCusip, priorCusip]
+    // Pairs resolved by any fallback: [currentCusip, priorCusip]
     const namePairs: Array<[string | null, string | null]> = [];
+
+    // Pass 1 — CUSIP succession chain (explicit corporate-action knowledge, highest priority)
+    // Catches rebrands like Liberty Media Corp Del → Liberty Live Holdings
     for (const curr of currentUnmatched) {
+      if (currentConsumed.has(curr.cusip)) continue;
+      const predCusip = walkChain(curr.cusip, priorByCusip, "predecessor");
+      if (predCusip && !priorConsumed.has(predCusip)) {
+        namePairs.push([curr.cusip, predCusip]);
+        priorConsumed.add(predCusip);
+        currentConsumed.add(curr.cusip);
+      }
+    }
+    for (const prior of priorUnmatched) {
+      if (priorConsumed.has(prior.cusip)) continue;
+      const succCusip = walkChain(prior.cusip, currentByCusip, "successor");
+      if (succCusip && !currentConsumed.has(succCusip)) {
+        namePairs.push([succCusip, prior.cusip]);
+        priorConsumed.add(prior.cusip);
+        currentConsumed.add(succCusip);
+      }
+    }
+
+    // Pass 2 — name normalisation (catches share-class switches like Alphabet CL A → CL C)
+    for (const curr of currentUnmatched) {
+      if (currentConsumed.has(curr.cusip)) continue;
       const normKey = normalizeName(curr.name);
       const matched = priorByNormName.get(normKey);
-      if (matched) {
+      if (matched && !priorConsumed.has(matched.cusip)) {
         namePairs.push([curr.cusip, matched.cusip]);
         priorConsumed.add(matched.cusip);
         currentConsumed.add(curr.cusip);
       }
     }
 
-    // Full outer join: union of CUSIPs from both quarters, minus those handled via name-pairs
+    // Full outer join: union of CUSIPs from both quarters, minus those handled via fallback pairs
     const allCusips = new Set([...currentByCusip.keys(), ...priorByCusip.keys()]);
     for (const [cc, pc] of namePairs) {
       if (cc) allCusips.delete(cc);

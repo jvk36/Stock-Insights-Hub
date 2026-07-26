@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, exists, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   hedgeFundsTable,
@@ -29,13 +29,21 @@ router.get("/13f/funds", async (req: Request, res: Response) => {
 router.get("/13f/funds/:cik/quarters", async (req: Request, res: Response) => {
   const cik = req.params["cik"] as string;
   try {
+    // Only return quarters that have at least one holding already loaded.
+    // Stub filings are inserted before holdings are fetched, so filtering here
+    // prevents the race condition where an empty prior quarter shows all
+    // current-quarter positions as "new" during initial seeding.
     const filings = await db
       .select({
         periodLabel: sec13fFilingsTable.periodLabel,
         reportDate: sec13fFilingsTable.reportDate,
       })
       .from(sec13fFilingsTable)
-      .where(eq(sec13fFilingsTable.fundCik, cik))
+      .where(
+        sql`${sec13fFilingsTable.fundCik} = ${cik} AND EXISTS (
+          SELECT 1 FROM sec_13f_holdings h WHERE h.filing_id = ${sec13fFilingsTable.id}
+        )`
+      )
       .orderBy(desc(sec13fFilingsTable.reportDate));
 
     return res.json({
@@ -68,11 +76,15 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Fund not found", message: `No fund with CIK ${cik}` });
     }
 
-    // Get all available filings ordered newest first
+    // Get all filings that have holdings (skip empty stubs still being seeded)
     const allFilings = await db
       .select()
       .from(sec13fFilingsTable)
-      .where(eq(sec13fFilingsTable.fundCik, cik))
+      .where(
+        sql`${sec13fFilingsTable.fundCik} = ${cik} AND EXISTS (
+          SELECT 1 FROM sec_13f_holdings h WHERE h.filing_id = ${sec13fFilingsTable.id}
+        )`
+      )
       .orderBy(desc(sec13fFilingsTable.reportDate));
 
     // If no filings yet, return seeding-in-progress response

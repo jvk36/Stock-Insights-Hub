@@ -22,7 +22,7 @@ const queryClient = new QueryClient({
 function HomeRedirect() {
   const [, setLocation] = useLocation();
   useEffect(() => {
-    setLocation("/indexes");
+    setLocation("/13f");
   }, [setLocation]);
   return null;
 }

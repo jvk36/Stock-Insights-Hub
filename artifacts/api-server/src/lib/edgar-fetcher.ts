@@ -279,6 +279,12 @@ const MAX_QUARTERS = 40;
 /** Delay between consecutive filing fetches (SEC fair-access policy). */
 const FETCH_DELAY_MS = 3_000;
 
+/**
+ * Longer delay used during gap-fill retries to be gentler on the CDN
+ * after it has already rate-limited us once.
+ */
+const GAP_RETRY_DELAY_MS = 8_000;
+
 export async function seedFundFilings(cik: string): Promise<void> {
   logger.info({ cik }, "Starting 13F filing seed");
 
@@ -319,6 +325,85 @@ export async function seedFundFilings(cik: string): Promise<void> {
   }
 
   logger.info({ cik, processed: toProcess.length }, "13F seed complete");
+}
+
+/**
+ * Gap-fill pass: after the initial seed, some filings may have been skipped
+ * due to transient SEC 503 errors.  This function identifies two categories
+ * of gaps and retries them with a longer inter-request delay:
+ *
+ *   1. Stubs present on EDGAR but entirely absent from our DB.
+ *   2. Filing rows already in our DB but with zero associated holdings
+ *      (the filing insert succeeded but the holdings fetch failed).
+ *
+ * We use a longer delay (GAP_RETRY_DELAY_MS) between requests to be gentler
+ * on the CDN after it has already rate-limited us during seeding.
+ */
+export async function retryGapFilings(cik: string): Promise<void> {
+  logger.info({ cik }, "Starting gap-fill retry pass for missing/empty filings");
+
+  // 1. Fetch the canonical list of stubs from EDGAR
+  let stubs: Array<{ accessionNumber: string; reportDate: string; filingDate: string }>;
+  try {
+    stubs = await fetch13fFilingStubs(cik);
+  } catch (err) {
+    logger.error({ err, cik }, "Gap-fill: failed to fetch EDGAR submission stubs");
+    return;
+  }
+
+  // 2. Load all filing rows we have for this CIK
+  const existingFilings = await db
+    .select({ id: sec13fFilingsTable.id, accessionNumber: sec13fFilingsTable.accessionNumber })
+    .from(sec13fFilingsTable)
+    .where(eq(sec13fFilingsTable.fundCik, cik));
+
+  const existingByAccession = new Map(existingFilings.map((f) => [f.accessionNumber, f.id]));
+
+  // 3. Determine which filing IDs have at least one holding row
+  const filingIds = existingFilings.map((f) => f.id);
+  const filingIdsWithHoldings = new Set<number>();
+  if (filingIds.length > 0) {
+    const rows = await db
+      .selectDistinct({ filingId: sec13fHoldingsTable.filingId })
+      .from(sec13fHoldingsTable)
+      .where(inArray(sec13fHoldingsTable.filingId, filingIds));
+    for (const r of rows) filingIdsWithHoldings.add(r.filingId);
+  }
+
+  // 4. Build the gap list — stubs that are missing OR have empty holdings
+  const gaps = stubs.filter((s) => {
+    const filingId = existingByAccession.get(s.accessionNumber);
+    if (filingId === undefined) return true;          // category 1: not in DB at all
+    return !filingIdsWithHoldings.has(filingId);      // category 2: in DB but no holdings
+  });
+
+  if (gaps.length === 0) {
+    logger.info({ cik }, "Gap-fill: no missing or empty filings found — nothing to retry");
+    return;
+  }
+
+  logger.info({ cik, gaps: gaps.length }, "Gap-fill: retrying filings with missing/empty holdings");
+
+  let recovered = 0;
+  for (const stub of gaps) {
+    try {
+      await processFiling(cik, stub);
+      recovered++;
+      logger.info(
+        { cik, accession: stub.accessionNumber, period: reportDateToQuarter(stub.reportDate) },
+        "Gap-fill: filing recovered",
+      );
+    } catch (err) {
+      logger.warn(
+        { err, cik, accession: stub.accessionNumber },
+        "Gap-fill: filing still failed after retry — will try again on next refresh",
+      );
+    }
+    // Always wait between requests, even after failures, to stay within SEC rate limits
+    await sleep(GAP_RETRY_DELAY_MS);
+  }
+
+  logger.info({ cik, recovered, totalGaps: gaps.length }, "Gap-fill retry pass complete");
 }
 
 async function processFiling(
@@ -416,10 +501,18 @@ export async function initEdgarFetcher(): Promise<void> {
     .values({ cik: "1067983", name: "Berkshire Hathaway", slug: "berkshire-hathaway" })
     .onConflictDoNothing();
 
-  // Seed on startup after a brief delay to let the server finish initialising
-  setTimeout(() => {
-    seedFundFilings("1067983").catch((err) =>
-      logger.error({ err }, "Initial 13F seed failed"),
+  // Seed on startup after a brief delay to let the server finish initialising,
+  // then run a gap-fill pass to recover any filings that were skipped due to
+  // transient SEC 503 errors during the initial seed.
+  setTimeout(async () => {
+    try {
+      await seedFundFilings("1067983");
+    } catch (err) {
+      logger.error({ err }, "Initial 13F seed failed");
+    }
+    // Gap-fill runs unconditionally after seed (it no-ops when there are no gaps)
+    retryGapFilings("1067983").catch((err) =>
+      logger.error({ err }, "Initial gap-fill retry pass failed"),
     );
   }, 3_000);
 
@@ -432,8 +525,14 @@ export async function initEdgarFetcher(): Promise<void> {
     logger.info("13F refresh check: in publication window");
     const funds = await db.select().from(hedgeFundsTable);
     for (const fund of funds) {
-      await seedFundFilings(fund.cik).catch((err) =>
-        logger.error({ err, cik: fund.cik }, "Scheduled 13F refresh failed"),
+      try {
+        await seedFundFilings(fund.cik);
+      } catch (err) {
+        logger.error({ err, cik: fund.cik }, "Scheduled 13F refresh failed");
+      }
+      // Always follow a seed with a gap-fill to catch any 503-skipped filings
+      await retryGapFilings(fund.cik).catch((err) =>
+        logger.error({ err, cik: fund.cik }, "Scheduled gap-fill retry pass failed"),
       );
     }
   }, 12 * 60 * 60 * 1000);

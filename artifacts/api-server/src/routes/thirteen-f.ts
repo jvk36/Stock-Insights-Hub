@@ -128,8 +128,48 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
     const currentByCusip = new Map(currentHoldings.map((h) => [h.cusip, h]));
     const priorByCusip   = new Map(priorHoldingsRaw.map((h) => [h.cusip, h]));
 
-    // Full outer join: union of CUSIPs from both quarters
+    // Name normaliser — strips legal suffixes and share-class markers so that
+    // e.g. "ALPHABET INC" (CL A) and "ALPHABET INC" (CL C) map to "ALPHABET"
+    function normalizeName(name: string): string {
+      return name
+        .toUpperCase()
+        .replace(/\b(CORPORATION|INCORPORATED)\b/g, "")
+        .replace(/\b(INC|CORP|LTD|CO|PLC|LLC|LP|NV|AG|SA|SCA)\b\.?/g, "")
+        .replace(/\b(CLASS|CL)\s+[A-C]\b/g, "")
+        .replace(/\b(NEW|OLD|HOLDINGS|HLDGS|GROUP|SWITZ|DEL)\b/g, "")
+        .replace(/[^A-Z0-9\s]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    // Build normalised-name maps for holdings that have no CUSIP match in the other quarter
+    const priorUnmatched   = priorHoldingsRaw.filter((h) => !currentByCusip.has(h.cusip));
+    const currentUnmatched = currentHoldings.filter((h) => !priorByCusip.has(h.cusip));
+    const priorByNormName   = new Map(priorUnmatched.map((h) => [normalizeName(h.name), h]));
+    const currentByNormName = new Map(currentUnmatched.map((h) => [normalizeName(h.name), h]));
+
+    // CUSIPs consumed via name-fallback (skip them in the main loop to avoid duplicates)
+    const priorConsumed   = new Set<string>();
+    const currentConsumed = new Set<string>();
+
+    // Pairs resolved by name: [currentCusip, priorCusip]
+    const namePairs: Array<[string | null, string | null]> = [];
+    for (const curr of currentUnmatched) {
+      const normKey = normalizeName(curr.name);
+      const matched = priorByNormName.get(normKey);
+      if (matched) {
+        namePairs.push([curr.cusip, matched.cusip]);
+        priorConsumed.add(matched.cusip);
+        currentConsumed.add(curr.cusip);
+      }
+    }
+
+    // Full outer join: union of CUSIPs from both quarters, minus those handled via name-pairs
     const allCusips = new Set([...currentByCusip.keys(), ...priorByCusip.keys()]);
+    for (const [cc, pc] of namePairs) {
+      if (cc) allCusips.delete(cc);
+      if (pc) allCusips.delete(pc);
+    }
 
     // Total values — stored as actual dollars from the XML <value> field
     const currentTotalValue = currentFiling.totalValueThousands ?? 0;
@@ -137,36 +177,29 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
       ? (priorFiling.totalValueThousands ?? 0)
       : null;
 
-    // Build comparison rows
-    const rows = [...allCusips].map((cusip) => {
-      const curr  = currentByCusip.get(cusip) ?? null;
-      const prior = priorByCusip.get(cusip)   ?? null;
-
-      // Prefer current quarter's name/ticker; fall back to prior quarter's
-      const name   = curr?.name   ?? prior?.name   ?? cusip;
+    // Helper to build one row from a (current, prior) holding pair
+    function buildRow(curr: typeof currentHoldings[0] | null, prior: typeof priorHoldingsRaw[0] | null) {
+      const name   = curr?.name   ?? prior?.name   ?? "";
       const ticker = curr?.ticker ?? prior?.ticker ?? null;
+      const cusip  = curr?.cusip  ?? prior?.cusip  ?? "";
 
       const currentMv     = curr ? curr.marketValueThousands : null;
       const currentShares = curr ? curr.shares : null;
       const currentPct    = curr && currentTotalValue > 0
-        ? (curr.marketValueThousands / currentTotalValue) * 100
-        : null;
+        ? (curr.marketValueThousands / currentTotalValue) * 100 : null;
 
       const priorMv     = prior ? prior.marketValueThousands : null;
       const priorShares = prior ? prior.shares : null;
       const priorPct    = prior && priorTotalValue
-        ? (prior.marketValueThousands / priorTotalValue) * 100
-        : null;
+        ? (prior.marketValueThousands / priorTotalValue) * 100 : null;
 
       let pctChangeShares: number | null = null;
       let colorClass = "";
 
       if (!curr) {
-        // Exited position — was in prior quarter, gone in current
         colorClass = "decrease";
         pctChangeShares = -100;
       } else if (!prior) {
-        // New position — not in prior quarter
         colorClass = "new";
       } else if (priorShares === 0) {
         colorClass = "increase";
@@ -179,9 +212,7 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
       }
 
       return {
-        name,
-        ticker,
-        cusip,
+        name, ticker, cusip,
         currentMarketValue: currentMv,
         currentShares,
         currentPctAllocation: currentPct,
@@ -191,7 +222,21 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
         pctChangeShares,
         colorClass,
       };
+    }
+
+    // Build comparison rows — CUSIP-matched positions
+    const rows = [...allCusips].map((cusip) => {
+      const curr  = currentByCusip.get(cusip) ?? null;
+      const prior = priorByCusip.get(cusip)   ?? null;
+      return buildRow(curr, prior);
     });
+
+    // Add name-fallback pairs (e.g. Alphabet Class A → Class C share-class switches)
+    for (const [currentCusip, priorCusip] of namePairs) {
+      const curr  = currentCusip ? (currentByCusip.get(currentCusip) ?? null) : null;
+      const prior = priorCusip  ? (priorByCusip.get(priorCusip)     ?? null) : null;
+      rows.push(buildRow(curr, prior));
+    }
 
     // Sort: active positions by current market value desc; exited positions at bottom by prior value desc
     rows.sort((a, b) => {

@@ -1975,13 +1975,16 @@ components:
           type: string
         currentMarketValue:
           type: number
-          description: Market value in dollars for the current quarter
+          nullable: true
+          description: Market value in dollars for the current quarter (null if exited)
         currentShares:
           type: number
-          description: Shares held in the current quarter
+          nullable: true
+          description: Shares held in the current quarter (null if exited)
         currentPctAllocation:
           type: number
-          description: Percentage of total portfolio (current quarter)
+          nullable: true
+          description: Percentage of total portfolio (current quarter, null if exited)
         priorMarketValue:
           type: number
           nullable: true

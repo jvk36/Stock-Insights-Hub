@@ -958,13 +958,20 @@ export const Get13fFundHoldingsResponse = zod.object({
       cusip: zod.string(),
       currentMarketValue: zod
         .number()
-        .describe("Market value in dollars for the current quarter"),
+        .nullable()
+        .describe(
+          "Market value in dollars for the current quarter (null if exited)",
+        ),
       currentShares: zod
         .number()
-        .describe("Shares held in the current quarter"),
+        .nullable()
+        .describe("Shares held in the current quarter (null if exited)"),
       currentPctAllocation: zod
         .number()
-        .describe("Percentage of total portfolio (current quarter)"),
+        .nullable()
+        .describe(
+          "Percentage of total portfolio (current quarter, null if exited)",
+        ),
       priorMarketValue: zod
         .number()
         .nullish()

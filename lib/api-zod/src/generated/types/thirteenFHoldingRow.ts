@@ -12,12 +12,12 @@ export interface ThirteenFHoldingRow {
   /** Resolved ticker symbol (null if CUSIP lookup failed) */
   ticker?: string | null;
   cusip: string;
-  /** Market value in dollars for the current quarter */
-  currentMarketValue: number;
-  /** Shares held in the current quarter */
-  currentShares: number;
-  /** Percentage of total portfolio (current quarter) */
-  currentPctAllocation: number;
+  /** Market value in dollars for the current quarter (null if exited) */
+  currentMarketValue: number | null;
+  /** Shares held in the current quarter (null if exited) */
+  currentShares: number | null;
+  /** Percentage of total portfolio (current quarter, null if exited) */
+  currentPctAllocation: number | null;
   /** Market value in dollars for the prior quarter (null if new position) */
   priorMarketValue?: number | null;
   /** Shares held in the prior quarter (null if new position) */

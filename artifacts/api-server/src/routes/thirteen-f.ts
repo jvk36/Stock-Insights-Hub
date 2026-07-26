@@ -124,8 +124,12 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
           .where(eq(sec13fHoldingsTable.filingId, priorFiling.id))
       : [];
 
-    // Build a lookup map for prior holdings by name
-    const priorByName = new Map(priorHoldingsRaw.map((h) => [h.name, h]));
+    // Build lookup maps keyed by CUSIP (stable across quarters, unlike name strings)
+    const currentByCusip = new Map(currentHoldings.map((h) => [h.cusip, h]));
+    const priorByCusip   = new Map(priorHoldingsRaw.map((h) => [h.cusip, h]));
+
+    // Full outer join: union of CUSIPs from both quarters
+    const allCusips = new Set([...currentByCusip.keys(), ...priorByCusip.keys()]);
 
     // Total values — stored as actual dollars from the XML <value> field
     const currentTotalValue = currentFiling.totalValueThousands ?? 0;
@@ -134,39 +138,50 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
       : null;
 
     // Build comparison rows
-    const rows = currentHoldings.map((curr) => {
-      const prior = priorByName.get(curr.name);
+    const rows = [...allCusips].map((cusip) => {
+      const curr  = currentByCusip.get(cusip) ?? null;
+      const prior = priorByCusip.get(cusip)   ?? null;
 
-      const currentMv    = curr.marketValueThousands; // stored as actual dollars from XML
-      const currentShares = curr.shares;
-      const currentPct   = currentTotalValue > 0 ? (currentMv / currentTotalValue) * 100 : 0;
+      // Prefer current quarter's name/ticker; fall back to prior quarter's
+      const name   = curr?.name   ?? prior?.name   ?? cusip;
+      const ticker = curr?.ticker ?? prior?.ticker ?? null;
+
+      const currentMv     = curr ? curr.marketValueThousands : null;
+      const currentShares = curr ? curr.shares : null;
+      const currentPct    = curr && currentTotalValue > 0
+        ? (curr.marketValueThousands / currentTotalValue) * 100
+        : null;
 
       const priorMv     = prior ? prior.marketValueThousands : null;
       const priorShares = prior ? prior.shares : null;
-      const priorPct    = priorTotalValue && priorMv != null
-        ? (priorMv / priorTotalValue) * 100
+      const priorPct    = prior && priorTotalValue
+        ? (prior.marketValueThousands / priorTotalValue) * 100
         : null;
 
       let pctChangeShares: number | null = null;
       let colorClass = "";
 
-      if (priorShares === null || priorShares === undefined) {
-        // New position
+      if (!curr) {
+        // Exited position — was in prior quarter, gone in current
+        colorClass = "decrease";
+        pctChangeShares = -100;
+      } else if (!prior) {
+        // New position — not in prior quarter
         colorClass = "new";
       } else if (priorShares === 0) {
         colorClass = "increase";
         pctChangeShares = 100;
-      } else {
-        pctChangeShares = ((currentShares - priorShares) / priorShares) * 100;
+      } else if (priorShares !== null) {
+        pctChangeShares = (((currentShares ?? 0) - priorShares) / priorShares) * 100;
         if (pctChangeShares > 0) colorClass = "increase";
         else if (pctChangeShares < 0) colorClass = "decrease";
         else colorClass = "";
       }
 
       return {
-        name: curr.name,
-        ticker: curr.ticker ?? null,
-        cusip: curr.cusip,
+        name,
+        ticker,
+        cusip,
         currentMarketValue: currentMv,
         currentShares,
         currentPctAllocation: currentPct,
@@ -178,8 +193,14 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
       };
     });
 
-    // Sort descending by current market value
-    rows.sort((a, b) => b.currentMarketValue - a.currentMarketValue);
+    // Sort: active positions by current market value desc; exited positions at bottom by prior value desc
+    rows.sort((a, b) => {
+      if (a.currentMarketValue !== null && b.currentMarketValue !== null)
+        return b.currentMarketValue - a.currentMarketValue;
+      if (a.currentMarketValue !== null) return -1;
+      if (b.currentMarketValue !== null) return 1;
+      return (b.priorMarketValue ?? 0) - (a.priorMarketValue ?? 0);
+    });
 
     return res.json({
       fundName: fund.name,

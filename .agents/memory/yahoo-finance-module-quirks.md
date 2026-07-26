@@ -21,6 +21,9 @@ description: Field name gotchas, unit conventions, and data availability for yah
 ## Module `as any` cast
 When passing a custom modules array to `quoteSummary`, use `modules: [...] as any` to avoid TypeScript errors about the modules union type. Non-standard modules (like `incomeStatementHistory`, `earnings`) must be cast `as unknown as { ... }` on the result to access their fields.
 
+## suppressNotices — instance config only
+`suppressNotices` (e.g. `["yahooSurvey","ripHistorical"]`) is a **YahooFinance constructor/instance option**, NOT a per-call option. Passing it to `quoteSummary({...})` throws `InvalidOptionsError: additionalProperties`. Set it on the instance: `new YahooFinance({ suppressNotices: [...] })` or accept the console noise.
+
 ## Dividend data — summaryDetail is unreliable for small-yield stocks
 `summaryDetail.dividendYield` and `.payoutRatio` are frequently null for stocks with small dividends (e.g. AAPL). Also null: `.trailingAnnualDividendYield`. `summaryDetail.dividendRate` is also sometimes absent even when dividendYield is present.
 

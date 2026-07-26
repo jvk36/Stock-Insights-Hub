@@ -22,6 +22,7 @@ import type {
   FredObservationsResponse,
   FundamentalSummary,
   Get13fFundHoldingsParams,
+  Get13fPriceInfoParams,
   GetMacroSeriesObservationsParams,
   GetStockChartParams,
   GetStockFinancialsParams,
@@ -37,6 +38,7 @@ import type {
   StockAnalysis,
   StockIndicators,
   StockModels,
+  StockPriceInfo,
   StockQuote,
   ThirteenFHoldingsResponse,
   ThirteenFQuartersResponse,
@@ -2344,6 +2346,100 @@ export function useGet13fFundHoldings<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGet13fFundHoldingsQueryOptions(cik, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get current share price and quarterly price range for a ticker
+ */
+export const getGet13fPriceInfoUrl = (params: Get13fPriceInfoParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/13f/price-info?${stringifiedParams}`
+    : `/api/13f/price-info`;
+};
+
+export const get13fPriceInfo = async (
+  params: Get13fPriceInfoParams,
+  options?: RequestInit,
+): Promise<StockPriceInfo> => {
+  return customFetch<StockPriceInfo>(getGet13fPriceInfoUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGet13fPriceInfoQueryKey = (params?: Get13fPriceInfoParams) => {
+  return [`/api/13f/price-info`, ...(params ? [params] : [])] as const;
+};
+
+export const getGet13fPriceInfoQueryOptions = <
+  TData = Awaited<ReturnType<typeof get13fPriceInfo>>,
+  TError = ErrorType<ApiError>,
+>(
+  params: Get13fPriceInfoParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof get13fPriceInfo>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGet13fPriceInfoQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof get13fPriceInfo>>> = ({
+    signal,
+  }) => get13fPriceInfo(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof get13fPriceInfo>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type Get13fPriceInfoQueryResult = NonNullable<
+  Awaited<ReturnType<typeof get13fPriceInfo>>
+>;
+export type Get13fPriceInfoQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get current share price and quarterly price range for a ticker
+ */
+
+export function useGet13fPriceInfo<
+  TData = Awaited<ReturnType<typeof get13fPriceInfo>>,
+  TError = ErrorType<ApiError>,
+>(
+  params: Get13fPriceInfoParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof get13fPriceInfo>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGet13fPriceInfoQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

@@ -1000,3 +1000,26 @@ export const Get13fFundHoldingsResponse = zod.object({
     }),
   ),
 });
+
+/**
+ * @summary Get current share price and quarterly price range for a ticker
+ */
+export const Get13fPriceInfoQueryParams = zod.object({
+  ticker: zod.coerce.string().describe('Stock ticker symbol (e.g. \"GOOGL\")'),
+  quarter: zod.coerce.string().describe('Quarter label (e.g. \"Q1 2026\")'),
+});
+
+export const Get13fPriceInfoResponse = zod.object({
+  ticker: zod.string(),
+  quarter: zod.string(),
+  currentPrice: zod.number().nullish().describe("Current market price"),
+  quarterHigh: zod
+    .number()
+    .nullish()
+    .describe("Highest daily high during the quarter"),
+  quarterLow: zod
+    .number()
+    .nullish()
+    .describe("Lowest daily low during the quarter"),
+  currency: zod.string().describe('Currency code (e.g. \"USD\")'),
+});

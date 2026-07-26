@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { eq, desc, exists, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
+import YahooFinance from "yahoo-finance2";
 import {
   hedgeFundsTable,
   sec13fFilingsTable,
@@ -325,6 +326,89 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
     req.log.error({ err, cik }, "Failed to get 13F holdings");
     return res.status(500).json({ error: "Failed to get holdings", message: String(err) });
   }
+});
+
+// ─── GET /13f/price-info ─────────────────────────────────────────────────────
+// Query params: ticker (required), quarter (required, e.g. "Q1 2026")
+// Returns current market price + quarterly high/low sourced from Yahoo Finance.
+// Results are in-memory cached to avoid hammering the upstream API.
+
+const _yf = new YahooFinance();
+
+const _priceCache = new Map<string, { price: number | null; currency: string; expires: number }>();
+const _ohlcCache  = new Map<string, { high: number | null; low: number | null; expires: number }>();
+
+router.get("/13f/price-info", async (req: Request, res: Response) => {
+  const { ticker, quarter } = req.query as { ticker?: string; quarter?: string };
+
+  if (!ticker || !quarter) {
+    return res.status(400).json({ error: "Missing required params: ticker and quarter" });
+  }
+
+  const m = quarter.match(/^Q([1-4])\s+(\d{4})$/);
+  if (!m) {
+    return res.status(400).json({ error: "Invalid quarter format. Expected e.g. 'Q1 2026'" });
+  }
+
+  const qNum = parseInt(m[1]!, 10);
+  const year = parseInt(m[2]!, 10);
+  const startMonth = (qNum - 1) * 3; // 0-indexed
+  const periodStart = new Date(Date.UTC(year, startMonth, 1));
+  const periodEnd   = new Date(Date.UTC(year, startMonth + 3, 0)); // last calendar day of quarter
+  const today       = new Date();
+  const effectiveEnd = periodEnd > today ? today : periodEnd;
+
+  // ── Current price (5 min cache) ────────────────────────────────────────────
+  let currentPrice: number | null = null;
+  let currency = "USD";
+
+  const cachedP = _priceCache.get(ticker);
+  if (cachedP && cachedP.expires > Date.now()) {
+    currentPrice = cachedP.price;
+    currency     = cachedP.currency;
+  } else {
+    try {
+      // modules cast `as any` — memory note: quoteSummary's union type is strict
+      const summary = await _yf.quoteSummary(ticker, { modules: ["price"] as any });
+      currentPrice = summary.price?.regularMarketPrice ?? null;
+      currency     = summary.price?.currency ?? "USD";
+      _priceCache.set(ticker, { price: currentPrice, currency, expires: Date.now() + 5 * 60 * 1000 });
+    } catch (err) {
+      req.log.warn({ err, ticker }, "Failed to fetch current price");
+    }
+  }
+
+  // ── Quarterly OHLC (1 h cache for finalised quarters, 5 min for current) ──
+  const ohlcKey   = `${ticker}|${quarter}`;
+  const finalised = periodEnd < today;
+  const ohlcTtl   = finalised ? 60 * 60 * 1000 : 5 * 60 * 1000;
+
+  let quarterHigh: number | null = null;
+  let quarterLow: number | null  = null;
+
+  const cachedO = _ohlcCache.get(ohlcKey);
+  if (cachedO && cachedO.expires > Date.now()) {
+    quarterHigh = cachedO.high;
+    quarterLow  = cachedO.low;
+  } else {
+    try {
+      const chart = await _yf.chart(ticker, {
+        period1: periodStart,
+        period2: effectiveEnd,
+        interval: "1d",
+      });
+      const quotes = chart.quotes ?? [];
+      const highs  = quotes.map((q) => q.high).filter((h): h is number => h != null);
+      const lows   = quotes.map((q) => q.low).filter((l): l is number => l != null);
+      quarterHigh  = highs.length > 0 ? Math.max(...highs) : null;
+      quarterLow   = lows.length  > 0 ? Math.min(...lows)  : null;
+      _ohlcCache.set(ohlcKey, { high: quarterHigh, low: quarterLow, expires: Date.now() + ohlcTtl });
+    } catch (err) {
+      req.log.warn({ err, ticker, quarter }, "Failed to fetch quarterly OHLC");
+    }
+  }
+
+  return res.json({ ticker, quarter, currentPrice, quarterHigh, quarterLow, currency });
 });
 
 export default router;

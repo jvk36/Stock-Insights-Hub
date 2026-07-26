@@ -4,6 +4,7 @@ import { Search, TrendingUp, ChevronLeft, ChevronRight, Building2, ArrowLeft } f
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
 import {
   useList13fFunds,
@@ -12,6 +13,8 @@ import {
   getGet13fFundQuartersQueryKey,
   useGet13fFundHoldings,
   getGet13fFundHoldingsQueryKey,
+  useGet13fPriceInfo,
+  getGet13fPriceInfoQueryKey,
   type ThirteenFHoldingRow,
   type HedgeFund,
 } from "@workspace/api-client-react";
@@ -66,6 +69,8 @@ function HoldingsTable({
   currentQ: string;
   priorQ: string | null | undefined;
 }) {
+  const [selectedRow, setSelectedRow] = useState<{ name: string; ticker: string | null } | null>(null);
+
   return (
     <div className="rounded-xl border border-border bg-card overflow-auto max-h-[calc(100vh-370px)]">
       <table className="w-full text-xs border-collapse">
@@ -108,7 +113,8 @@ function HoldingsTable({
             return (
               <tr
                 key={`${row.name}-${i}`}
-                className="border-b border-border/50 hover:bg-muted/30 transition-colors"
+                className="border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer"
+                onClick={() => setSelectedRow({ name: row.name, ticker: row.ticker ?? null })}
               >
                 {/* Name (Ticker) — color-coded */}
                 <td className={`px-3 py-2 sticky left-0 z-10 ${bg || "bg-card"}`}>
@@ -156,7 +162,121 @@ function HoldingsTable({
           })}
         </tbody>
       </table>
+
+      {/* Price info popup */}
+      {selectedRow && (
+        <PriceInfoDialog
+          open={!!selectedRow}
+          onClose={() => setSelectedRow(null)}
+          name={selectedRow.name}
+          ticker={selectedRow.ticker}
+          currentQ={currentQ}
+        />
+      )}
     </div>
+  );
+}
+
+// ─── Price info popup ─────────────────────────────────────────────────────────
+
+function PriceInfoDialog({
+  open,
+  onClose,
+  name,
+  ticker,
+  currentQ,
+}: {
+  open: boolean;
+  onClose: () => void;
+  name: string;
+  ticker: string | null;
+  currentQ: string;
+}) {
+  const enabled = open && !!ticker;
+
+  const { data, isLoading, isError } = useGet13fPriceInfo(
+    { ticker: ticker ?? "", quarter: currentQ },
+    {
+      query: {
+        queryKey: getGet13fPriceInfoQueryKey({ ticker: ticker ?? "", quarter: currentQ }),
+        enabled,
+        staleTime: 5 * 60 * 1000,
+      },
+    },
+  );
+
+  function fmtP(v: number | null | undefined): string {
+    if (v == null) return "—";
+    return `$${v.toFixed(2)}`;
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="max-w-xs sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+            <span className="truncate">{name}</span>
+            {ticker && (
+              <span className="shrink-0 font-mono text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                {ticker}
+              </span>
+            )}
+          </DialogTitle>
+        </DialogHeader>
+
+        {!ticker ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            Ticker not yet resolved — price data unavailable.
+          </p>
+        ) : isLoading ? (
+          <div className="space-y-3 py-2">
+            <Skeleton className="h-9 w-28" />
+            <Skeleton className="h-4 w-52" />
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <Skeleton className="h-16 rounded-lg" />
+              <Skeleton className="h-16 rounded-lg" />
+            </div>
+          </div>
+        ) : isError ? (
+          <p className="text-sm text-destructive py-4 text-center">
+            Failed to load price data.
+          </p>
+        ) : data ? (
+          <div className="space-y-5 py-1">
+            {/* Current price */}
+            <div>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium mb-1">
+                Current Share Price ({ticker})
+              </p>
+              <p className="text-3xl font-bold tabular-nums tracking-tight">
+                {fmtP(data.currentPrice)}
+              </p>
+            </div>
+
+            {/* Quarterly range */}
+            <div>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium mb-2">
+                Price Range ({ticker}) during {currentQ}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                  <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Low Price</p>
+                  <p className="text-xl font-semibold tabular-nums text-red-600 dark:text-red-400">
+                    {fmtP(data.quarterLow)}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                  <p className="text-[11px] text-muted-foreground font-medium mb-0.5">High Price</p>
+                  <p className="text-xl font-semibold tabular-nums text-green-600 dark:text-green-400">
+                    {fmtP(data.quarterHigh)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 }
 

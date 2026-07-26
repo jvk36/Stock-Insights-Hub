@@ -538,6 +538,19 @@ export interface HedgeFundsResponse {
   funds: HedgeFund[];
 }
 
+export interface StockPriceInfo {
+  ticker: string;
+  quarter: string;
+  /** Current market price */
+  currentPrice?: number | null;
+  /** Highest daily high during the quarter */
+  quarterHigh?: number | null;
+  /** Lowest daily low during the quarter */
+  quarterLow?: number | null;
+  /** Currency code (e.g. "USD") */
+  currency: string;
+}
+
 export interface ThirteenFQuartersResponse {
   cik: string;
   /** Quarter labels newest first (e.g. ["Q1 2026", "Q4 2025", ...]) */
@@ -642,4 +655,15 @@ export type Get13fFundHoldingsParams = {
    * Prior quarter label (e.g. "Q4 2025"). Defaults to quarter preceding currentQ.
    */
   priorQ?: string;
+};
+
+export type Get13fPriceInfoParams = {
+  /**
+   * Stock ticker symbol (e.g. "GOOGL")
+   */
+  ticker: string;
+  /**
+   * Quarter label (e.g. "Q1 2026")
+   */
+  quarter: string;
 };

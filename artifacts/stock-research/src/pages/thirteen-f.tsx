@@ -69,7 +69,14 @@ function HoldingsTable({
   currentQ: string;
   priorQ: string | null | undefined;
 }) {
-  const [selectedRow, setSelectedRow] = useState<{ name: string; ticker: string | null } | null>(null);
+  const [selectedRow, setSelectedRow] = useState<{
+    name: string;
+    ticker: string | null;
+    colorClass: string;
+    currentPctAllocation: number | null | undefined;
+    priorPctAllocation: number | null | undefined;
+    pctChangeShares: number | null | undefined;
+  } | null>(null);
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-auto max-h-[calc(100vh-370px)]">
@@ -114,7 +121,14 @@ function HoldingsTable({
               <tr
                 key={`${row.name}-${i}`}
                 className="border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer"
-                onClick={() => setSelectedRow({ name: row.name, ticker: row.ticker ?? null })}
+                onClick={() => setSelectedRow({
+                  name: row.name,
+                  ticker: row.ticker ?? null,
+                  colorClass: row.colorClass,
+                  currentPctAllocation: row.currentPctAllocation,
+                  priorPctAllocation: row.priorPctAllocation,
+                  pctChangeShares: row.pctChangeShares,
+                })}
               >
                 {/* Name (Ticker) — color-coded */}
                 <td className={`px-3 py-2 sticky left-0 z-10 ${bg || "bg-card"}`}>
@@ -171,6 +185,10 @@ function HoldingsTable({
           name={selectedRow.name}
           ticker={selectedRow.ticker}
           currentQ={currentQ}
+          colorClass={selectedRow.colorClass}
+          currentPctAllocation={selectedRow.currentPctAllocation}
+          priorPctAllocation={selectedRow.priorPctAllocation}
+          pctChangeShares={selectedRow.pctChangeShares}
         />
       )}
     </div>
@@ -179,18 +197,80 @@ function HoldingsTable({
 
 // ─── Price info popup ─────────────────────────────────────────────────────────
 
+function activitySummary(
+  colorClass: string,
+  currentPct: number | null | undefined,
+  priorPct: number | null | undefined,
+  pctChangeShares: number | null | undefined,
+  currentQ: string,
+): { label: string; detail: string; kind: "new" | "increase" | "decrease" | "held" } {
+  const cur = currentPct != null ? `${currentPct.toFixed(1)}%` : null;
+  const prior = priorPct != null ? `${priorPct.toFixed(1)}%` : null;
+  const chg = pctChangeShares != null ? Math.abs(pctChangeShares).toFixed(0) : null;
+
+  if (colorClass === "new") {
+    return {
+      label: "New Position",
+      detail: cur ? `New ${cur} of the portfolio position in ${currentQ}` : `Opened in ${currentQ}`,
+      kind: "new",
+    };
+  }
+  if (colorClass === "increase") {
+    return {
+      label: "Increased",
+      detail: [
+        cur ? `Increased the ${cur} position` : "Increased position",
+        chg ? `by ${chg}%` : "",
+        `in ${currentQ}`,
+      ].filter(Boolean).join(" "),
+      kind: "increase",
+    };
+  }
+  if (colorClass === "decrease") {
+    return {
+      label: "Decreased",
+      detail: [
+        cur ? `Decreased the ${cur} position` : "Decreased position",
+        chg ? `by ${chg}%` : "",
+        `in ${currentQ}`,
+      ].filter(Boolean).join(" "),
+      kind: "decrease",
+    };
+  }
+  return {
+    label: "Held",
+    detail: cur ? `Held the ${cur} position — no change in ${currentQ}` : `No change in ${currentQ}`,
+    kind: "held",
+  };
+}
+
+const ACTIVITY_STYLES = {
+  new:      { icon: "✦", bg: "bg-green-50 dark:bg-green-950/40", text: "text-green-700 dark:text-green-400", label: "bg-green-100 dark:bg-green-900/60 text-green-800 dark:text-green-300" },
+  increase: { icon: "▲", bg: "bg-blue-50 dark:bg-blue-950/40",  text: "text-blue-700 dark:text-blue-400",  label: "bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300"   },
+  decrease: { icon: "▼", bg: "bg-red-50 dark:bg-red-950/40",    text: "text-red-700 dark:text-red-400",    label: "bg-red-100 dark:bg-red-900/60 text-red-800 dark:text-red-300"     },
+  held:     { icon: "●", bg: "bg-muted/50",                      text: "text-muted-foreground",             label: "bg-muted text-muted-foreground"                                     },
+};
+
 function PriceInfoDialog({
   open,
   onClose,
   name,
   ticker,
   currentQ,
+  colorClass,
+  currentPctAllocation,
+  priorPctAllocation,
+  pctChangeShares,
 }: {
   open: boolean;
   onClose: () => void;
   name: string;
   ticker: string | null;
   currentQ: string;
+  colorClass: string;
+  currentPctAllocation: number | null | undefined;
+  priorPctAllocation: number | null | undefined;
+  pctChangeShares: number | null | undefined;
 }) {
   const enabled = open && !!ticker;
 
@@ -224,12 +304,33 @@ function PriceInfoDialog({
           </DialogTitle>
         </DialogHeader>
 
+        {/* Activity — always shown, derived from row data, no API call needed */}
+        {(() => {
+          const act = activitySummary(colorClass, currentPctAllocation, priorPctAllocation, pctChangeShares, currentQ);
+          const s = ACTIVITY_STYLES[act.kind];
+          return (
+            <div className={`rounded-lg px-3 py-2.5 ${s.bg}`}>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium mb-1.5">
+                Activity during {currentQ}
+              </p>
+              <div className="flex items-center gap-2">
+                <span className={`shrink-0 text-[11px] font-bold px-1.5 py-0.5 rounded ${s.label}`}>
+                  {s.icon} {act.label}
+                </span>
+                <span className={`text-sm font-medium ${s.text}`}>
+                  {act.detail.replace(` in ${currentQ}`, "")}
+                </span>
+              </div>
+            </div>
+          );
+        })()}
+
         {!ticker ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">
+          <p className="text-sm text-muted-foreground py-2 text-center">
             Ticker not yet resolved — price data unavailable.
           </p>
         ) : isLoading ? (
-          <div className="space-y-3 py-2">
+          <div className="space-y-3 pb-1">
             <Skeleton className="h-9 w-28" />
             <Skeleton className="h-4 w-52" />
             <div className="grid grid-cols-2 gap-3 pt-1">
@@ -238,11 +339,11 @@ function PriceInfoDialog({
             </div>
           </div>
         ) : isError ? (
-          <p className="text-sm text-destructive py-4 text-center">
+          <p className="text-sm text-destructive py-2 text-center">
             Failed to load price data.
           </p>
         ) : data ? (
-          <div className="space-y-5 py-1">
+          <div className="space-y-4 pb-1">
             {/* Current price */}
             <div>
               <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium mb-1">

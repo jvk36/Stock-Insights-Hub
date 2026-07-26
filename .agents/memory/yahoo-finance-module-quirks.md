@@ -47,6 +47,24 @@ When passing a custom modules array to `quoteSummary`, use `modules: [...] as an
 ## incomeStatementHistory deprecated since Nov 2024
 Yahoo Finance's quoteSummary `incomeStatementHistory` returns almost no data since Nov 2024. Server logs show: "Use `fundamentalsTimeSeries` instead." `dilutedEps` field does NOT exist in incomeStatementHistory anyway — only `totalRevenue`, `netIncome`, etc.
 
+## search() — validateResult: false required for EQUITY results
+Yahoo Finance v3.14.0 has a stale schema that rejects `typeDisp: 'Equity'` (expects lowercase `'equity'`). Calling `yf.search(name, opts)` for equity lookups throws `FailedValidationError`. Fix: pass `{ validateResult: false }` as the **third** argument: `yf.search(name, { quotesCount: 10 }, { validateResult: false })`. The data is correct; only the schema check is wrong.
+
+## search() — US ticker preference heuristic
+Yahoo Finance search sometimes ranks foreign listings above US tickers. Prefer in this order:
+1. `quoteType === 'EQUITY'` AND `exchange` in `["NYQ","NMS","PCX","NGM","NCM","BTS","NYSEArca"]`
+2. `quoteType === 'EQUITY'` AND symbol has no `.` (US tickers rarely contain dots)
+3. Any equity (fallback)
+
+## SEC 13F name normalisation before YF search
+SEC 13F names use abbreviations that break Yahoo Finance search. Always normalise before searching:
+- `PETE` → `Petroleum`, `FINL` → `Financial`, `HLDGS` → `Holdings`, `AMER` → `American`, `CENTY` → `Century`
+- Strip trailing: `SWITZ`, `DEL`, `MTN BE`, `BE`, `NEW` (share class), single capital letter (class indicator)
+- Hardcoded CUSIP overrides for truly unfixable names: `060505104` → `BAC` (missing "of"), `H1467J104` → `CB` (foreign listings rank above US for "CHUBB LTD").
+
 ## API codegen barrel
 After every codegen run, `lib/api-zod/src/index.ts` must be manually reset to: `export * from "./generated/api";`
 The codegen tool overwrites it with a multi-line barrel that causes duplicate export errors.
+
+## api-client-react declarations rebuild after codegen
+`lib/api-client-react` uses TypeScript project references (`composite: true`, `outDir: dist`). After every codegen run that adds new hooks, run `npx tsc -p lib/api-client-react/tsconfig.json` to rebuild declarations, or consuming packages will get "no exported member" errors.

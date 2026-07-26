@@ -8,7 +8,7 @@
  */
 
 import * as cheerio from "cheerio";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   hedgeFundsTable,
@@ -17,6 +17,57 @@ import {
   cusipTickerMapTable,
 } from "@workspace/db";
 import { logger } from "./logger";
+import YahooFinance from "yahoo-finance2";
+
+const _yf = new YahooFinance();
+
+// US exchange codes used by Yahoo Finance search results
+const US_EXCHANGES = new Set(["NYQ", "NMS", "PCX", "NGM", "NCM", "BTS", "NYSEArca"]);
+
+// Hardcoded overrides for CUSIPs whose SEC names are too ambiguous to search reliably
+const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
+  "060505104": "BAC",   // "BANK AMER/BANK AMERICA CORP" — missing "of" in SEC name
+  "H1467J104": "CB",   // "CHUBB LTD SWITZ" — Yahoo search returns foreign listings of CB first
+};
+
+/**
+ * Normalise an SEC 13F company name for better Yahoo Finance search matching.
+ * Expands common abbreviations and strips geographic/class suffixes.
+ */
+function normalizeSecName(name: string): string {
+  const abbrevs: Array<[RegExp, string]> = [
+    [/\bFINL\b/gi,   "Financial"],
+    [/\bPETE\b/gi,   "Petroleum"],
+    [/\bHLDGS\b/gi,  "Holdings"],
+    [/\bHLDG\b/gi,   "Holding"],
+    [/\bAMER\b/gi,   "American"],
+    [/\bINTL\b/gi,   "International"],
+    [/\bCENTY\b/gi,  "Century"],
+    [/\bCOMM\b/gi,   "Communications"],
+    [/\bSVCS\b/gi,   "Services"],
+    [/\bTECH\b/gi,   "Technologies"],
+    [/\bGRP\b/gi,    "Group"],
+    [/\bSYS\b/gi,    "Systems"],
+    [/\bMGMT\b/gi,   "Management"],
+    [/\bMFG\b/gi,    "Manufacturing"],
+  ];
+
+  let result = name;
+  for (const [pattern, replacement] of abbrevs) {
+    result = result.replace(pattern, replacement);
+  }
+
+  // Strip trailing geographic indicators, bond descriptors, and share-class suffixes
+  result = result
+    .replace(/\s+(SWITZ|DEL|NJ|NY|DE|IRL|CAYMAN)\s*$/i, "")
+    .replace(/\s+MTN\s+BE\s*$/i, "")
+    .replace(/\s+\bBE\b\s*$/i, "")
+    .replace(/\s+NEW\s*$/i, "")       // "HEICO CORP NEW" → "HEICO CORP" (new share class)
+    .replace(/\s+\b[A-Z]\s*$/,  "")  // "CHARTER INC N" → "CHARTER INC" (single-letter class)
+    .trim();
+
+  return result;
+}
 
 // ─── SEC EDGAR headers (required by SEC fair-access policy) ──────────────────
 
@@ -37,84 +88,112 @@ export function reportDateToQuarter(reportDate: string): string {
   return `Q${q} ${year}`;
 }
 
-// ─── CUSIP → Ticker via OpenFIGI ─────────────────────────────────────────────
+// ─── CUSIP → Ticker via Yahoo Finance name search ────────────────────────────
 
-interface FigiMapping {
-  data?: Array<{ ticker?: string; exchCode?: string }>;
-  error?: string;
-}
-
-async function resolveWithOpenFigi(
-  cusips: string[],
+async function resolveWithYahooSearch(
+  cusipNames: Map<string, string>,
 ): Promise<Map<string, string | null>> {
   const result = new Map<string, string | null>();
-  if (cusips.length === 0) return result;
+  if (cusipNames.size === 0) return result;
 
-  const BATCH = 100;
-  for (let i = 0; i < cusips.length; i += BATCH) {
-    const batch = cusips.slice(i, i + BATCH);
-    const body = batch.map((cusip) => ({ idType: "ID_CUSIP", idValue: cusip }));
+  for (const [cusip, rawName] of cusipNames) {
+    const name = normalizeSecName(rawName);
     try {
-      const res = await fetch("https://api.openfigi.com/v3/mapping", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        logger.warn({ status: res.status }, "OpenFIGI batch failed");
-        batch.forEach((c) => result.set(c, null));
-        continue;
-      }
-      const mappings: FigiMapping[] = await res.json() as FigiMapping[];
-      mappings.forEach((m, idx) => {
-        const cusip = batch[idx]!;
-        if (m.error || !m.data || m.data.length === 0) {
-          result.set(cusip, null);
-        } else {
-          const usEntry = m.data.find(
-            (d) => d.exchCode && ["US", "UN", "UA", "UW", "UM"].includes(d.exchCode),
-          );
-          result.set(cusip, (usEntry ?? m.data[0])?.ticker ?? null);
-        }
-      });
-    } catch (err) {
-      logger.warn({ err }, "OpenFIGI batch threw");
-      batch.forEach((c) => result.set(c, null));
+      // validateResult: false bypasses the stale yahoo-finance2 v3 schema that
+      // rejects 'Equity' typeDisp (expects lowercase 'equity') — data is correct
+      const resp = await (_yf as any).search(
+        name,
+        { quotesCount: 10, newsCount: 0 },
+        { validateResult: false },
+      );
+      const quotes = (resp?.quotes ?? []) as Array<{
+        symbol?: string;
+        quoteType?: string;
+        exchange?: string;
+      }>;
+      // Prefer: (1) US exchange, (2) symbol without dot (US tickers rarely have dots),
+      // (3) any equity — fallback for foreign listings
+      const usEquity = quotes.find(
+        (q) => q.quoteType === "EQUITY" && q.exchange && US_EXCHANGES.has(q.exchange),
+      );
+      const noSuffixEquity = quotes.find(
+        (q) => q.quoteType === "EQUITY" && q.symbol && !q.symbol.includes("."),
+      );
+      const anyEquity = quotes.find((q) => q.quoteType === "EQUITY");
+      result.set(cusip, (usEquity ?? noSuffixEquity ?? anyEquity)?.symbol ?? null);
+    } catch {
+      result.set(cusip, null);
     }
-    if (i + BATCH < cusips.length) {
-      await sleep(2500); // 25 req/min → ~2.4s between batches
-    }
+    await sleep(250); // ~4 req/sec — polite to Yahoo Finance
   }
+
   return result;
 }
 
-async function resolveCusips(cusips: string[]): Promise<Map<string, string | null>> {
-  const unique = [...new Set(cusips)];
+async function resolveCusips(
+  cusipNames: Map<string, string>,
+): Promise<Map<string, string | null>> {
+  const allCusips = [...cusipNames.keys()];
   const result = new Map<string, string | null>();
+  if (allCusips.length === 0) return result;
+
+  // Apply hardcoded overrides first (for CUSIPs whose SEC names are unfixable)
+  const overrideRows: Array<{ cusip: string; ticker: string; source: string }> = [];
+  for (const cusip of allCusips) {
+    const override = CUSIP_TICKER_OVERRIDES[cusip];
+    if (override) {
+      result.set(cusip, override);
+      overrideRows.push({ cusip, ticker: override, source: "override" });
+    }
+  }
+  for (const row of overrideRows) {
+    try {
+      await db.insert(cusipTickerMapTable)
+        .values({ cusip: row.cusip, ticker: row.ticker, source: row.source })
+        .onConflictDoUpdate({ target: cusipTickerMapTable.cusip, set: { ticker: row.ticker, source: row.source } });
+    } catch { /* ignore */ }
+  }
 
   const cached = await db
     .select()
     .from(cusipTickerMapTable)
-    .where(inArray(cusipTickerMapTable.cusip, unique));
+    .where(inArray(cusipTickerMapTable.cusip, allCusips));
 
-  const uncached: string[] = [];
-  for (const row of cached) result.set(row.cusip, row.ticker ?? null);
-  for (const c of unique) if (!result.has(c)) uncached.push(c);
+  // Only treat *positive* ticker hits as cached — null (not_found) entries are retried
+  for (const row of cached) {
+    if (row.ticker !== null) result.set(row.cusip, row.ticker);
+  }
+  const uncachedMap = new Map<string, string>();
+  for (const c of allCusips) {
+    if (!result.has(c)) uncachedMap.set(c, cusipNames.get(c)!);
+  }
 
-  if (uncached.length > 0) {
-    const resolved = await resolveWithOpenFigi(uncached);
+  if (uncachedMap.size > 0) {
+    const resolved = await resolveWithYahooSearch(uncachedMap);
     const rows = [...resolved.entries()].map(([cusip, ticker]) => ({
       cusip,
       ticker: ticker ?? null,
-      source: ticker ? "openfigi" : "not_found",
+      source: ticker ? "yahoo_search" : "not_found",
     }));
     if (rows.length > 0) {
       for (const row of rows) {
         try {
-          await db
-            .insert(cusipTickerMapTable)
-            .values({ cusip: row.cusip, ticker: row.ticker, source: row.source })
-            .onConflictDoNothing();
+          if (row.ticker) {
+            // Positive result: upsert, overwriting any previous not_found entry
+            await db
+              .insert(cusipTickerMapTable)
+              .values({ cusip: row.cusip, ticker: row.ticker, source: row.source })
+              .onConflictDoUpdate({
+                target: cusipTickerMapTable.cusip,
+                set: { ticker: row.ticker, source: row.source },
+              });
+          } else {
+            // Null result: only insert if not already there (never overwrite a good ticker)
+            await db
+              .insert(cusipTickerMapTable)
+              .values({ cusip: row.cusip, ticker: null, source: "not_found" })
+              .onConflictDoNothing();
+          }
         } catch { /* ignore */ }
       }
     }
@@ -122,6 +201,40 @@ async function resolveCusips(cusips: string[]): Promise<Map<string, string | nul
   }
 
   return result;
+}
+
+// ─── Retry unresolved tickers for existing holdings ──────────────────────────
+
+export async function retryUnresolvedTickers(cik: string): Promise<void> {
+  // Collect distinct CUSIP + name pairs from this fund's holdings
+  const rows = await db
+    .select({ cusip: sec13fHoldingsTable.cusip, name: sec13fHoldingsTable.name })
+    .from(sec13fHoldingsTable)
+    .innerJoin(sec13fFilingsTable, eq(sec13fHoldingsTable.filingId, sec13fFilingsTable.id))
+    .where(eq(sec13fFilingsTable.fundCik, cik));
+
+  const cusipNames = new Map<string, string>();
+  for (const row of rows) {
+    if (!cusipNames.has(row.cusip)) cusipNames.set(row.cusip, row.name);
+  }
+  if (cusipNames.size === 0) return;
+
+  logger.info({ cik, total: cusipNames.size }, "Retrying ticker resolution for existing holdings");
+
+  // resolveCusips: uses positive-ticker cache hits, calls Yahoo Finance search for the rest
+  await resolveCusips(cusipNames);
+
+  // Push resolved tickers from cusip_ticker_map back into sec_13f_holdings.
+  // Also fixes previously stored foreign tickers (containing '.') that were later overridden.
+  const result = await db.execute(sql`
+    UPDATE sec_13f_holdings
+    SET ticker = m.ticker
+    FROM cusip_ticker_map m
+    WHERE sec_13f_holdings.cusip = m.cusip
+      AND m.ticker IS NOT NULL
+      AND (sec_13f_holdings.ticker IS NULL OR sec_13f_holdings.ticker LIKE '%.%')
+  `);
+  logger.info({ cik, updated: (result as { rowCount?: number }).rowCount ?? 0 }, "Ticker re-resolution complete");
 }
 
 // ─── EDGAR XML parsing ────────────────────────────────────────────────────────
@@ -438,8 +551,8 @@ async function processFiling(
     return;
   }
 
-  // Resolve CUSIPs → tickers
-  const tickerMap = await resolveCusips(holdings.map((h) => h.cusip));
+  // Resolve CUSIPs → tickers (pass names so Yahoo Finance search can be used)
+  const tickerMap = await resolveCusips(new Map(holdings.map((h) => [h.cusip, h.name])));
 
   // Upsert filing record
   const [filing] = await db
@@ -513,6 +626,10 @@ export async function initEdgarFetcher(): Promise<void> {
     // Gap-fill runs unconditionally after seed (it no-ops when there are no gaps)
     retryGapFilings("1067983").catch((err) =>
       logger.error({ err }, "Initial gap-fill retry pass failed"),
+    );
+    // Re-resolve any holdings that still have null tickers due to past OpenFIGI errors
+    retryUnresolvedTickers("1067983").catch((err) =>
+      logger.error({ err }, "Initial ticker re-resolution failed"),
     );
   }, 3_000);
 

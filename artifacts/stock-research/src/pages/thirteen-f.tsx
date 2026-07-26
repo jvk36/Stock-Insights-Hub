@@ -204,8 +204,8 @@ function activitySummary(
   pctChangeShares: number | null | undefined,
   currentQ: string,
 ): { label: string; detail: string; kind: "new" | "increase" | "decrease" | "held" } {
-  const cur = currentPct != null ? `${currentPct.toFixed(1)}%` : null;
-  const prior = priorPct != null ? `${priorPct.toFixed(1)}%` : null;
+  const cur = currentPct != null ? `${currentPct.toFixed(2)}%` : null;
+  const prior = priorPct != null ? `${priorPct.toFixed(2)}%` : null;
   const chg = pctChangeShares != null ? Math.abs(pctChangeShares).toFixed(0) : null;
 
   if (colorClass === "new") {

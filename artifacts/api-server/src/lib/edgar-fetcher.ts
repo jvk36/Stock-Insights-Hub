@@ -416,7 +416,8 @@ async function fetch13fFilingStubs(
 
 // ─── Core fetcher ─────────────────────────────────────────────────────────────
 
-const MAX_QUARTERS = 40;
+/** Earliest report date to process — filings before this quarter are ignored. */
+const MIN_REPORT_DATE = "2016-01-01"; // Q1 2016 and later only
 
 /** Delay between consecutive filing fetches (SEC fair-access policy). */
 const FETCH_DELAY_MS = 3_000;
@@ -451,8 +452,7 @@ export async function seedFundFilings(cik: string): Promise<void> {
   }
 
   const toProcess = stubs
-    .filter((s) => !existingSet.has(s.accessionNumber))
-    .slice(0, MAX_QUARTERS);
+    .filter((s) => s.reportDate >= MIN_REPORT_DATE && !existingSet.has(s.accessionNumber));
 
   logger.info({ cik, total: stubs.length, toProcess: toProcess.length }, "13F stubs found");
 
@@ -512,8 +512,9 @@ export async function retryGapFilings(cik: string): Promise<void> {
     for (const r of rows) filingIdsWithHoldings.add(r.filingId);
   }
 
-  // 4. Build the gap list — stubs that are missing OR have empty holdings
+  // 4. Build the gap list — stubs within the date window that are missing OR have empty holdings
   const gaps = stubs.filter((s) => {
+    if (s.reportDate < MIN_REPORT_DATE) return false; // outside the historical cutoff
     const filingId = existingByAccession.get(s.accessionNumber);
     if (filingId === undefined) return true;          // category 1: not in DB at all
     return !filingIdsWithHoldings.has(filingId);      // category 2: in DB but no holdings

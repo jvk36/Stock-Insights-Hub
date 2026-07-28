@@ -104,6 +104,77 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "57636q104": "MA",    // "MASTERCARD INC CLASS A" — Yahoo misses it; NYSE MA
   "811065101": "SNI",   // "SCRIPPS NETWORKS INTERACTIVE" — acquired by Discovery Mar 2018; was NASDAQ SNI
   // ── End Tweedy Browne-sourced fixes ──────────────────────────────────────────
+  // ── Davis Selected Advisers-sourced fixes (also benefit other funds) ─────────
+  // Q1 2026 Yahoo CUSIP collisions — multiple CUSIPs wrongly resolved to QBTS
+  "127097103": "CTRA",  // "Coterra Energy" — Yahoo returns QBTS (D-Wave collision)
+  "20369C106": "CHCT",  // "Community Healthcare Trust" — Yahoo returns QBTS
+  "444097406": "HPP",   // "Hudson Pacific Properties" — Yahoo returns QBTS
+  "867892101": "SHO",   // "Sunstone Hotel Investors" — Yahoo returns QBTS
+  "084670108": "BRK-A", // "Berkshire Hathaway Class A" — Yahoo maps both BRK CUSIPs to BRK-B
+  // Active stocks, wrong exchange
+  "878742204": "TECK",  // "Teck Resources Class B" — Yahoo returns TECK-B.TO (Toronto); NYSE TECK
+  "66987V109": "NVS",   // "Novartis AG ADR" (uppercase-V CUSIP variant of 66987v109) — NYSE NVS
+  "44891N208": "IAC",   // "IAC Inc." — Yahoo returns 4LRA.MU (Munich); NASDAQ IAC
+  "44891N109": "IAC",   // "IAC/InterActiveCorp" (older CUSIP) — Yahoo returns 0J7Q.L (London)
+  "464287408": "IVE",   // "iShares S&P 500 Value ETF" — Yahoo returns IVECL.SN (Santiago)
+  "03748R101": "AIV",   // "Apartment Investment & Management (Aimco)" — Yahoo returns AIV.SG (Stuttgart)
+  "52603A109": "LC",    // "LendingClub Corp." — Yahoo returns 8LCA.DU (Düsseldorf); NYSE LC
+  "64110W102": "NTES",  // "NetEase Inc. ADR" — Yahoo returns NEH.SG (Stuttgart); NASDAQ NTES
+  "98426T106": "YY",    // "YY Group ADR" — Yahoo returns 300304.SZ (Shenzhen); NASDAQ YY
+  "531229771": "FWONA", // "Liberty Formula One Series A" — Yahoo returns LM0F.SG (Stuttgart)
+  "531229870": "LSXMA", // "Liberty Media Corp. Series A" — Yahoo returns LM0F.SG (Stuttgart)
+  "89055F103": "BLD",   // "TopBuild Corp." — Yahoo returns 28T.DU (Düsseldorf); NYSE BLD
+  "929740108": "WAB",   // "Wabtec Corp." — Yahoo returns W1AB34.SA (Brazil); NYSE WAB
+  "60500F105": "MF",    // "Missfresh Ltd. ADS" — Yahoo returns X3C.F (Frankfurt); NASDAQ MF (delisted 2022)
+  "836034108": "SFUN",  // "SouFun/Fang Holdings ADR" — Yahoo misses it; NYSE SFUN
+  // Active stocks, Yahoo just misses them
+  "76131N101": "ROIC",  // "Retail Opportunity Investments Corp." — NASDAQ ROIC
+  "23908L207": "DUSA",  // "Davis Select U.S. Equity ETF" — NASDAQ DUSA
+  "23908L108": "DFNL",  // "Davis Select Financial ETF" — NASDAQ DFNL
+  "23908L306": "DWLD",  // "Davis Select Worldwide ETF" — NASDAQ DWLD
+  "23908L405": "DINT",  // "Davis Select International ETF" — NASDAQ DINT
+  "G3421J106": "FERG",  // "Ferguson PLC" — NYSE FERG (UK plc, dual-listed)
+  "G5480U120": "LBTYK", // "Liberty Global PLC Series C" — NASDAQ LBTYK
+  "037411105": "APA",   // "Apache Corporation" — NASDAQ APA
+  "647581107": "EDU",   // "New Oriental Education ADR" — NYSE EDU
+  "45104G104": "IBN",   // "ICICI Bank Limited ADR" — NYSE IBN
+  "02665T306": "AMH",   // "American Homes 4 Rent Class A" — NYSE AMH
+  "26885B100": "EQM",   // "EQT Midstream Partners" — merged into Equitrans 2020; was NYSE EQM
+  "803054204": "SAP",   // "SAP SE ADR" — NYSE SAP (already may exist via Tweedy; harmless dup)
+  "G5480U153": "LILAK", // "Liberty Global LiLAC Class C" — NASDAQ LILAK
+  "48248M102": "KKR",   // "KKR & Co. L.P." — NYSE KKR
+  "464287689": "IWV",   // "iShares Russell 3000 ETF" — NYSE ARCA IWV
+  "464287622": "IWB",   // "iShares Russell 1000 Index Fund" — NYSE ARCA IWB
+  "G27823106": "DLPH",  // "Delphi Automotive PLC" — split 2017 into Aptiv+DLPH; was NYSE DLPH
+  "G2709G107": "DLPH",  // "Delphi Technologies PLC" — acquired by BorgWarner 2020; was NYSE DLPH
+  "53071M856": "LVNTA", // "Liberty Interactive/Ventures Series A" — was NASDAQ LVNTA
+  "53071M880": "LVNTA", // "Liberty Ventures Series A" — was NASDAQ LVNTA
+  "09253U108": "BX",    // "The Blackstone Group L.P." — NYSE BX
+  "531172104": "LPT",   // "Liberty Property Trust" — acquired by Prologis Feb 2020; was NYSE LPT
+  "50540R409": "LH",    // "Laboratory Corporation of America Hldg" — NYSE LH
+  "096627104": "BWP",   // "Boardwalk Pipeline Partners" — taken private Nov 2018; was NYSE BWP
+  // Delisted / acquired
+  "913017109": "UTX",   // "United Technologies Corp." — merged with Raytheon Apr 2020; was NYSE UTX
+  "017175100": "Y",     // "Alleghany Corporation" — acquired by Berkshire Oct 2022; was NYSE Y
+  "292505104": "ECA",   // "Encana Corporation" — renamed Ovintiv Jan 2020; was NYSE ECA
+  "21870Q105": "COR",   // "CoreSite Realty Corp." — acquired by American Tower Jan 2022; was NYSE COR
+  "23283R100": "CONE",  // "CyrusOne Inc." — acquired by KKR/GIP Mar 2022; was NASDAQ CONE
+  "00817Y108": "AET",   // "Aetna Inc." — acquired by CVS Health Nov 2018; was NYSE AET
+  "N47279109": "INXN",  // "InterXion Holding NV" — acquired by Digital Realty Mar 2020; was NYSE INXN
+  "61166W101": "MON",   // "Monsanto Co." — acquired by Bayer Jun 2018; was NYSE MON
+  "23317H102": "DDR",   // "DDR Corporation" — renamed RVI 2018, delisted; was NYSE DDR
+  "751452202": "RPT",   // "Ramco-Gershenson / RPT Realty" — acquired by Kimco Oct 2022; was NYSE RPT
+  "48138L107": "JMEI",  // "Jumei International ADR" — went private 2020; was NYSE JMEI
+  "91911K102": "VRX",   // "Valeant Pharmaceuticals" — renamed Bausch Health 2018; was NYSE VRX
+  "531465102": "LTRPA", // "Liberty TripAdvisor Holdings Series A" — acquired/delisted Apr 2024; was NASDAQ LTRPA
+  "G91442106": "TYC",   // "Tyco International PLC" — merged with Johnson Controls Sep 2016; was NYSE TYC
+  "264411505": "DRE",   // "Duke Realty Corp." — acquired by Prologis Oct 2022; was NYSE DRE
+  "755111507": "RTN",   // "Raytheon Co." — merged with United Technologies Apr 2020; was NYSE RTN
+  "471109108": "JAH",   // "Jarden Corp." — acquired by Newell Brands Apr 2016; was NYSE JAH
+  "966837106": "WFM",   // "Whole Foods Market" — acquired by Amazon Aug 2017; was NASDAQ WFM
+  "N51488117": "MBLY",  // "Mobileye N.V." — acquired by Intel Aug 2017; was NYSE MBLY
+  "517942108": "LHO",   // "LaSalle Hotel Properties" — acquired by Pebblebrook Nov 2018; was NYSE LHO
+  // ── End Davis Selected Advisers-sourced fixes ─────────────────────────────────
   "N00985106": "AER",  // "AERCAP HOLDINGS NV" — Yahoo returns R1D.SG (Frankfurt) first; trades NYSE as AER
   "254687106": "DIS",  // "DISNEY WALT CO" — SEC abbreviation confuses Yahoo; NYSE as DIS
   "81686C104": "SEMR", // "SEMRUSH HLDGS INC" — Yahoo misses it; trades NYSE as SEMR
@@ -756,7 +827,8 @@ const TRACKED_FUNDS = [
   { cik: "1697591", name: "CAS Investment Partners",      slug: "cas-investment-partners", proprietor: "Clifford Sosin"  },
   { cik: "1671657", name: "Dorsey Asset Management",      slug: "dorsey-asset-management", proprietor: "Pat Dorsey"      },
   { cik: "905567",  name: "Yacktman Asset Management",   slug: "yacktman-asset-management", proprietor: "Donald Yacktman" },
-  { cik: "732905",  name: "Tweedy Browne Co LLC",        slug: "tweedy-browne",             proprietor: "William Browne"  },
+  { cik: "732905",  name: "Tweedy Browne Co LLC",        slug: "tweedy-browne",             proprietor: "William Browne"   },
+  { cik: "1036325", name: "Davis Selected Advisers",    slug: "davis-selected-advisers",   proprietor: "Christopher Davis" },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

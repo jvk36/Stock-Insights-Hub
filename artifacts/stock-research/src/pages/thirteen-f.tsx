@@ -59,6 +59,12 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "SEC EDGAR — Yacktman Asset Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=905567&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
     { title: "Yacktman Fund — Morningstar Profile", url: "https://www.morningstar.com/funds/xnas/yackx/quote", type: "commentary", description: "Performance, holdings, and ratings for the Yacktman Fund (YACKX)." },
   ],
+  "1036325": [ // Davis Selected Advisers — Christopher Davis
+    { title: "Davis Advisors — Official Website", url: "https://www.davisadvisors.com/", type: "website", description: "Fund overviews, investor letters, and the firm's research-driven investment philosophy." },
+    { title: "Davis Advisors — Shareholder Letters", url: "https://www.davisadvisors.com/resources/shareholder-letters", type: "report", description: "Annual letters to shareholders from Christopher Davis covering portfolio activity and long-term investment thinking." },
+    { title: "Christopher Davis — Wikipedia", url: "https://en.wikipedia.org/wiki/Christopher_Davis_(investor)", type: "article", description: "Background on the Davis family's multi-generational investment tradition and Christopher Davis's approach." },
+    { title: "SEC EDGAR — Davis Selected Advisers 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1036325&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
   "732905": [ // Tweedy Browne Co LLC — William Browne
     { title: "Tweedy Browne — Official Website", url: "https://www.tweedy.com/", type: "website", description: "Fund overviews, performance data, and the firm's storied history as a value-investing institution." },
     { title: "Tweedy Browne — Shareholder Letters & Commentary", url: "https://www.tweedy.com/resources/library_docs/letters/index.html", type: "report", description: "Annual and semi-annual letters to shareholders from the managing directors, covering portfolio activity and investment philosophy." },

@@ -609,11 +609,35 @@ async function processFiling(
 
 // ─── Quarterly refresh scheduler ──────────────────────────────────────────────
 
-function isInRefreshWindow(): boolean {
-  const now = new Date();
-  const month = now.getUTCMonth() + 1;
+/**
+ * Returns true during the 13F filing window: days 25–46 after each quarter end.
+ *
+ * Quarter ends → approximate filing window:
+ *   Q1 (Mar 31) → Apr 25 – May 16
+ *   Q2 (Jun 30) → Jul 25 – Aug 15
+ *   Q3 (Sep 30) → Oct 25 – Nov 15
+ *   Q4 (Dec 31) → Jan 25 – Feb 15
+ *
+ * Funds must file within 45 days of quarter end; most file between day 30–45.
+ * Polling every 3 days during this window gives ~7 checks per quarter.
+ */
+function isInFilingWindow(): boolean {
+  const now   = new Date();
+  const month = now.getUTCMonth() + 1; // 1-based
   const day   = now.getUTCDate();
-  return [2, 5, 8, 11].includes(month) && day >= 15 && day <= 20;
+
+  // (month, firstDay, lastDay) tuples for each quarter's filing window
+  const windows: Array<[number, number, number]> = [
+    [2,  1, 15],  // Q4 filing: Feb 1–15
+    [4, 25, 30],  // Q1 filing: Apr 25–30
+    [5,  1, 16],  // Q1 filing cont: May 1–16
+    [7, 25, 31],  // Q2 filing: Jul 25–31
+    [8,  1, 15],  // Q2 filing cont: Aug 1–15
+    [10, 25, 31], // Q3 filing: Oct 25–31
+    [11,  1, 15], // Q3 filing cont: Nov 1–15
+    [1,  25, 31], // Q4 filing: Jan 25–31
+  ];
+  return windows.some(([m, from, to]) => month === m && day >= from && day <= to);
 }
 
 // Master list of tracked funds — add new entries here to register a fund.
@@ -654,13 +678,14 @@ export async function initEdgarFetcher(): Promise<void> {
     }
   }, 3_000);
 
-  // Schedule periodic refresh checks every 12 hours
+  // Check every 3 days; only do real work during the ~6-week filing window
+  // that follows each quarter end (~7 actual SEC queries per quarter per fund).
   setInterval(async () => {
-    if (!isInRefreshWindow()) {
-      logger.info("13F refresh check: not in publication window, skipping");
+    if (!isInFilingWindow()) {
+      logger.info("13F refresh check: outside filing window, skipping");
       return;
     }
-    logger.info("13F refresh check: in publication window");
+    logger.info("13F refresh check: inside filing window — refreshing all funds");
     const funds = await db.select().from(hedgeFundsTable);
     for (const fund of funds) {
       try {
@@ -668,12 +693,11 @@ export async function initEdgarFetcher(): Promise<void> {
       } catch (err) {
         logger.error({ err, cik: fund.cik }, "Scheduled 13F refresh failed");
       }
-      // Always follow a seed with a gap-fill to catch any 503-skipped filings
       await retryGapFilings(fund.cik).catch((err) =>
         logger.error({ err, cik: fund.cik }, "Scheduled gap-fill retry pass failed"),
       );
     }
-  }, 12 * 60 * 60 * 1000);
+  }, 3 * 24 * 60 * 60 * 1000);
 
   logger.info("EDGAR fetcher initialized");
 }

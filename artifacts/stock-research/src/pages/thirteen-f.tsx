@@ -26,13 +26,10 @@ function fmtDollars(val: number | null | undefined): string {
   return `$${Math.round(val).toLocaleString("en-US")}`;
 }
 
-/** Format a value stored in thousands of dollars into a readable dollar amount. */
+/** Format a value stored in thousands of dollars into a full dollar amount. */
 function fmtMktVal(thousands: number | null | undefined): string {
   if (thousands == null) return "—";
-  const d = thousands * 1000;
-  if (d >= 1e9) return `$${(d / 1e9).toFixed(2)}B`;
-  if (d >= 1e6) return `$${(d / 1e6).toFixed(1)}M`;
-  return `$${Math.round(d).toLocaleString("en-US")}`;
+  return `$${(thousands * 1000).toLocaleString("en-US")}`;
 }
 
 function fmtShares(val: number | null | undefined): string {

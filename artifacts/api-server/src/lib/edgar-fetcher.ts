@@ -27,7 +27,11 @@ const US_EXCHANGES = new Set(["NYQ", "NMS", "PCX", "NGM", "NCM", "BTS", "NYSEArc
 // Hardcoded overrides for CUSIPs whose SEC names are too ambiguous to search reliably
 const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "060505104": "BAC",   // "BANK AMER/BANK AMERICA CORP" — missing "of" in SEC name
-  "H1467J104": "CB",   // "CHUBB LTD SWITZ" — Yahoo search returns foreign listings of CB first
+  "H1467J104": "CB",   // "CHUBB LTD SWITZ" — Yahoo returns foreign listings before NYSE
+  "023135106": "AMZN", // "AMAZON COM INC" — Yahoo returns AMZN.SN (Chilean) first
+  "548661107": "LOW",  // "LOWES COS INC" — Yahoo returns LOWE.VI (Vienna) first
+  "G6564A105": "NOMD", // "NOMAD FOODS LTD" — Yahoo returns 0NH.F (Frankfurt) first
+  "812215200": "SEG",  // "SEAPORT ENTMT GROUP INC" — 2024 HHH spinoff, not yet searchable
 };
 
 /**
@@ -50,6 +54,10 @@ function normalizeSecName(name: string): string {
     [/\bSYS\b/gi,    "Systems"],
     [/\bMGMT\b/gi,   "Management"],
     [/\bMFG\b/gi,    "Manufacturing"],
+    [/\bENTMT\b/gi,  "Entertainment"],
+    [/\bENT\b/gi,    "Entertainment"],
+    [/\bINS\b/gi,    "Insurance"],
+    [/\bBK\b/gi,     "Bank"],
   ];
 
   let result = name;
@@ -608,29 +616,42 @@ function isInRefreshWindow(): boolean {
   return [2, 5, 8, 11].includes(month) && day >= 15 && day <= 20;
 }
 
-export async function initEdgarFetcher(): Promise<void> {
-  await db
-    .insert(hedgeFundsTable)
-    .values({ cik: "1067983", name: "Berkshire Hathaway", slug: "berkshire-hathaway" })
-    .onConflictDoNothing();
+// Master list of tracked funds — add new entries here to register a fund.
+// The startup sequence and the 12-hour scheduler iterate this list automatically.
+const TRACKED_FUNDS = [
+  { cik: "1067983", name: "Berkshire Hathaway",              slug: "berkshire-hathaway"   },
+  { cik: "1336528", name: "Pershing Square Capital Mgmt",    slug: "pershing-square"       },
+] as const;
 
-  // Seed on startup after a brief delay to let the server finish initialising,
-  // then run a gap-fill pass to recover any filings that were skipped due to
-  // transient SEC 503 errors during the initial seed.
+export async function initEdgarFetcher(): Promise<void> {
+  // Upsert all tracked funds into the DB (name/slug may change but CIK is stable)
+  for (const fund of TRACKED_FUNDS) {
+    await db
+      .insert(hedgeFundsTable)
+      .values(fund)
+      .onConflictDoUpdate({
+        target: hedgeFundsTable.cik,
+        set: { name: fund.name, slug: fund.slug },
+      });
+  }
+
+  // Seed every fund on startup after a brief delay, then gap-fill and re-resolve
+  // tickers for any holdings that had null tickers from prior runs.
   setTimeout(async () => {
-    try {
-      await seedFundFilings("1067983");
-    } catch (err) {
-      logger.error({ err }, "Initial 13F seed failed");
+    const funds = await db.select().from(hedgeFundsTable);
+    for (const fund of funds) {
+      try {
+        await seedFundFilings(fund.cik);
+      } catch (err) {
+        logger.error({ err, cik: fund.cik }, "Initial 13F seed failed");
+      }
+      retryGapFilings(fund.cik).catch((err) =>
+        logger.error({ err, cik: fund.cik }, "Initial gap-fill retry pass failed"),
+      );
+      retryUnresolvedTickers(fund.cik).catch((err) =>
+        logger.error({ err, cik: fund.cik }, "Initial ticker re-resolution failed"),
+      );
     }
-    // Gap-fill runs unconditionally after seed (it no-ops when there are no gaps)
-    retryGapFilings("1067983").catch((err) =>
-      logger.error({ err }, "Initial gap-fill retry pass failed"),
-    );
-    // Re-resolve any holdings that still have null tickers due to past OpenFIGI errors
-    retryUnresolvedTickers("1067983").catch((err) =>
-      logger.error({ err }, "Initial ticker re-resolution failed"),
-    );
   }, 3_000);
 
   // Schedule periodic refresh checks every 12 hours

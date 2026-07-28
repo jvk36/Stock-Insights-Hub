@@ -53,6 +53,12 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "SEC EDGAR — CAS Investment Partners 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1697591&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
     { title: "Clifford Sosin — Interview (MOI Global)", url: "https://moiglobal.com/clifford-sosin/", type: "commentary", description: "Interviews and investment commentary by Clifford Sosin." },
   ],
+  "1671657": [ // Dorsey Asset Management — Pat Dorsey
+    { title: "Dorsey Asset Management — Official Website", url: "https://www.dorseyasset.com/", type: "website", description: "Firm overview, investment philosophy, and investor resources from Pat Dorsey's concentrated, moat-focused fund." },
+    { title: "The Little Book That Builds Wealth", url: "https://www.amazon.com/dp/047022651X", type: "article", description: "Pat Dorsey's book on economic moats — the theoretical foundation behind the fund's stock selection approach." },
+    { title: "Pat Dorsey — Interview (Focused Compounding)", url: "https://focusedcompounding.com/pat-dorsey/", type: "commentary", description: "In-depth interviews with Pat Dorsey on moat investing, portfolio concentration, and stock analysis." },
+    { title: "SEC EDGAR — Dorsey Asset Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1671657&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
 };
 
 const LINK_TYPE_STYLES: Record<FundLink["type"], { label: string; cls: string }> = {

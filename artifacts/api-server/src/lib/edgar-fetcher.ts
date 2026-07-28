@@ -38,6 +38,15 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "M98068105": "WIX",  // "WIX COM LTD" — Israeli company, trades on NASDAQ as WIX
   "G4412G101": "HLF",  // "HERBALIFE NUTRITION LTD" — Yahoo returns HOO.DU (Frankfurt) first; NYSE-listed as HLF until taken private Nov 2023
   "N20146101": "CMPR", // "CIMPRESS N V" — Yahoo misses it; trades on NASDAQ as CMPR
+  "N00985106": "AER",  // "AERCAP HOLDINGS NV" — Yahoo returns R1D.SG (Frankfurt) first; trades NYSE as AER
+  "254687106": "DIS",  // "DISNEY WALT CO" — SEC abbreviation confuses Yahoo; NYSE as DIS
+  "81686C104": "SEMR", // "SEMRUSH HLDGS INC" — Yahoo misses it; trades NYSE as SEMR
+  "G27358103": "DESP", // "DESPEGAR COM CORP" — Cayman CUSIP; trades NYSE as DESP
+  "83200N103": "SMAR", // "SMARTSHEET INC" — taken private Jan 2024; was NASDAQ SMAR
+  "03662Q105": "ANSS", // "ANSYS INC" — acquired by Synopsys Jun 2024; was NASDAQ ANSS
+  "02156B103": "AYX",  // "ALTERYX INC" — taken private Mar 2024; was NYSE AYX
+  "05338G106": "AVLR", // "AVALARA INC" — acquired Oct 2022; was NYSE AVLR
+  "73739W104": "POSH", // "POSHMARK INC" — acquired by Naver Jan 2023; was NASDAQ POSH
 };
 
 /**
@@ -679,6 +688,7 @@ const TRACKED_FUNDS = [
   { cik: "1709323", name: "Himalaya Capital Management",  slug: "himalaya-capital",        proprietor: "Li Lu"           },
   { cik: "1766596", name: "RV Capital AG",                slug: "rv-capital",              proprietor: "Robert Vinall"   },
   { cik: "1697591", name: "CAS Investment Partners",      slug: "cas-investment-partners", proprietor: "Clifford Sosin"  },
+  { cik: "1671657", name: "Dorsey Asset Management",      slug: "dorsey-asset-management", proprietor: "Pat Dorsey"      },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

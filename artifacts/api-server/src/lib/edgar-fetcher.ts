@@ -63,6 +63,47 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "74915M100": "QRTEA", // "Qurate Retail Inc." — was NASDAQ QRTEA
   "87236Y108": "AMTD",  // "TD Ameritrade Hldg Corp" — acquired by Charles Schwab Oct 2020; was NASDAQ AMTD
   // ── End Yacktman-sourced fixes ────────────────────────────────────────────────
+  // ── Tweedy Browne-sourced fixes (also benefit other funds) ───────────────────
+  "66987v109": "NVS",   // "NOVARTIS AG ADR" — Yahoo misses it; NYSE NVS
+  "638517102": "NWLI",  // "NATIONAL WESTERN LIFE GROUP" — Yahoo misses it; NASDAQ NWLI
+  "N20944109": "CNHI",  // "CNH INDUSTRIAL NV" — Yahoo returns CNHI.VI (Vienna); NYSE CNHI
+  "37733W105": "GSK",   // "GLAXO SMITHKLINE PLC ADR" — Yahoo misses it; NYSE GSK (pre-rename)
+  "37733W204": "GSK",   // "GSK PLC ADR" — Yahoo misses it; NYSE GSK (post-rename)
+  "25243q205": "DEO",   // "DIAGEO PLC ADR" — Yahoo misses it; NYSE DEO
+  "01609W102": "BABA",  // "ALIBABA GROUP HOLDING SP-ADR" — Yahoo returns AHLA.DE; NYSE BABA
+  "028591105": "ANAT",  // "AMERICAN NATIONAL INSURANCE CO" — acquired by Brookfield May 2022; was NASDAQ ANAT
+  "404280406": "HSBC",  // "HSBC HOLDINGS PLC ADR" — Yahoo misses it; NYSE HSBC
+  "405552100": "HLN",   // "HALEON PLC ADR" — Yahoo returns H6D.SG (Stuttgart); NYSE HLN (GSK spin-off Jul 2022)
+  "207797101": "CTWS",  // "CONNECTICUT WATER SERVICE INC" — acquired by SJW Group Oct 2019; was NASDAQ CTWS
+  "780259206": "SHEL",  // "ROYAL DUTCH SHELL PLC-A ADR" — unified to single class Jan 2022; NYSE SHEL
+  "89151E109": "TTE",   // "TOTALENERGIES/TOTAL SA ADR" — NYSE TTE (renamed from TOT 2021)
+  "89151E959": "TTE",   // "TOTALENERGIES SE ADR" (alt CUSIP) — NYSE TTE
+  "89151e909": "TTE",   // "TOTAL SA ADR" (alt CUSIP lowercase) — NYSE TTE
+  "F92124100": "TTE",   // "TOTAL SA ADR" (French CUSIP) — NYSE TTE
+  "89151E113": "TTE",   // "TOTALENERGIES SE ADR" (another CUSIP variant) — NYSE TTE
+  "81211K100": "SEE",   // "SEALED AIR CORPORATION" — Yahoo misses it; NYSE SEE
+  "55345k103": "MRC",   // "MRC GLOBAL INC" — Yahoo misses it; NYSE MRC
+  "358029106": "FMS",   // "FRESENIUS MEDICAL CARE ADR" — Yahoo misses it; NYSE FMS
+  "92937A102": "WPP",   // "WPP PLC ADR" — Yahoo misses it; NASDAQ WPP
+  "527288104": "LUK",   // "LEUCADIA NATIONAL CORP" — renamed to Jefferies (JEF) 2018; was NYSE LUK
+  "H01301128": "ALC",   // "ALCON INC ADR" — Yahoo misses it; NYSE ALC (Novartis spin-off Apr 2019)
+  "Y2990R101": "HAFN",  // "HAFNIA LTD" — Yahoo returns RE0.F (Frankfurt); NYSE HAFN (listed Sep 2023)
+  "48268K101": "KT",    // "KT CORP ADR" — Yahoo returns KTC.SG (Stuttgart); NYSE KT
+  "82481R106": "SHPG",  // "SHIRE PLC ADR" — acquired by Takeda Jan 2019; was NASDAQ SHPG
+  "042735100": "ARW",   // "ARROW ELECTRONICS" — Yahoo misses it; NYSE ARW
+  "126650100": "CVS",   // "CVS CORP" — Yahoo misses it; NYSE CVS
+  "G89479102": "TRMD",  // "TORM PLC CLASS A" — Yahoo returns TRMD-A.CO (Copenhagen); NASDAQ TRMD
+  "Y2106R110": "LPG",   // "DORIAN LPG LIMITED" — Yahoo misses it; NYSE LPG
+  "L72967109": "OEC",   // "ORION SA (Orion Engineered Carbons)" — went private Oct 2023; was NYSE OEC
+  "828730200": "SFNC",  // "SIMMONS FIRST NATIONAL CORP" — Yahoo misses it; NASDAQ SFNC
+  "01973R101": "ALSN",  // "ALLISON TRANSMISSION HLD" — Yahoo returns 1A7.MU (Munich); NYSE ALSN
+  "74319N100": "ACDC",  // "PROFRAC HOLDINGS A" — Yahoo misses it; NASDAQ ACDC
+  "731105201": "PSNY",  // "POLESTAR AUTOMOTIVE CL A" — Yahoo misses it; NASDAQ PSNY
+  "07177M103": "BXLT",  // "BAXALTA INC" — acquired by Shire Jun 2016; was NYSE BXLT
+  "125523100": "CI",    // "CIGNA CORP" — Yahoo returns CGN.MU (Munich); NYSE CI
+  "57636q104": "MA",    // "MASTERCARD INC CLASS A" — Yahoo misses it; NYSE MA
+  "811065101": "SNI",   // "SCRIPPS NETWORKS INTERACTIVE" — acquired by Discovery Mar 2018; was NASDAQ SNI
+  // ── End Tweedy Browne-sourced fixes ──────────────────────────────────────────
   "N00985106": "AER",  // "AERCAP HOLDINGS NV" — Yahoo returns R1D.SG (Frankfurt) first; trades NYSE as AER
   "254687106": "DIS",  // "DISNEY WALT CO" — SEC abbreviation confuses Yahoo; NYSE as DIS
   "81686C104": "SEMR", // "SEMRUSH HLDGS INC" — Yahoo misses it; trades NYSE as SEMR
@@ -715,6 +756,7 @@ const TRACKED_FUNDS = [
   { cik: "1697591", name: "CAS Investment Partners",      slug: "cas-investment-partners", proprietor: "Clifford Sosin"  },
   { cik: "1671657", name: "Dorsey Asset Management",      slug: "dorsey-asset-management", proprietor: "Pat Dorsey"      },
   { cik: "905567",  name: "Yacktman Asset Management",   slug: "yacktman-asset-management", proprietor: "Donald Yacktman" },
+  { cik: "732905",  name: "Tweedy Browne Co LLC",        slug: "tweedy-browne",             proprietor: "William Browne"  },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

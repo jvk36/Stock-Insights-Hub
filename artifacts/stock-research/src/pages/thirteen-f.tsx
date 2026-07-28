@@ -59,6 +59,13 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "SEC EDGAR — Yacktman Asset Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=905567&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
     { title: "Yacktman Fund — Morningstar Profile", url: "https://www.morningstar.com/funds/xnas/yackx/quote", type: "commentary", description: "Performance, holdings, and ratings for the Yacktman Fund (YACKX)." },
   ],
+  "732905": [ // Tweedy Browne Co LLC — William Browne
+    { title: "Tweedy Browne — Official Website", url: "https://www.tweedy.com/", type: "website", description: "Fund overviews, performance data, and the firm's storied history as a value-investing institution." },
+    { title: "Tweedy Browne — Shareholder Letters & Commentary", url: "https://www.tweedy.com/resources/library_docs/letters/index.html", type: "report", description: "Annual and semi-annual letters to shareholders from the managing directors, covering portfolio activity and investment philosophy." },
+    { title: "What Has Worked In Investing (1992)", url: "https://www.tweedy.com/resources/library_docs/papers/WhatHasWorkedFinal.pdf", type: "article", description: "Tweedy Browne's landmark research compendium documenting the empirical evidence for value investing across dozens of academic studies." },
+    { title: "Tweedy Browne — Wikipedia", url: "https://en.wikipedia.org/wiki/Tweedy,_Browne", type: "article", description: "History of the firm, its origins as Benjamin Graham's brokerage, and evolution into a global value fund." },
+    { title: "SEC EDGAR — Tweedy Browne 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=732905&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
   "1671657": [ // Dorsey Asset Management — Pat Dorsey
     { title: "Dorsey Asset Management — Official Website", url: "https://www.dorseyasset.com/", type: "website", description: "Firm overview, investment philosophy, and investor resources from Pat Dorsey's concentrated, moat-focused fund." },
     { title: "The Little Book That Builds Wealth", url: "https://www.amazon.com/dp/047022651X", type: "article", description: "Pat Dorsey's book on economic moats — the theoretical foundation behind the fund's stock selection approach." },

@@ -32,6 +32,7 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "548661107": "LOW",  // "LOWES COS INC" — Yahoo returns LOWE.VI (Vienna) first
   "G6564A105": "NOMD", // "NOMAD FOODS LTD" — Yahoo returns 0NH.F (Frankfurt) first
   "812215200": "SEG",  // "SEAPORT ENTMT GROUP INC" — 2024 HHH spinoff, not yet searchable
+  "093671105": "HRB",  // "BLOCK H & R INC" — Yahoo returns HRB.F (Frankfurt) first
 };
 
 /**
@@ -255,7 +256,10 @@ interface RawHolding {
 }
 
 function parseInfoTable(xml: string): { holdings: RawHolding[]; computedTotalThousands: number } {
-  const $ = cheerio.load(xml, { xmlMode: true });
+  // Strip namespace prefixes so cheerio selectors work uniformly
+  // e.g. <ns1:infoTable> → <infoTable>, </ns1:nameOfIssuer> → </nameOfIssuer>
+  const cleanXml = xml.replace(/<(\/?)\s*\w+:/g, "<$1");
+  const $ = cheerio.load(cleanXml, { xmlMode: true });
   const byName = new Map<string, RawHolding>();
 
   $("infoTable").each((_, el) => {
@@ -279,7 +283,17 @@ function parseInfoTable(xml: string): { holdings: RawHolding[]; computedTotalTho
   });
 
   const holdings = [...byName.values()];
-  const computedTotalThousands = holdings.reduce((s, h) => s + h.marketValueThousands, 0);
+  let computedTotalThousands = holdings.reduce((s, h) => s + h.marketValueThousands, 0);
+
+  // Auto-detect dollar vs thousands units.
+  // The 13F spec mandates thousands, but some filers (e.g. Himalaya) report raw dollars.
+  // Heuristic: if the average per-holding value exceeds $10B (10,000,000 in thousands)
+  // the filing used dollar units — divide every value by 1,000 to normalise.
+  if (holdings.length > 0 && computedTotalThousands / holdings.length > 10_000_000) {
+    for (const h of holdings) h.marketValueThousands = Math.round(h.marketValueThousands / 1000);
+    computedTotalThousands = Math.round(computedTotalThousands / 1000);
+  }
+
   return { holdings, computedTotalThousands };
 }
 
@@ -325,13 +339,17 @@ function parseSubmissionText(raw: string): SubmissionDocs {
     if (!content) continue;
 
     const isInfoTable = description.includes("INFORMATION TABLE")
-      || content.includes("<informationTable");
+      || content.includes("<informationTable")
+      || content.includes(":informationTable"); // namespace-prefixed variant (e.g. ns1:informationTable)
     const isPrimary   = type === "13F-HR"
       && (content.includes("<edgarSubmission") || content.includes("<tableValueTotal"));
 
+    // A single document can be both primary header and embedded info table
+    // (newer filers like Himalaya put <ns1:informationTable> inside <edgarSubmission>)
     if (isInfoTable && !infotableXml) {
       infotableXml = content;
-    } else if (isPrimary && !primaryXml) {
+    }
+    if (isPrimary && !primaryXml) {
       primaryXml = content;
     }
   }
@@ -551,7 +569,14 @@ async function processFiling(
   let totalValueThousands = computedTotalThousands;
   if (primaryXml) {
     const headerTotal = parsePrimaryDocTotal(primaryXml);
-    if (headerTotal && headerTotal > 0) totalValueThousands = headerTotal;
+    if (headerTotal && headerTotal > 0) {
+      // Guard against dollar-unit filings where the header total is ~1000x our
+      // already-normalised computedTotalThousands (same auto-detection as parseInfoTable).
+      const ratio = computedTotalThousands > 0 ? headerTotal / computedTotalThousands : 0;
+      totalValueThousands = (ratio > 500 && ratio < 2000)
+        ? Math.round(headerTotal / 1000)
+        : headerTotal;
+    }
   }
 
   if (holdings.length === 0) {
@@ -645,6 +670,7 @@ function isInFilingWindow(): boolean {
 const TRACKED_FUNDS = [
   { cik: "1067983", name: "Berkshire Hathaway",              slug: "berkshire-hathaway"   },
   { cik: "1336528", name: "Pershing Square Capital Mgmt",    slug: "pershing-square"       },
+  { cik: "1709323", name: "Himalaya Capital Management",     slug: "himalaya-capital"      },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

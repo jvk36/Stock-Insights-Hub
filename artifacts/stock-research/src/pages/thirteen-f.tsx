@@ -734,7 +734,7 @@ export default function ThirteenFInsights() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Ribbon */}
-      <header className="border-b border-border bg-card sticky top-0 z-10">
+      <header className="border-b border-border bg-card sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-6">
           <div className="flex items-center gap-2 shrink-0">
             <TrendingUp className="w-5 h-5 text-primary" />

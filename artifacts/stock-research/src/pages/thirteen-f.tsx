@@ -405,9 +405,16 @@ function FundHoldingsView({
       queryKey: getGet13fFundQuartersQueryKey(cik),
       enabled: !!cik,
       staleTime: 5 * 60 * 1000,
+      // Poll every 10 s while the seed is still running so the UI updates automatically.
+      // Uses the function form so we don't reference `quartersData` before it is initialised.
+      refetchInterval: (query) =>
+        (query.state.data as { seedingInProgress?: boolean } | undefined)?.seedingInProgress
+          ? 10_000
+          : false,
     },
   });
 
+  const seedingInProgress = quartersData?.seedingInProgress ?? false;
   const quarters = quartersData?.quarters ?? [];
   const currentQ = quarters[quarterIndex] ?? undefined;
   const priorQ   = quarters[quarterIndex + 1] ?? undefined;
@@ -469,6 +476,8 @@ function FundHoldingsView({
                 <span className="text-muted-foreground"> vs {priorQ}</span>
               )}
             </span>
+          ) : seedingInProgress ? (
+            <span className="text-muted-foreground animate-pulse">Syncing from SEC EDGAR…</span>
           ) : (
             <span className="text-muted-foreground">No data available</span>
           )}
@@ -504,12 +513,12 @@ function FundHoldingsView({
             <Skeleton key={i} className="h-8 w-full rounded" />
           ))}
         </div>
-      ) : holdingsData?.seedingInProgress ? (
+      ) : seedingInProgress || holdingsData?.seedingInProgress ? (
         <div className="rounded-xl border border-border bg-card py-20 text-center">
           <Building2 className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-sm font-medium text-muted-foreground">Loading 13F holdings from SEC EDGAR…</p>
+          <p className="text-sm font-medium text-muted-foreground">Syncing 13F holdings from SEC EDGAR…</p>
           <p className="text-xs text-muted-foreground/70 mt-1">
-            This takes a few minutes on the first load. Please check back shortly.
+            This takes a few minutes on first load. The page will update automatically.
           </p>
         </div>
       ) : holdingsData && holdingsData.holdings.length > 0 ? (

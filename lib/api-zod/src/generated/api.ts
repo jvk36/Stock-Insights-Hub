@@ -907,6 +907,12 @@ export const Get13fFundQuartersResponse = zod.object({
     .describe(
       'Quarter labels newest first (e.g. [\"Q1 2026\", \"Q4 2025\", ...])',
     ),
+  seedingInProgress: zod
+    .boolean()
+    .optional()
+    .describe(
+      "True when the fund is registered but holdings are still being fetched from EDGAR on first load",
+    ),
 });
 
 /**

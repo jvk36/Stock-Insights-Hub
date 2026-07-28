@@ -47,9 +47,23 @@ router.get("/13f/funds/:cik/quarters", async (req: Request, res: Response) => {
       )
       .orderBy(desc(sec13fFilingsTable.reportDate));
 
+    // If no populated filings yet, check whether the fund is registered at all.
+    // When it is, the seed is still running — tell the client to poll.
+    if (filings.length === 0) {
+      const [fund] = await db
+        .select({ cik: hedgeFundsTable.cik })
+        .from(hedgeFundsTable)
+        .where(eq(hedgeFundsTable.cik, cik))
+        .limit(1);
+      if (fund) {
+        return res.json({ cik, quarters: [], seedingInProgress: true });
+      }
+    }
+
     return res.json({
       cik,
       quarters: filings.map((f) => f.periodLabel),
+      seedingInProgress: false,
     });
   } catch (err) {
     req.log.error({ err, cik }, "Failed to list 13F quarters");

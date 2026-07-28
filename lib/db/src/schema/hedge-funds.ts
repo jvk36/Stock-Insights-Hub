@@ -15,12 +15,13 @@ import { z } from "zod/v4";
 export const hedgeFundsTable = pgTable(
   "hedge_funds",
   {
-    id:        serial("id").primaryKey(),
-    cik:       text("cik").notNull(),
-    name:      text("name").notNull(),
-    slug:      text("slug").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+    id:         serial("id").primaryKey(),
+    cik:        text("cik").notNull(),
+    name:       text("name").notNull(),
+    slug:       text("slug").notNull(),
+    proprietor: text("proprietor"),
+    createdAt:  timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt:  timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   },
   (t) => [
     uniqueIndex("hedge_funds_cik_idx").on(t.cik),

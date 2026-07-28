@@ -15,7 +15,7 @@ const router = Router();
 router.get("/13f/funds", async (req: Request, res: Response) => {
   try {
     const funds = await db
-      .select({ cik: hedgeFundsTable.cik, name: hedgeFundsTable.name, slug: hedgeFundsTable.slug })
+      .select({ cik: hedgeFundsTable.cik, name: hedgeFundsTable.name, slug: hedgeFundsTable.slug, proprietor: hedgeFundsTable.proprietor })
       .from(hedgeFundsTable)
       .orderBy(hedgeFundsTable.name);
     return res.json({ funds });
@@ -106,6 +106,7 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
     if (allFilings.length === 0) {
       return res.json({
         fundName: fund.name,
+        proprietor: fund.proprietor ?? null,
         cik,
         currentQ: currentQ ?? null,
         priorQ: priorQ ?? null,
@@ -328,6 +329,7 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
 
     return res.json({
       fundName: fund.name,
+      proprietor: fund.proprietor ?? null,
       cik,
       currentQ,
       priorQ: priorQ ?? null,

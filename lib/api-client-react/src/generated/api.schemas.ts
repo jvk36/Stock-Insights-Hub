@@ -532,6 +532,7 @@ export interface HedgeFund {
   cik: string;
   name: string;
   slug: string;
+  proprietor?: string | null;
 }
 
 export interface HedgeFundsResponse {
@@ -585,6 +586,7 @@ export interface ThirteenFHoldingRow {
 
 export interface ThirteenFHoldingsResponse {
   fundName: string;
+  proprietor?: string | null;
   cik: string;
   currentQ?: string | null;
   priorQ?: string | null;

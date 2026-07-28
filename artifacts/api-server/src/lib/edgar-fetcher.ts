@@ -672,10 +672,10 @@ function isInFilingWindow(): boolean {
 // Master list of tracked funds — add new entries here to register a fund.
 // The startup sequence and the 12-hour scheduler iterate this list automatically.
 const TRACKED_FUNDS = [
-  { cik: "1067983", name: "Berkshire Hathaway",              slug: "berkshire-hathaway"   },
-  { cik: "1336528", name: "Pershing Square Capital Mgmt",    slug: "pershing-square"       },
-  { cik: "1709323", name: "Himalaya Capital Management",     slug: "himalaya-capital"      },
-  { cik: "1766596", name: "RV Capital AG",                   slug: "rv-capital"            },
+  { cik: "1067983", name: "Berkshire Hathaway",           slug: "berkshire-hathaway", proprietor: "Warren Buffett"  },
+  { cik: "1336528", name: "Pershing Square Capital Mgmt", slug: "pershing-square",    proprietor: "Bill Ackman"     },
+  { cik: "1709323", name: "Himalaya Capital Management",  slug: "himalaya-capital",   proprietor: "Li Lu"           },
+  { cik: "1766596", name: "RV Capital AG",                slug: "rv-capital",         proprietor: "Robert Vinall"   },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {
@@ -686,7 +686,7 @@ export async function initEdgarFetcher(): Promise<void> {
       .values(fund)
       .onConflictDoUpdate({
         target: hedgeFundsTable.cik,
-        set: { name: fund.name, slug: fund.slug },
+        set: { name: fund.name, slug: fund.slug, proprietor: fund.proprietor },
       });
   }
 

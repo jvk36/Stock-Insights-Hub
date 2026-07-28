@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, TrendingUp, ChevronLeft, ChevronRight, Building2, ArrowLeft } from "lucide-react";
+import { Search, TrendingUp, ChevronLeft, ChevronRight, Building2, ArrowLeft, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +18,92 @@ import {
   type ThirteenFHoldingRow,
   type HedgeFund,
 } from "@workspace/api-client-react";
+
+// ─── Static fund metadata ─────────────────────────────────────────────────────
+
+type FundLink = {
+  title: string;
+  url: string;
+  type: "report" | "article" | "commentary" | "website" | "video";
+  description?: string;
+};
+
+const FUND_LINKS: Record<string, FundLink[]> = {
+  "1067983": [ // Berkshire Hathaway — Warren Buffett
+    { title: "Annual Shareholder Letters (1977–present)", url: "https://www.berkshirehathaway.com/letters/letters.html", type: "report", description: "Buffett's letters to Berkshire shareholders, widely considered essential reading on long-term investing." },
+    { title: "Berkshire Hathaway — Official Website", url: "https://www.berkshirehathaway.com/", type: "website", description: "Annual reports, proxy statements, and SEC filings." },
+    { title: "The Buffett Archive (CNBC)", url: "https://buffett.cnbc.com/", type: "commentary", description: "Archive of Berkshire AGM video, CNBC interviews, and shareholder Q&A sessions going back decades." },
+    { title: "Warren Buffett — Wikipedia", url: "https://en.wikipedia.org/wiki/Warren_Buffett", type: "article" },
+    { title: "Berkshire Hathaway — Wikipedia", url: "https://en.wikipedia.org/wiki/Berkshire_Hathaway", type: "article" },
+  ],
+  "1336528": [ // Pershing Square Capital Mgmt — Bill Ackman
+    { title: "Pershing Square Holdings — Investor Site", url: "https://www.pershingsquareholdings.com/", type: "website", description: "NAV updates, annual reports, investor letters, and shareholder presentations." },
+    { title: "Pershing Square Capital Management — Wikipedia", url: "https://en.wikipedia.org/wiki/Pershing_Square_Capital_Management", type: "article" },
+    { title: "Bill Ackman — Wikipedia", url: "https://en.wikipedia.org/wiki/Bill_Ackman", type: "article" },
+  ],
+  "1709323": [ // Himalaya Capital Management — Li Lu
+    { title: "Li Lu — Wikipedia", url: "https://en.wikipedia.org/wiki/Li_Lu_(investor)", type: "article", description: "Background on Li Lu's history, investment philosophy, and connection to Charlie Munger." },
+    { title: "SEC EDGAR — Himalaya Capital 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1709323&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
+  "1766596": [ // RV Capital AG — Robert Vinall
+    { title: "RV Capital — Official Website", url: "https://www.rv-capital.com/", type: "website", description: "Annual \"Business Owner\" shareholder letters and portfolio commentary by Robert Vinall." },
+    { title: "SEC EDGAR — RV Capital 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1766596&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
+};
+
+const LINK_TYPE_STYLES: Record<FundLink["type"], { label: string; cls: string }> = {
+  report:      { label: "Report",      cls: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200 dark:border-blue-800" },
+  article:     { label: "Article",     cls: "bg-slate-50 text-slate-600 dark:bg-slate-900/60 dark:text-slate-300 border-slate-200 dark:border-slate-700" },
+  commentary:  { label: "Commentary",  cls: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-800" },
+  website:     { label: "Website",     cls: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800" },
+  video:       { label: "Video",       cls: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-800" },
+};
+
+function FundLinksSection({ cik, proprietor }: { cik: string; proprietor: string | null | undefined }) {
+  const links = FUND_LINKS[cik] ?? [];
+  if (links.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold text-foreground">Further Reading</h3>
+        {proprietor && (
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Articles, reports, and commentaries about the fund and {proprietor}
+          </p>
+        )}
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {links.map((link) => {
+          const style = LINK_TYPE_STYLES[link.type];
+          return (
+            <a
+              key={link.url}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-start gap-3 rounded-lg border border-border/60 bg-background hover:bg-muted hover:border-border transition-all p-3"
+            >
+              <ExternalLink className="w-3.5 h-3.5 mt-0.5 shrink-0 text-muted-foreground/60 group-hover:text-primary transition-colors" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors leading-snug">
+                    {link.title}
+                  </span>
+                  <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded border ${style.cls}`}>
+                    {style.label}
+                  </span>
+                </div>
+                {link.description && (
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{link.description}</p>
+                )}
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -451,7 +537,12 @@ function FundHoldingsView({
         </button>
         <div className="flex items-center gap-2">
           <Building2 className="w-4 h-4 text-primary" />
-          <h2 className="text-lg font-semibold">{fundName}</h2>
+          <h2 className="text-lg font-semibold">
+            {fundName}
+            {holdingsData?.proprietor && (
+              <span className="font-normal text-muted-foreground text-base"> ({holdingsData.proprietor})</span>
+            )}
+          </h2>
         </div>
       </div>
 
@@ -546,13 +637,16 @@ function FundHoldingsView({
           </span>
         ))}
       </div>
+
+      {/* External links */}
+      <FundLinksSection cik={cik} proprietor={holdingsData?.proprietor} />
     </div>
   );
 }
 
 // ─── Fund list card ───────────────────────────────────────────────────────────
 
-function FundListCard({ onSelectFund }: { onSelectFund: (cik: string, name: string) => void }) {
+function FundListCard({ onSelectFund }: { onSelectFund: (cik: string, name: string, proprietor?: string | null) => void }) {
   const { data, isLoading, isError } = useList13fFunds({
     query: {
       queryKey: getList13fFundsQueryKey(),
@@ -582,7 +676,7 @@ function FundListCard({ onSelectFund }: { onSelectFund: (cik: string, name: stri
           {funds.map((fund: HedgeFund) => (
             <button
               key={fund.cik}
-              onClick={() => onSelectFund(fund.cik, fund.name)}
+              onClick={() => onSelectFund(fund.cik, fund.name, fund.proprietor)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-border/60 bg-background hover:bg-muted hover:border-border transition-all text-left group"
             >
               <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -591,6 +685,9 @@ function FundListCard({ onSelectFund }: { onSelectFund: (cik: string, name: stri
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                   {fund.name}
+                  {fund.proprietor && (
+                    <span className="font-normal text-muted-foreground"> ({fund.proprietor})</span>
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground">CIK {fund.cik}</p>
               </div>
@@ -608,7 +705,7 @@ function FundListCard({ onSelectFund }: { onSelectFund: (cik: string, name: stri
 export default function ThirteenFInsights() {
   const [, setLocation] = useLocation();
   const [searchInput, setSearchInput] = useState("");
-  const [selectedFund, setSelectedFund] = useState<{ cik: string; name: string } | null>(null);
+  const [selectedFund, setSelectedFund] = useState<{ cik: string; name: string; proprietor?: string | null } | null>(null);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

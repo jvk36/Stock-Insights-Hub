@@ -889,6 +889,7 @@ export const List13fFundsResponse = zod.object({
       cik: zod.string(),
       name: zod.string(),
       slug: zod.string(),
+      proprietor: zod.string().nullish(),
     }),
   ),
 });
@@ -939,6 +940,7 @@ export const Get13fFundHoldingsQueryParams = zod.object({
 
 export const Get13fFundHoldingsResponse = zod.object({
   fundName: zod.string(),
+  proprietor: zod.string().nullish(),
   cik: zod.string(),
   currentQ: zod.string().nullish(),
   priorQ: zod.string().nullish(),

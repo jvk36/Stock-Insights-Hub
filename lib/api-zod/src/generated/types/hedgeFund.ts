@@ -10,4 +10,5 @@ export interface HedgeFund {
   cik: string;
   name: string;
   slug: string;
+  proprietor?: string | null;
 }

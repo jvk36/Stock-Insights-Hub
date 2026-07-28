@@ -1970,6 +1970,9 @@ components:
           type: string
         slug:
           type: string
+        proprietor:
+          type: string
+          nullable: true
       required:
         - cik
         - name
@@ -2085,6 +2088,9 @@ components:
       properties:
         fundName:
           type: string
+        proprietor:
+          type: string
+          nullable: true
         cik:
           type: string
         currentQ:

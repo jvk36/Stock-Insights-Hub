@@ -9,6 +9,7 @@ import type { ThirteenFHoldingRow } from "./thirteenFHoldingRow";
 
 export interface ThirteenFHoldingsResponse {
   fundName: string;
+  proprietor?: string | null;
   cik: string;
   currentQ?: string | null;
   priorQ?: string | null;

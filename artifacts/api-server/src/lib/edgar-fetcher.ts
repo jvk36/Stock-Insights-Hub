@@ -613,13 +613,13 @@ async function processFiling(
  * Returns true during the 13F filing window: days 25–46 after each quarter end.
  *
  * Quarter ends → approximate filing window:
- *   Q1 (Mar 31) → Apr 25 – May 16
- *   Q2 (Jun 30) → Jul 25 – Aug 15
- *   Q3 (Sep 30) → Oct 25 – Nov 15
- *   Q4 (Dec 31) → Jan 25 – Feb 15
+ *   Q1 (Mar 31) → Apr 25 – May 19
+ *   Q2 (Jun 30) → Jul 25 – Aug 18
+ *   Q3 (Sep 30) → Oct 25 – Nov 18
+ *   Q4 (Dec 31) → Jan 25 – Feb 18
  *
- * Funds must file within 45 days of quarter end; most file between day 30–45.
- * Polling every 3 days during this window gives ~7 checks per quarter.
+ * SEC deadline is 45 days; window extends to day 49 to catch late filers.
+ * Polling every 3 days during this window gives ~9 checks per quarter.
  */
 function isInFilingWindow(): boolean {
   const now   = new Date();
@@ -628,14 +628,14 @@ function isInFilingWindow(): boolean {
 
   // (month, firstDay, lastDay) tuples for each quarter's filing window
   const windows: Array<[number, number, number]> = [
-    [2,  1, 15],  // Q4 filing: Feb 1–15
-    [4, 25, 30],  // Q1 filing: Apr 25–30
-    [5,  1, 16],  // Q1 filing cont: May 1–16
-    [7, 25, 31],  // Q2 filing: Jul 25–31
-    [8,  1, 15],  // Q2 filing cont: Aug 1–15
-    [10, 25, 31], // Q3 filing: Oct 25–31
-    [11,  1, 15], // Q3 filing cont: Nov 1–15
-    [1,  25, 31], // Q4 filing: Jan 25–31
+    [2,  1, 18],  // Q4 filing: Feb 1–18  (day 32–49 after Dec 31)
+    [4, 25, 30],  // Q1 filing: Apr 25–30 (day 25–30 after Mar 31)
+    [5,  1, 19],  // Q1 filing cont: May 1–19 (day 31–49 after Mar 31)
+    [7, 25, 31],  // Q2 filing: Jul 25–31 (day 25–31 after Jun 30)
+    [8,  1, 18],  // Q2 filing cont: Aug 1–18 (day 32–49 after Jun 30)
+    [10, 25, 31], // Q3 filing: Oct 25–31 (day 25–31 after Sep 30)
+    [11,  1, 18], // Q3 filing cont: Nov 1–18 (day 32–49 after Sep 30)
+    [1,  25, 31], // Q4 filing: Jan 25–31 (day 25–31 after Dec 31)
   ];
   return windows.some(([m, from, to]) => month === m && day >= from && day <= to);
 }

@@ -36,6 +36,8 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "225310101": "CACC", // "CREDIT ACCEP CORP MICH" — Yahoo returns 2D5.F (Frankfurt) first
   "44332N106": "HTHT", // "H WORLD GROUP LTD" — Yahoo returns CL4.F (Frankfurt) first
   "M98068105": "WIX",  // "WIX COM LTD" — Israeli company, trades on NASDAQ as WIX
+  "G4412G101": "HLF",  // "HERBALIFE NUTRITION LTD" — Yahoo returns HOO.DU (Frankfurt) first; NYSE-listed as HLF until taken private Nov 2023
+  "N20146101": "CMPR", // "CIMPRESS N V" — Yahoo misses it; trades on NASDAQ as CMPR
 };
 
 /**
@@ -672,10 +674,11 @@ function isInFilingWindow(): boolean {
 // Master list of tracked funds — add new entries here to register a fund.
 // The startup sequence and the 12-hour scheduler iterate this list automatically.
 const TRACKED_FUNDS = [
-  { cik: "1067983", name: "Berkshire Hathaway",           slug: "berkshire-hathaway", proprietor: "Warren Buffett"  },
-  { cik: "1336528", name: "Pershing Square Capital Mgmt", slug: "pershing-square",    proprietor: "Bill Ackman"     },
-  { cik: "1709323", name: "Himalaya Capital Management",  slug: "himalaya-capital",   proprietor: "Li Lu"           },
-  { cik: "1766596", name: "RV Capital AG",                slug: "rv-capital",         proprietor: "Robert Vinall"   },
+  { cik: "1067983", name: "Berkshire Hathaway",           slug: "berkshire-hathaway",      proprietor: "Warren Buffett"  },
+  { cik: "1336528", name: "Pershing Square Capital Mgmt", slug: "pershing-square",         proprietor: "Bill Ackman"     },
+  { cik: "1709323", name: "Himalaya Capital Management",  slug: "himalaya-capital",        proprietor: "Li Lu"           },
+  { cik: "1766596", name: "RV Capital AG",                slug: "rv-capital",              proprietor: "Robert Vinall"   },
+  { cik: "1697591", name: "CAS Investment Partners",      slug: "cas-investment-partners", proprietor: "Clifford Sosin"  },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

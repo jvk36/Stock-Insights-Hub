@@ -49,6 +49,10 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "RV Capital — Official Website", url: "https://www.rv-capital.com/", type: "website", description: "Annual \"Business Owner\" shareholder letters and portfolio commentary by Robert Vinall." },
     { title: "SEC EDGAR — RV Capital 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1766596&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
   ],
+  "1697591": [ // CAS Investment Partners — Clifford Sosin
+    { title: "SEC EDGAR — CAS Investment Partners 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1697591&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+    { title: "Clifford Sosin — Interview (MOI Global)", url: "https://moiglobal.com/clifford-sosin/", type: "commentary", description: "Interviews and investment commentary by Clifford Sosin." },
+  ],
 };
 
 const LINK_TYPE_STYLES: Record<FundLink["type"], { label: string; cls: string }> = {

@@ -406,7 +406,7 @@ function FundHoldingsView({
   const currentQ = quarters[quarterIndex] ?? undefined;
   const priorQ   = quarters[quarterIndex + 1] ?? undefined;
 
-  const canGoOlder = quarterIndex + 2 < quarters.length; // there's a prior quarter to priorQ
+  const canGoOlder = quarterIndex + 1 < quarters.length; // there's at least one older quarter to navigate to
   const canGoNewer = quarterIndex > 0;
 
   const params = currentQ ? { currentQ, priorQ } : undefined;

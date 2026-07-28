@@ -33,6 +33,9 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "G6564A105": "NOMD", // "NOMAD FOODS LTD" — Yahoo returns 0NH.F (Frankfurt) first
   "812215200": "SEG",  // "SEAPORT ENTMT GROUP INC" — 2024 HHH spinoff, not yet searchable
   "093671105": "HRB",  // "BLOCK H & R INC" — Yahoo returns HRB.F (Frankfurt) first
+  "225310101": "CACC", // "CREDIT ACCEP CORP MICH" — Yahoo returns 2D5.F (Frankfurt) first
+  "44332N106": "HTHT", // "H WORLD GROUP LTD" — Yahoo returns CL4.F (Frankfurt) first
+  "M98068105": "WIX",  // "WIX COM LTD" — Israeli company, trades on NASDAQ as WIX
 };
 
 /**
@@ -671,6 +674,7 @@ const TRACKED_FUNDS = [
   { cik: "1067983", name: "Berkshire Hathaway",              slug: "berkshire-hathaway"   },
   { cik: "1336528", name: "Pershing Square Capital Mgmt",    slug: "pershing-square"       },
   { cik: "1709323", name: "Himalaya Capital Management",     slug: "himalaya-capital"      },
+  { cik: "1766596", name: "RV Capital AG",                   slug: "rv-capital"            },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

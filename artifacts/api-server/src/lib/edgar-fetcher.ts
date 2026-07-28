@@ -38,6 +38,31 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "M98068105": "WIX",  // "WIX COM LTD" — Israeli company, trades on NASDAQ as WIX
   "G4412G101": "HLF",  // "HERBALIFE NUTRITION LTD" — Yahoo returns HOO.DU (Frankfurt) first; NYSE-listed as HLF until taken private Nov 2023
   "N20146101": "CMPR", // "CIMPRESS N V" — Yahoo misses it; trades on NASDAQ as CMPR
+  // ── Yacktman-sourced fixes (also benefit other funds) ────────────────────────
+  "30231G102": "XOM",   // "Exxon Mobil Corp." — Yahoo returns XONA.SG (Stuttgart) first
+  "65249B208": "NWS",   // "News Corp CL B" — Yahoo returns NC0.SG (Stuttgart) first
+  "904767704": "UL",    // "Unilever PLC ADR" — Yahoo returns UNV.SG (Stuttgart) first
+  "904784709": "UL",    // "Unilever N.V." — merged with Unilever PLC 2020; same NYSE ADR ticker UL
+  "456788108": "INFY",  // "Infosys Ltd ADR" — Yahoo returns I1FO34.SA (Brazil) first
+  "464286772": "EWY",   // "iShares MSCI South Korea ETF" — Yahoo returns EPU.SN (Santiago) first
+  "12541W209": "CHRW",  // "CH Robinson WW" — Yahoo misses it; NASDAQ CHRW
+  "02319V103": "ABEV",  // "Ambev SSA ADR" — Yahoo misses it; NYSE ABEV
+  "33767D105": "FCFS",  // "Firstcash Inc." — Yahoo misses it; NASDAQ FCFS
+  "78468R663": "BIL",   // "SPDR Bloomberg 1-3 Month T-Bill ETF" — Yahoo misses it; NYSE BIL
+  "90130A101": "FOXA",  // "TwentyFirst Cen Fox A" — acquired by Disney Mar 2019; was NASDAQ FOXA
+  "90130A200": "FOX",   // "TwentyFirst Cen Fox B" — acquired by Disney Mar 2019; was NASDAQ FOX
+  "723787107": "PXD",   // "Pioneer Natural Resources" — acquired by ExxonMobil May 2024; was NYSE PXD
+  "487836108": "K",     // "Kellanova" (fka Kellogg) — acquired by Mars Aug 2024; was NYSE K
+  "855030102": "SPLS",  // "Staples Inc." — taken private 2017; was NASDAQ SPLS
+  "30219G108": "ESRX",  // "Express Scripts" — acquired by Cigna Dec 2018; was NASDAQ ESRX
+  "037604105": "APOL",  // "Apollo Education Grp" — taken private Feb 2016; was NASDAQ APOL
+  "930059100": "WDR",   // "Waddell & Reed Financial" — acquired by Macquarie Apr 2021; was NYSE WDR
+  "594837304": "MFGP",  // "Micro Focus Intl ADR" — acquired by OpenText Jan 2023; was NYSE MFGP
+  "754212108": "RAVN",  // "Raven Industries Inc." — acquired by CNH Industrial Feb 2022; was NASDAQ RAVN
+  "91336L107": "UNVR",  // "Univar Solutions Inc." — acquired by Apollo Global Jun 2023; was NYSE UNVR
+  "74915M100": "QRTEA", // "Qurate Retail Inc." — was NASDAQ QRTEA
+  "87236Y108": "AMTD",  // "TD Ameritrade Hldg Corp" — acquired by Charles Schwab Oct 2020; was NASDAQ AMTD
+  // ── End Yacktman-sourced fixes ────────────────────────────────────────────────
   "N00985106": "AER",  // "AERCAP HOLDINGS NV" — Yahoo returns R1D.SG (Frankfurt) first; trades NYSE as AER
   "254687106": "DIS",  // "DISNEY WALT CO" — SEC abbreviation confuses Yahoo; NYSE as DIS
   "81686C104": "SEMR", // "SEMRUSH HLDGS INC" — Yahoo misses it; trades NYSE as SEMR
@@ -689,6 +714,7 @@ const TRACKED_FUNDS = [
   { cik: "1766596", name: "RV Capital AG",                slug: "rv-capital",              proprietor: "Robert Vinall"   },
   { cik: "1697591", name: "CAS Investment Partners",      slug: "cas-investment-partners", proprietor: "Clifford Sosin"  },
   { cik: "1671657", name: "Dorsey Asset Management",      slug: "dorsey-asset-management", proprietor: "Pat Dorsey"      },
+  { cik: "905567",  name: "Yacktman Asset Management",   slug: "yacktman-asset-management", proprietor: "Donald Yacktman" },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

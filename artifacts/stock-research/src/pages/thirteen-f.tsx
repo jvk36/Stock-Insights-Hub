@@ -154,7 +154,7 @@ function fmtPct(val: number | null | undefined, decimals = 2): string {
 function fmtChange(val: number | null | undefined): string {
   if (val == null) return "New";
   const sign = val >= 0 ? "+" : "";
-  return `${sign}${val.toFixed(1)}%`;
+  return `${sign}${val.toFixed(2)}%`;
 }
 
 // ─── Color helpers ────────────────────────────────────────────────────────────
@@ -321,7 +321,7 @@ function activitySummary(
 ): { label: string; detail: string; kind: "new" | "increase" | "decrease" | "held" } {
   const cur = currentPct != null ? `${currentPct.toFixed(2)}%` : null;
   const prior = priorPct != null ? `${priorPct.toFixed(2)}%` : null;
-  const chg = pctChangeShares != null ? Math.abs(pctChangeShares).toFixed(0) : null;
+  const chg = pctChangeShares != null ? Math.abs(pctChangeShares).toFixed(2) : null;
 
   if (colorClass === "new") {
     return {

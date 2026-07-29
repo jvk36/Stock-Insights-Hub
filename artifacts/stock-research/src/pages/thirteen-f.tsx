@@ -28,6 +28,14 @@ type FundLink = {
   description?: string;
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// LINK POLICY: Do NOT link to competing 13F / portfolio-tracker products
+// (e.g. Dataroma, WhaleWisdom, GuruFocus, Whalewatcher, TipRanks portfolio
+// tracker, Simply Wall St, etc.).  Acceptable sources: official fund/firm
+// websites, SEC EDGAR filings, Wikipedia, books, interviews, news articles,
+// and general financial data providers (Bloomberg, Reuters, Morningstar fund
+// pages, etc.) that are not primarily 13F trackers.
+// ─────────────────────────────────────────────────────────────────────────────
 const FUND_LINKS: Record<string, FundLink[]> = {
   "1067983": [ // Berkshire Hathaway — Warren Buffett
     { title: "Annual Shareholder Letters (1977–present)", url: "https://www.berkshirehathaway.com/letters/letters.html", type: "report", description: "Buffett's letters to Berkshire shareholders, widely considered essential reading on long-term investing." },

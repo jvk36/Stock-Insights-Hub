@@ -24,7 +24,7 @@ import {
 type FundLink = {
   title: string;
   url: string;
-  type: "report" | "article" | "commentary" | "website" | "video";
+  type: "report" | "article" | "commentary" | "website" | "video" | "data";
   description?: string;
 };
 
@@ -91,6 +91,7 @@ const LINK_TYPE_STYLES: Record<FundLink["type"], { label: string; cls: string }>
   commentary:  { label: "Commentary",  cls: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-800" },
   website:     { label: "Website",     cls: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800" },
   video:       { label: "Video",       cls: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-800" },
+  data:        { label: "Data",        cls: "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300 border-violet-200 dark:border-violet-800" },
 };
 
 function FundLinksSection({ cik, proprietor }: { cik: string; proprietor: string | null | undefined }) {

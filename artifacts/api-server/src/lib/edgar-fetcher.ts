@@ -175,6 +175,41 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "N51488117": "MBLY",  // "Mobileye N.V." — acquired by Intel Aug 2017; was NYSE MBLY
   "517942108": "LHO",   // "LaSalle Hotel Properties" — acquired by Pebblebrook Nov 2018; was NYSE LHO
   // ── End Davis Selected Advisers-sourced fixes ─────────────────────────────────
+  // ── Abrams Capital Management-sourced fixes ───────────────────────────────────
+  // Active stocks, wrong exchange
+  "G96629103": "WTW",   // "Willis Towers Watson PLC" — Yahoo returns WTY.F (Frankfurt); NASDAQ WTW
+  "67103H107": "ORLY",  // "O'Reilly Automotive Inc. New" — Yahoo returns ORLY.VI (Vienna); NASDAQ ORLY
+  // Active stocks, Yahoo misses them
+  "536797103": "LAD",   // "Lithia Motors Inc." — NYSE LAD
+  "138103106": "CTLP",  // "Cantaloupe Inc." (formerly USA Technologies) — NASDAQ CTLP
+  "92719A106": "VEON",  // "VimpelCom Ltd." / VEON — renamed 2017; NASDAQ VEON
+  "14575E105": "CARS",  // "Cars.com Inc." — NYSE CARS
+  // Delisted / acquired
+  "37951D102": "ENT",   // "Global Eagle Entertainment" — bankrupt/delisted Aug 2020; was NASDAQ ENT
+  "67551U105": "OZM",   // "Och-Ziff Capital Management Group" — renamed Sculptor 2019, acq Rithm 2023; was NYSE OZM
+  "67551U204": "OZM",   // "Och-Ziff Capital Management Group" (alt CUSIP) — NYSE OZM
+  "811246107": "SCU",   // "Sculptor Capital Management" — acquired by Rithm Nov 2023; was NYSE SCU
+  "492515101": "KERX",  // "Keryx Biopharmaceuticals Inc." — acquired by Akebia Dec 2018; was NASDAQ KERX
+  "L7257P205": "PACD",  // "Pacific Drilling SA" — bankrupt/delisted 2020; was NYSE PACD
+  "15912K100": "CHNG",  // "Change Healthcare Inc." — acquired by UnitedHealth Oct 2022; was NASDAQ CHNG
+  "747545101": "QCP",   // "Quality Care Properties Inc." — merged with Welltower Jan 2017; was NYSE QCP
+  "021346101": "AABA",  // "Altaba Inc." (Yahoo Inc. remnant) — liquidated/delisted Sep 2019; was NASDAQ AABA
+  "067774109": "BKS",   // "Barnes & Noble Inc." — acquired by Elliott Aug 2019; was NYSE BKS
+  "887317303": "TWX",   // "Time Warner Inc." — acquired by AT&T Jun 2018; was NYSE TWX
+  "60935Y208": "MGI",   // "MoneyGram International Inc." — went private 2023; was NASDAQ MGI
+  "19625W104": "CLNS",  // "Colony NorthStar Inc." — became Colony Capital/DigitalBridge; was NYSE CLNS
+  "563568104": "WBT",   // "Manitowoc Foodservice Inc." (became Welbilt) — acquired by Ali Group 2022; was NYSE WBT
+  "949090104": "WBT",   // "Welbilt Inc." — acquired by Ali Group 2022; was NYSE WBT
+  "66705Y104": "NSAM",  // "NorthStar Asset Management Group" — merged into Colony NorthStar Jan 2017; was NYSE NSAM
+  "66704R803": "NRF",   // "NorthStar Realty Finance Corp." — merged into Colony NorthStar Jan 2017; was NYSE NRF
+  "684000102": "OPB",   // "Opus Bank" — acquired by Pacific Premier Nov 2020; was NASDAQ OPB
+  "151020104": "CELG",  // "Celgene Corp." — acquired by Bristol-Myers Squibb Nov 2019; was NASDAQ CELG
+  "87244T109": "TICC",  // "TICC Capital Corp." — renamed Oxford Square Capital (OXSQ) 2018; was NASDAQ TICC
+  "G0177J108": "AGN",   // "Allergan PLC" — acquired by AbbVie May 2020; was NYSE AGN
+  "G46188101": "HZNP",  // "Horizon Therapeutics Public Ltd." — acquired by Amgen Oct 2023; was NASDAQ HZNP
+  "90328S500": "USAT",  // "USA Technologies Inc." — renamed Cantaloupe (CTLP) 2021; was NASDAQ USAT
+  "87160A100": "SYT",   // "Syngenta AG ADR" — acquired by ChemChina Jun 2017; was NYSE SYT
+  // ── End Abrams Capital Management-sourced fixes ────────────────────────────────
   "N00985106": "AER",  // "AERCAP HOLDINGS NV" — Yahoo returns R1D.SG (Frankfurt) first; trades NYSE as AER
   "254687106": "DIS",  // "DISNEY WALT CO" — SEC abbreviation confuses Yahoo; NYSE as DIS
   "81686C104": "SEMR", // "SEMRUSH HLDGS INC" — Yahoo misses it; trades NYSE as SEMR
@@ -829,6 +864,7 @@ const TRACKED_FUNDS = [
   { cik: "905567",  name: "Yacktman Asset Management",   slug: "yacktman-asset-management", proprietor: "Donald Yacktman" },
   { cik: "732905",  name: "Tweedy Browne Co LLC",        slug: "tweedy-browne",             proprietor: "William Browne"   },
   { cik: "1036325", name: "Davis Selected Advisers",    slug: "davis-selected-advisers",   proprietor: "Christopher Davis" },
+  { cik: "1358706", name: "Abrams Capital Management", slug: "abrams-capital",             proprietor: "David Abrams"      },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

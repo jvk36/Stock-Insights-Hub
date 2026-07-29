@@ -59,6 +59,11 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "SEC EDGAR — Yacktman Asset Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=905567&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
     { title: "Yacktman Fund — Morningstar Profile", url: "https://www.morningstar.com/funds/xnas/yackx/quote", type: "commentary", description: "Performance, holdings, and ratings for the Yacktman Fund (YACKX)." },
   ],
+  "1358706": [ // Abrams Capital Management — David Abrams
+    { title: "Abrams Capital — Official Website", url: "https://www.abramscapital.com/", type: "website", description: "Firm overview and contact information for Abrams Capital Management." },
+    { title: "SEC EDGAR — Abrams Capital 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1358706&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+    { title: "Dataroma — Abrams Capital Portfolio", url: "https://www.dataroma.com/m/holdings.php?m=ACM", type: "data", description: "Historical portfolio breakdown and activity tracker via Dataroma." },
+  ],
   "1036325": [ // Davis Selected Advisers — Christopher Davis
     { title: "Davis Advisors — Official Website", url: "https://www.davisadvisors.com/", type: "website", description: "Fund overviews, investor letters, and the firm's research-driven investment philosophy." },
     { title: "Davis Advisors — Shareholder Letters", url: "https://www.davisadvisors.com/resources/shareholder-letters", type: "report", description: "Annual letters to shareholders from Christopher Davis covering portfolio activity and long-term investment thinking." },

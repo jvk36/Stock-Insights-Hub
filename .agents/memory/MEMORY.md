@@ -1,3 +1,4 @@
 - [Yahoo Finance module quirks](yahoo-finance-module-quirks.md) — key gotchas for yahoo-finance2 v3 field names, units, and availability
 - [FRED API rate limiting on Replit](fred-rate-limit.md) — Akamai CDN burst-limits FRED requests; batched enrichment strategy
 - [EDGAR 13F value units](edgar-13f-value-units.md) — all tracked funds file raw dollars (not thousands); auto-detection + namespace parsing fix for ns1:-prefixed XML
+- [13F tracker fund roster](thirteen-f-fund-roster.md) — all 10 seeded funds, CIKs, slugs, proprietors, and ticker-fix patterns by fund

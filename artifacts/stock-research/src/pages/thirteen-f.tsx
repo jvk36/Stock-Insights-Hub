@@ -67,6 +67,19 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "SEC EDGAR — Yacktman Asset Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=905567&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
     { title: "Yacktman Fund — Morningstar Profile", url: "https://www.morningstar.com/funds/xnas/yackx/quote", type: "commentary", description: "Performance, holdings, and ratings for the Yacktman Fund (YACKX)." },
   ],
+  "1061768": [ // Baupost Group — Seth Klarman
+    { title: "Baupost Group — Official Website", url: "https://www.baupost.com/", type: "website", description: "Firm overview and investor resources for the Baupost Group." },
+    { title: "Margin of Safety (1991) — Seth Klarman", url: "https://en.wikipedia.org/wiki/Margin_of_Safety_(book)", type: "article", description: "Klarman's out-of-print classic on risk-averse value investing, widely considered one of the most sought-after investment books." },
+    { title: "Seth Klarman — Wikipedia", url: "https://en.wikipedia.org/wiki/Seth_Klarman", type: "article", description: "Background on Seth Klarman, the Baupost Group, and his investment philosophy." },
+    { title: "SEC EDGAR — Baupost Group 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1061768&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
+  "1061768": [ // Baupost Group — Seth Klarman
+    { title: "Baupost Group — Official Website", url: "https://www.baupost.com/", type: "website", description: "Firm overview and investment philosophy from one of the world's largest value-oriented hedge funds." },
+    { title: "Margin of Safety (1991) — Seth Klarman", url: "https://en.wikipedia.org/wiki/Margin_of_Safety_(book)", type: "article", description: "Klarman's out-of-print classic on risk-averse value investing, widely regarded as one of the most important investment books ever written." },
+    { title: "Seth Klarman — Wikipedia", url: "https://en.wikipedia.org/wiki/Seth_Klarman", type: "article", description: "Background on Seth Klarman's career at Baupost Group, his investment philosophy, and his influence on value investing." },
+    { title: "Seth Klarman — Talks at Google (2010)", url: "https://www.youtube.com/watch?v=FBpUiUO89ac", type: "video", description: "Klarman discusses margin of safety, value investing discipline, and navigating uncertain markets." },
+    { title: "SEC EDGAR — Baupost Group 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1061768&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
   "1358706": [ // Abrams Capital Management — David Abrams
     { title: "Abrams Capital — Official Website", url: "https://www.abramscapital.com/", type: "website", description: "Firm overview and contact information for Abrams Capital Management." },
     { title: "SEC EDGAR — Abrams Capital 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1358706&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },

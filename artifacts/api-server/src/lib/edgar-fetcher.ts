@@ -210,6 +210,107 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "90328S500": "USAT",  // "USA Technologies Inc." — renamed Cantaloupe (CTLP) 2021; was NASDAQ USAT
   "87160A100": "SYT",   // "Syngenta AG ADR" — acquired by ChemChina Jun 2017; was NYSE SYT
   // ── End Abrams Capital Management-sourced fixes ────────────────────────────────
+  // ── Baupost Group-sourced fixes ───────────────────────────────────────────────
+  // Active stocks, wrong exchange
+  "03073E105": "ABC",   // "AmerisourceBergen Corp" (now Cencora COR) — Yahoo returns ABC.VI (Vienna); NYSE ABC
+  "69002R103": "OB",    // "Outbrain Inc." — Yahoo returns 852.SG (Stuttgart); NASDAQ OB
+  "36165L108": "GDS",   // "GDS Holdings Ltd ADR" — Yahoo returns G40.F (Frankfurt); NASDAQ GDS
+  "02156K103": "ATUS",  // "Altice USA Inc." — Yahoo returns 15PA.DU (Düsseldorf); NYSE ATUS
+  "983793100": "XPO",   // "XPO Logistics Inc." — Yahoo returns UX2A.MU (Munich); NYSE XPO
+  "668771108": "GEN",   // "NortonLifeLock/Gen Digital" — Yahoo returns SYM.HM (Hamburg); NASDAQ GEN
+  "G0190X100": "AJAX",  // "Ajax Financial Acquisitions Corp" — Yahoo returns AJAXENGG.BO (Bombay); was NYSE AJAX
+  "G0190X126": "AJAX",  // "Ajax I" (alt CUSIP) — Yahoo returns AJAXENGG.BO
+  "G0190X118": "AJAX",  // "Ajax I" (alt CUSIP) — Yahoo returns AJAXENGG.BO
+  // Active/renamed stocks, Yahoo misses them
+  "G5480U104": "LBTYA", // "Liberty Global PLC Class A" — NASDAQ LBTYA
+  "699374302": "PRTK",  // "Paratek Pharmaceuticals Inc." — NASDAQ PRTK
+  "31620M106": "FIS",   // "Fidelity National Information Services" — NYSE FIS
+  "92343X100": "VRNT",  // "Verint Systems Inc." — NASDAQ VRNT
+  "26969P108": "EXP",   // "Eagle Materials Inc." — NYSE EXP
+  "230031106": "CGEM",  // "Cullinan Oncology Inc." — NASDAQ CGEM
+  "829226109": "SBGI",  // "Sinclair Broadcast Group Inc." — NASDAQ SBGI
+  "92837L109": "VIST",  // "Vista Oil & Gas / Vista Energy" — NYSE VIST
+  "G7997R103": "STX",   // "Seagate Technology Holdings PLC" — NASDAQ STX
+  "G2110R114": "IMOS",  // "ChipMOS Technologies (Bermuda) Ltd ADR" — NASDAQ IMOS
+  "88331L116": "SKIN",  // "The Beauty Health Company" — NASDAQ SKIN
+  "971378104": "WSC",   // "WillScot Mobile Mini Holdings Corp" — NASDAQ WSC
+  "84860W102": "SRC",   // "Spirit Realty Capital" — acquired by Realty Income Jan 2024; was NYSE SRC
+  "29332G102": "EHAB",  // "Enhabit Inc." (spun from Encompass Health Jul 2022) — NYSE EHAB
+  "66988K102": "TMQ",   // "NovaCopper Inc. / Trilogy Metals" — NYSE American TMQ
+  "531229706": "LMCA",  // "Liberty Media Corp Delaware Series A" — NASDAQ LMCA
+  "531229888": "LMCA",  // "Liberty Media Corp Delaware Series A" (alt CUSIP) — NASDAQ LMCA
+  // SPACs with meaningful quarter-counts
+  "71531R117": "PSTH",  // "Pershing Square Tontine Holdings" — liquidated 2022; was NYSE PSTH
+  "71531R109": "PSTH",  // "Pershing Square Tontine Holdings" (warrants CUSIP) — NYSE PSTH
+  "G7417R113": "RBAQ",  // "RedBall Acquisition Corp" — failed SPAC; was NYSE RBAQ
+  "G7417R121": "RBAQ",  // "RedBall Acquisition Corp" (alt CUSIP) — NYSE RBAQ
+  "53073L112": "LMACA", // "Liberty Media Acquisition Corp" — SPAC; was NASDAQ LMACA
+  "53073L104": "LMACA", // "Liberty Media Acquisition Corp" (alt CUSIP) — NASDAQ LMACA
+  "G8601L128": "SVF",   // "SVF Investment Corp" (SoftBank SPAC) — was NYSE SVF
+  "G46044114": "HZAC",  // "Horizon Acquisition Corporation" — SPAC; was NASDAQ HZAC
+  // Delisted / acquired / bankrupt
+  "923454102": "VRTV",  // "Veritiv Corp" — went private Dec 2022; was NYSE VRTV
+  "89374L104": "TBIO",  // "Translate Bio Inc." — acquired by Sanofi Sep 2021; was NASDAQ TBIO
+  "19626G108": "CLNY",  // "Colony Capital Inc. New" — became DigitalBridge (DBRG); was NYSE CLNY
+  "19624R106": "CLNY",  // "Colony Capital Inc." (old CUSIP) — was NYSE CLNY
+  "34986J105": "FWP",   // "Forward Pharma A/S" — acquired by Biogen Feb 2017; was NASDAQ FWP
+  "686164302": "OREX",  // "Orexigen Therapeutics Inc." — bankrupt May 2018; was NASDAQ OREX
+  "686164104": "OREX",  // "Orexigen Therapeutics Inc." (alt CUSIP) — was NASDAQ OREX
+  "M5R75Y101": "IS",    // "IronSource Ltd" — merged with Unity Software Nov 2022; was NYSE IS
+  "03940F103": "LFG",   // "Archaea Energy Inc." — acquired by BP Dec 2022; was NYSE LFG
+  "14740B606": "CASC",  // "Cascadian Therapeutics Inc." — acquired by Seagen 2018; was NASDAQ CASC
+  "14740B101": "CASC",  // "Cascadian Therapeutics Inc." (alt CUSIP) — was NASDAQ CASC
+  "15136A102": "CDEV",  // "Centennial Resource Dev." — merged into Permian Resources 2022; was NASDAQ CDEV
+  "124857202": "CBS",   // "CBS Corp New" — merged with Viacom 2019; was NYSE CBS
+  "494577109": "KIN",   // "Kindred Biosciences Inc." — acquired by Elanco Sep 2021; was NASDAQ KIN
+  "482539103": "KLXI",  // "KLX Inc." — acquired by Boeing 2018; was NASDAQ KLXI
+  "82028K200": "SJR",   // "Shaw Communications Inc." — acquired by Rogers Apr 2023; was NYSE SJR
+  "896047503": "TRCO",  // "Tribune Media Co." — acquired by Nexstar Dec 2019; was NASDAQ TRCO
+  "268648102": "EMC",   // "EMC Corp Massachusetts" — acquired by Dell Sep 2016; was NYSE EMC
+  "67020Y100": "NUAN",  // "Nuance Communications Inc." — acquired by Microsoft Mar 2022; was NASDAQ NUAN
+  "65342H110": "NXEO",  // "Nexeo Solutions Inc." — acquired by Univar 2019; was NASDAQ NXEO
+  "Y8213L102": "SEMI",  // "SunEdison Semiconductor Ltd" — acquired by GlobalWafers Jan 2017; was NASDAQ SEMI
+  "848574109": "SPR",   // "Spirit AeroSystems Holdings Inc." — NYSE SPR
+  "28470R102": "ERI",   // "Eldorado Resorts Inc." — merged with Caesars Jul 2020; was NASDAQ ERI
+  "676220106": "ODP",   // "Office Depot Inc." — now ODP Corporation; NASDAQ ODP
+  "88883P101": "TBRA",  // "Tobira Therapeutics Inc." — acquired by Allergan Oct 2016; was NASDAQ TBRA
+  "580037703": "MDR",   // "McDermott International Inc." — bankrupt Jan 2020; was NYSE MDR
+  "50420D108": "LQ",    // "La Quinta Holdings Inc." — acquired by Wyndham May 2018; was NYSE LQ
+  "40054J109": "GRPAF", // "Grupo Aeromexico SAB de CV ADR" — OTC GRPAF
+  "078314101": "BXE",   // "Bellatrix Exploration Ltd" — bankrupt 2019; was NYSE BXE
+  // SPACs — less common, 1–9 quarters each
+  "78516C114": "SCAQ",  // "Saban Capital Acquisition Corp" SPAC — was NASDAQ SCAQ
+  "78516C205": "SCAQ",  // "Saban Capital Acquisition Corp" (warrants)
+  "G4182A110": "GTYH",  // "GTY Technology Holdings Inc." — went private; was NASDAQ GTYH
+  "G4182A128": "GTYH",  // "GTY Technology Holdings" (alt CUSIP)
+  "362409112": "GTYH",  // "GTY Technology Holdings" (alt CUSIP)
+  "G0371B109": "AGCB",  // "Altimeter Growth Corp 2" SPAC — was NYSE AGCB
+  "G28315102": "DRGNU", // "Dragoneer Growth Opt Corp II" SPAC — was NASDAQ DRGNU
+  "G28314105": "DRGN",  // "Dragoneer Growth Opp Corp" SPAC — was NASDAQ DRGN
+  "212894117": "CNVS",  // "Conyers Park Acquisition Corp" — merged with Simply Good Foods; was NASDAQ CNVS
+  "G8062D128": "STNL",  // "Sentinel Energy Services Inc." SPAC — was NASDAQ STNL
+  "81728P204": "STNL",  // "Sentinel Energy Services" (warrants)
+  "G1739V126": "BSTN",  // "Broadstone Acquisition Corp" SPAC — was NYSE BSTN
+  "G1739V118": "BSTN",  // "Broadstone Acquisition Corp" (alt CUSIP)
+  "G46044122": "HZON",  // "Horizon Acquisition Corp II" SPAC — was NASDAQ HZON
+  "82811P119": "SRAQ",  // "Silver Run Acquisition Corp II" — merged with Alta Mesa; was NASDAQ SRAQ
+  "82811P200": "SRAQ",  // "Silver Run Acquisition Corp II" (warrants)
+  "82812A103": "SRAQU", // "Silver Run Acquisition Corp" — merged with Centennial Resource Dev; was NASDAQ SRAQU
+  "82812A202": "SRAQU", // "Silver Run Acquisition Corp" (warrants)
+  "G7484L122": "RTP",   // "Reinvent Technology Partners" SPAC — was NASDAQ RTP
+  "G7483N103": "RTPY",  // "Reinvent Technology Partners Y" SPAC — was NASDAQ RTPY
+  "G7483N111": "RTPY",  // "Reinvent Technology Partners Y" (warrants)
+  "G74847123": "RTPZ",  // "Reinvent Technology Partners Z" SPAC — was NASDAQ RTPZ
+  "92538T112": "VSPR",  // "Vesper Healthcare Acquisition Corp" SPAC — was NASDAQ VSPR
+  "92538T203": "VSPR",  // "Vesper Healthcare Acquisition Corp" (warrants)
+  "G4771L113": "IIAC",  // "Investindustrial Acquisition Corp" SPAC — was NASDAQ IIAC
+  "G4771L121": "IIAC",  // "Investindustrial Acquisition Corp" (warrants)
+  "G0682V125": "AVAN",  // "Avanti Acquisition Corp" SPAC — was NASDAQ AVAN
+  "G0682V117": "AVAN",  // "Avanti Acquisition Corp" (alt CUSIP)
+  "737446104": "PSPC",  // "Post Holdings Partnering Corp" SPAC — was NYSE PSPC
+  "09074D103": "BTTHF", // "Biotie Therapies OYJ" — acquired by Acorda 2016; was OTC BTTHF
+  "G88272102": "TBA",   // "Thoma Bravo Advantage" SPAC — was NYSE TBA
+  // ── End Baupost Group-sourced fixes ──────────────────────────────────────────
   "N00985106": "AER",  // "AERCAP HOLDINGS NV" — Yahoo returns R1D.SG (Frankfurt) first; trades NYSE as AER
   "254687106": "DIS",  // "DISNEY WALT CO" — SEC abbreviation confuses Yahoo; NYSE as DIS
   "81686C104": "SEMR", // "SEMRUSH HLDGS INC" — Yahoo misses it; trades NYSE as SEMR
@@ -865,6 +966,7 @@ const TRACKED_FUNDS = [
   { cik: "732905",  name: "Tweedy Browne Co LLC",        slug: "tweedy-browne",             proprietor: "William Browne"   },
   { cik: "1036325", name: "Davis Selected Advisers",    slug: "davis-selected-advisers",   proprietor: "Christopher Davis" },
   { cik: "1358706", name: "Abrams Capital Management", slug: "abrams-capital",             proprietor: "David Abrams"      },
+  { cik: "1061768", name: "Baupost Group",              slug: "baupost-group",              proprietor: "Seth Klarman"      },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

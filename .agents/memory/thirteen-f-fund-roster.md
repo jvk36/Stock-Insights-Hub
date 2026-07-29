@@ -17,6 +17,14 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Tweedy Browne Co LLC | 732905 | tweedy-browne | William Browne | ~50–100 |
 | Davis Selected Advisers | 1036325 | davis-selected-advisers | Christopher Davis | ~98–146 |
 | Abrams Capital Management | 1358706 | abrams-capital | David Abrams | ~10–22 |
+| Baupost Group | 1061768 | baupost-group | Seth Klarman | ~18–47 |
+
+## Baupost-specific notes
+
+- **Files in thousands** (not raw dollars) — auto-detection threshold (10,000,000 check) correctly does NOT divide. Values stored as-is and display correctly.
+- **Heavy SPAC exposure** — Baupost held 30+ distinct SPACs across 2016–2023. Most had unique CUSIPs per warrant/unit/equity class. All have been overridden with their last-known US tickers (PSTH, RBAQ, SCAQ, GTYH, AGCB, VSPR, etc.).
+- **Many special-situations / delisted companies** — Orexigen (OREX), Translate Bio (TBIO), Archaea Energy (LFG), IronSource (IS), Colony Capital (CLNY), Veritiv (VRTV), Kindred Biosciences (KIN), etc. All overridden.
+- **94 total CUSIP overrides** added for Baupost (63 first pass + 31 second pass). Final null count: 0.
 
 ## Recurring Yahoo Finance ticker-failure patterns (across all funds)
 
@@ -29,6 +37,8 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 4. **Renamed/reorganised companies** — Liberty Media tracking stocks, Encana→Ovintiv, VimpelCom→VEON, Och-Ziff→Sculptor, etc. Yahoo may return stale, empty, or wrong ticker. Always override.
 
 5. **Acquired/delisted companies** — Tickers that no longer trade (Celgene, Aetna, Monsanto, Time Warner, Allergan, Whole Foods, etc.) return empty from Yahoo. Override to the last known US ticker for historical display.
+
+6. **SPACs** — Yahoo returns Indian/other companies for SPAC tickers (e.g., `AJAXENGG.BO` for Ajax Financial Acquisitions Corp `G0190X*` CUSIPs). Each SPAC class/warrant has a distinct CUSIP — override all variants. Baupost was an especially SPAC-heavy fund.
 
 **Why:** The `CUSIP_TICKER_OVERRIDES` map in `edgar-fetcher.ts` is applied at fetch time. For existing DB rows, apply direct SQL UPDATEs grouped by `fund_cik` after each seed.
 

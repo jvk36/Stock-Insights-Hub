@@ -27,6 +27,23 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | TCI Fund Management | 1647251 | tci-fund-management | Christopher Hohn | ~5–17 |
 | Tiger Global Management | 1167483 | tiger-global | Chase Coleman | ~20–165 |
 | Fairfax Financial Holdings | 915191 | fairfax-financial | Prem Watsa | ~26–65 |
+| Duquesne Family Office | 1536411 | duquesne-family-office | Stanley Druckenmiller | ~29–74 |
+
+## Duquesne Family Office-specific notes
+
+- **Files in thousands** — XML values like 99,057 = ~$99M position. Auto-detection correctly does NOT divide. Same as Baupost.
+- **High-turnover macro/cyclical portfolio** — many short-duration positions and M&A targets. Expect ~140 null CUSIPs after seeding.
+- **54 CUSIP overrides applied** (SQL patch + re-resolution pass). Final null count: **19 / 2,029 holdings** (0.9%).
+- **8 genuinely unresolvable CUSIPs** (all ETFs + 2 hard-to-resolve small positions):
+  - `46137V357` — Invesco Exchange Traded Fd T ($224M, Q4 2025) — ETF CUSIP, unresolved
+  - `37950E259` — Global X Fds ($202M, Q1–Q4 2024) — ETF CUSIP, unresolved
+  - `78464A698` — Spdr Ser Tr ($173M, Q1–Q4 2024) — SPDR ETF CUSIP, unresolved
+  - `233051879` — Dbx Etf Tr ($72M, Q4 2020/Q1 2021) — DWS ETF CUSIP, unresolved
+  - `78464A797` — Spdr Series Trust ($28M, Q3 2025) — SPDR ETF CUSIP, unresolved
+  - `97717W422` — WisdomTree Tr ($20M, Q3 2016) — WisdomTree ETF CUSIP, unresolved
+  - `83443Q103` — Solstice Advanced Matls Inc ($4.7M, Q1 2026) — unknown/recent company
+  - `101388106` — Bottomline Tech Del Inc ($511K, Q1 2019) — acquired Thoma Bravo 2022; ticker unconfirmed
+- **Macro/special patterns**: lots of biotech M&A targets (RETA, SWTX, ALXN, GWPH, FTSV, JUNO, CLVS, ITCI, FUSN, CDTX), energy (MRO, CXO, ANDV, RICE), financial M&A (DFS, STL, HES, WP), SPACs (DCRB, DRGN), foreign ADRs (VRNA, CYBR via M-prefix, AVGO via Y-prefix, BTI, BLTE, DBVT, LOMA), ETF positions (6 unresolved CUSIPs).
 
 ## Fairfax Financial Holdings-specific notes
 

@@ -116,6 +116,13 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "Pat Dorsey — Interview (Focused Compounding)", url: "https://focusedcompounding.com/pat-dorsey/", type: "commentary", description: "In-depth interviews with Pat Dorsey on moat investing, portfolio concentration, and stock analysis." },
     { title: "SEC EDGAR — Dorsey Asset Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1671657&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
   ],
+  "1536411": [ // Duquesne Family Office — Stanley Druckenmiller
+    { title: "Stanley Druckenmiller — Wikipedia", url: "https://en.wikipedia.org/wiki/Stanley_Druckenmiller", type: "article", description: "Career overview: Druckenmiller's run at Duquesne Capital (1981–2010), his years as lead portfolio manager for George Soros, the trade that broke the Bank of England, and his conversion to a family office." },
+    { title: "Stanley Druckenmiller — CNBC Interview Archive", url: "https://www.cnbc.com/stanley-druckenmiller/", type: "video", description: "Collection of Druckenmiller's televised interviews covering macro views, market structure, monetary policy, and portfolio positioning." },
+    { title: "Druckenmiller at the 2023 Sohn Conference", url: "https://www.youtube.com/watch?v=GBP7hPkZbCA", type: "video", description: "Keynote presentation covering AI, monetary tightening, and his high-conviction equity ideas — one of his most-cited recent public appearances." },
+    { title: "The Duquesne Family Office Story (Bloomberg)", url: "https://www.bloomberg.com/news/articles/2010-08-18/druckenmiller-to-shut-duquesne-hedge-fund-return-clients-money", type: "article", description: "Bloomberg's coverage of Druckenmiller closing Duquesne Capital Management to outside investors in 2010 and converting it to a family office." },
+    { title: "SEC EDGAR — Duquesne Family Office 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1536411&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
   "915191": [ // Fairfax Financial Holdings — Prem Watsa
     { title: "Fairfax Financial Holdings — Official Website", url: "https://www.fairfax.ca/", type: "website", description: "Investor relations, annual reports, and shareholder letters from Prem Watsa's Toronto-based insurance and investment holding company." },
     { title: "Prem Watsa — Wikipedia", url: "https://en.wikipedia.org/wiki/Prem_Watsa", type: "article", description: "Background on Watsa's career, his emigration from India, the founding of Fairfax in 1985, and his reputation as the 'Canadian Warren Buffett'." },

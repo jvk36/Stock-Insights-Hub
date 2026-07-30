@@ -652,6 +652,62 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "G3157S106": "ESV",   // "ENSCO PLC" — G prefix = UK; merged with Rowan → Valaris; was NYSE ESV
   "G04553106": "ARCE",  // "ARCO PLATFORM LTD" — G prefix = Cayman; Brazilian EdTech; acquired Gen Atlantic 2023; was Nasdaq ARCE
   // ── End Fairfax Financial Holdings-sourced fixes ───────────────────────────────────
+  // ── Duquesne Family Office-sourced fixes ───────────────────────────────────────────
+  // Active stocks Yahoo missed via CUSIP lookup
+  "75615P103": "RETA",   // "REATA PHARMACEUTICALS INC" — acquired Biogen 2023; was Nasdaq RETA
+  "925050106": "VRNA",   // "VERONA PHARMA PLC" — UK company; Yahoo returns UK listing; Nasdaq VRNA
+  "254709108": "DFS",    // "DISCOVER FINL SVCS" — acquired Capital One 2024; was NYSE DFS
+  "85205L107": "SWTX",   // "SPRINGWORKS THERAPEUTICS INC" — acquired Pfizer 2024; was Nasdaq SWTX
+  "436440101": "HOLX",   // "HOLOGIC INC" — still public; Yahoo CUSIP collision; Nasdaq HOLX
+  "125269100": "CF",     // "CF INDS HLDGS INC" / "CF Ind's Hldgs Inc." — still public; Yahoo collision; NYSE CF
+  "929160109": "VMC",    // "VULCAN MATLS CO" — still public; Yahoo CUSIP collision; NYSE VMC
+  "31946M103": "FCNCA",  // "FIRST CTZNS BANCSHARES INC N" — First Citizens BancShares; Nasdaq FCNCA
+  "03940C100": "ACLX",   // "ARCELLX INC" — CAR-T biotech; still public; Nasdaq ACLX
+  "06417N103": "OZK",    // "BANK OZK LITTLE ROCK ARK" — Bank OZK; Yahoo collision; Nasdaq OZK
+  "345370860": "F",      // "FORD MTR CO DEL" — Ford Motor; Yahoo CUSIP collision; NYSE F
+  "46428R107": "GSG",    // "ISHARES S&P GSCI COMMODITY-" — iShares GSCI Commodity ETF; NYSE GSG
+  "07782B104": "BLTE",   // "BELITE BIO INC SPONSORED" — biopharm ADR; Nasdaq BLTE
+  // Acquired/merged/delisted companies
+  "25470M109": "DISH",   // "DISH NETWORK CORP" — merged EchoStar 2023; was Nasdaq DISH
+  "73755L107": "POT",    // "POTASH CORP SASK INC" — merged → Nutrien 2018; was NYSE POT
+  "89610F101": "TCDA",   // "TRICIDA INC" — ceased operations 2023; was Nasdaq TCDA
+  "03940R107": "ARCH",   // "ARCH RESOURCES INC" — merged → Core Natural Resources 2024; was NYSE ARCH
+  "966244105": "WWAV",   // "WHITEWAVE FOODS CO" — acquired Danone 2017; was NYSE WWAV
+  "013817101": "AA",     // "ALCOA INC." — pre-split (Nov 2016); was NYSE AA
+  "20605P101": "CXO",    // "CONCHO RES INC" — acquired ConocoPhillips 2021; was NYSE CXO
+  "045327103": "AZPN",   // "ASPEN TECHNOLOGY INC" — acquired Emerson Electric 2022; was Nasdaq AZPN
+  "90214J101": "TWOU",   // "2U INC" — EdTech; bankrupt 2023; was Nasdaq TWOU
+  "189464100": "CLVS",   // "CLOVIS ONCOLOGY INC" — bankrupt 2022; was Nasdaq CLVS
+  "03349M105": "ANDV",   // "ANDEAVOR" — acquired Marathon Petroleum 2018; was NYSE ANDV
+  "565849106": "MRO",    // "MARATHON OIL CORP" — acquired ConocoPhillips 2024; was NYSE MRO
+  "015351109": "ALXN",   // "ALEXION PHARMACEUTICALS INC" — acquired AstraZeneca 2021; was Nasdaq ALXN
+  "008916108": "AGU",    // "AGRIUM INC" — merged → Nutrien 2018; was NYSE AGU
+  "34983P104": "FTSV",   // "FORTY SEVEN INC" — acquired Gilead 2020; was Nasdaq FTSV
+  "48205A109": "JUNO",   // "JUNO THERAPEUTICS INC" — acquired Celgene 2018; was Nasdaq JUNO
+  "33813J106": "FSR",    // "FISKER INC" — bankrupt 2024; was NYSE FSR
+  "46116X101": "ITCI",   // "INTRA CELLULAR THERAPIES INC" — acquired J&J 2025; was Nasdaq ITCI
+  "36197T103": "GWPH",   // "GW PHARMACEUTICALS PLC" — acquired Jazz Pharmaceuticals 2021; was Nasdaq GWPH
+  "98156Q108": "WWE",    // "WORLD WRESTLING ENTMT INC" — merged UFC → TKO Group 2023; was NYSE WWE
+  "110448107": "BTI",    // "BRITISH AMERN TOB PLC" — UK company; NYSE ADR BTI
+  "46583P102": "ISEE",   // "IVERIC BIO INC" — acquired Astellas Pharma 2023; was Nasdaq ISEE
+  "737010108": "PTLA",   // "PORTOLA PHARMACEUTICALS INC" — acquired Alexion 2020; was Nasdaq PTLA
+  "85917A100": "STL",    // "STERLING BANCORP DEL" — acquired Webster Financial 2022; was NYSE STL
+  "42809H107": "HES",    // "HESS CORP" — acquired Chevron 2024; was NYSE HES
+  "36118A100": "FUSN",   // "FUSION PHARMACEUTICALS INC" — acquired AstraZeneca 2024; was Nasdaq FUSN
+  "762760106": "RICE",   // "RICE ENERGY INC" — acquired EQT 2017; was NYSE RICE
+  "922107107": "VAPO",   // "VAPOTHERM INC" — bankrupt/delisted 2023; was NYSE VAPO
+  "81728A108": "SNSE",   // "SENSEI BIOTHERAPEUTICS INC" — wound down; was Nasdaq SNSE
+  "54150E104": "LOMA",   // "LOMA NEGRA CORP" — Argentine cement; NYSE LOMA
+  "981558109": "WP",     // "WORLDPAY INC" — acquired FIS 2019; was NYSE WP
+  "171757206": "CDTX",   // "CIDARA THERAPEUTICS INC" — bankrupt/acquired 2024; was Nasdaq CDTX
+  "23306J309": "DBVT",   // "DBV TECHNOLOGIES S A SPONSORED" — French biotech ADR; Nasdaq DBVT
+  "24279D105": "DCRB",   // "DECARBONIZATION PLUS ACQU II" — SPAC; was Nasdaq DCRB
+  // Foreign-incorporated — Yahoo returns non-US listing
+  "Y09827109": "AVGO",   // "BROADCOM LTD" — Y prefix = Singapore (pre-Delaware reincorp 2018); Nasdaq AVGO
+  "M2682V108": "CYBR",   // "CYBERARK SOFTWARE LTD" — M prefix = Israel; still public; Nasdaq CYBR
+  "G28302100": "DRGN",   // "DRAGONEER GROWTH OPPORTUN CO" — G prefix = Cayman; SPAC; Nasdaq DRGN
+  "020398707": "ALMTF",  // "ALMONTY INDS INC" — Canadian tungsten miner; US OTC ALMTF
+  // ── End Duquesne Family Office-sourced fixes ────────────────────────────────────────
 };
 
 /**
@@ -1307,6 +1363,7 @@ const TRACKED_FUNDS = [
   { cik: "1647251", name: "TCI Fund Management",       slug: "tci-fund-management",          proprietor: "Christopher Hohn"  },
   { cik: "1167483", name: "Tiger Global Management",   slug: "tiger-global",                  proprietor: "Chase Coleman"     },
   { cik: "915191",  name: "Fairfax Financial Holdings", slug: "fairfax-financial",             proprietor: "Prem Watsa"        },
+  { cik: "1536411", name: "Duquesne Family Office",     slug: "duquesne-family-office",         proprietor: "Stanley Druckenmiller" },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

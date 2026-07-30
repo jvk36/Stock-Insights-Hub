@@ -67,6 +67,12 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "SEC EDGAR — Yacktman Asset Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=905567&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
     { title: "Yacktman Fund — Morningstar Profile", url: "https://www.morningstar.com/funds/xnas/yackx/quote", type: "commentary", description: "Performance, holdings, and ratings for the Yacktman Fund (YACKX)." },
   ],
+  "1656456": [ // Appaloosa LP — David Tepper
+    { title: "Appaloosa Management — Wikipedia", url: "https://en.wikipedia.org/wiki/Appaloosa_Management", type: "article", description: "Overview of David Tepper's hedge fund, its distressed-debt origins, and its evolution into a macro and equity-focused fund." },
+    { title: "David Tepper — Wikipedia", url: "https://en.wikipedia.org/wiki/David_Tepper", type: "article", description: "Background on David Tepper's career at Goldman Sachs and Appaloosa, his distressed investing approach, and his record returns." },
+    { title: "David Tepper — CNBC Interview on Markets (2020)", url: "https://www.youtube.com/watch?v=3fMnBI4U1YQ", type: "video", description: "Tepper discusses his macro outlook, equity valuations, and positioning — a rare in-depth interview from one of the most successful hedge fund managers of all time." },
+    { title: "SEC EDGAR — Appaloosa LP 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1656456&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
   "1112520": [ // Akre Capital Management — Chuck Akre
     { title: "Akre Capital Management — Official Website", url: "https://www.akrekapital.com/", type: "website", description: "Firm overview and investment philosophy from Chuck Akre's concentrated, long-term compounding-focused fund." },
     { title: "Chuck Akre — Acquirers Multiple Interview (2019)", url: "https://www.youtube.com/watch?v=LZsGSAsdxmc", type: "video", description: "Akre explains his three-legged stool framework: exceptional business, skilled management team, and reinvestment opportunity." },

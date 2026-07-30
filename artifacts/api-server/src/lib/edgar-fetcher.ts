@@ -358,6 +358,84 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "041356205": "AAIC", // "Arlington Asset Investment Corp" — NYSE AAIC
   "G16169107": "BNRE", // "Brookfield Asset Mgmt Reinsurance Partners" — NYSE BNRE
   // ── End Akre Capital Management-sourced fixes ─────────────────────────────────
+  // ── Appaloosa LP-sourced fixes ────────────────────────────────────────────────
+  // Active stocks Yahoo misses
+  "382550101": "GT",    // "Goodyear Tire & Rubber Co" — NASDAQ GT
+  "86614U100": "SUM",   // "Summit Materials Inc" — NYSE SUM
+  "845467109": "SWN",   // "Southwestern Energy Co" — NYSE SWN
+  "200340107": "CMA",   // "Comerica Inc" — NYSE CMA
+  "499049104": "KNX",   // "Knight-Swift Transportation Holdings" — NYSE KNX
+  "655664100": "JWN",   // "Nordstrom Inc" — NYSE JWN
+  "655844108": "NSC",   // "Norfolk Southern Corp" — NYSE NSC
+  "896818101": "TGI",   // "Triumph Group Inc" — NYSE TGI
+  "344849104": "FL",    // "Foot Locker Inc" — NYSE FL
+  "486606106": "KYN",   // "Kayne Anderson MLP/Midstream Investment" — NYSE KYN
+  "62482R107": "COOP",  // "Mr. Cooper Group Inc" — NASDAQ COOP
+  "73935A104": "QQQ",   // "Invesco QQQ Trust" — NASDAQ QQQ
+  "912909108": "X",     // "United States Steel Corp" — NYSE X
+  "184692101": "CEM",   // "ClearBridge MLP & Midstream Fund" — NYSE CEM
+  "03938L104": "MT",    // "ArcelorMittal SA" — NYSE MT
+  "G0751N103": "AY",    // "Atlantica Yield PLC" — NASDAQ AY
+  // Wrong exchange (Yahoo returns foreign listing)
+  "12769G100": "CZR",   // "Caesars Entertainment Inc" — Yahoo returns CZR1.MX (Mexico); NASDAQ CZR
+  "127686103": "CZR",   // "Caesars Entertainment Corp" (pre-restructuring CUSIP) — NASDAQ CZR
+  "745867101": "PHM",   // "PulteGroup Inc" — Yahoo returns PU7.F (Frankfurt); NYSE PHM
+  "969457100": "WMB",   // "Williams Companies Inc" — Yahoo returns WMB.VI (Vienna); NYSE WMB
+  "165167180": "CHK",   // "Chesapeake Energy Corp" (post-bankruptcy CUSIP) — Yahoo returns Stuttgart; NASDAQ CHK
+  "165167107": "CHK",   // "Chesapeake Energy Corp" (pre-bankruptcy CUSIP) — NASDAQ CHK
+  "464287184": "EPU",   // "iShares MSCI All Peru ETF" — Yahoo returns EPU.SN (Santiago); NYSE Arca EPU
+  "464287556": "EPU",   // "iShares MSCI All Peru ETF" (alt CUSIP) — NYSE Arca EPU
+  "464287234": "EPU",   // "iShares MSCI All Peru ETF" (alt CUSIP) — NYSE Arca EPU
+  "500767306": "KWEB",  // "KraneShares CSI China Internet ETF" — Yahoo returns KWEB.SN (Santiago); NYSE Arca KWEB
+  "81369Y506": "XLI",   // "Industrial Select Sector SPDR" — Yahoo returns XLYD.BA (Buenos Aires); NYSE Arca XLI
+  "81369Y886": "XLC",   // "Communication Services Select Sector SPDR" — Yahoo returns XLYD.BA; NYSE Arca XLC
+  "81369Y605": "XLK",   // "Technology Select Sector SPDR" — Yahoo returns XLYD.BA; NYSE Arca XLK
+  "81369Y209": "XLF",   // "Financial Select Sector SPDR" — Yahoo returns XLYD.BA; NYSE Arca XLF
+  "00214Q104": "ARKK",  // "ARK Innovation ETF" — Yahoo returns ARKK.BA (Buenos Aires); NYSE Arca ARKK
+  "92189F676": "GDX",   // "VanEck Gold Miners ETF" — Yahoo returns GDXCL.SN (Santiago); NYSE Arca GDX
+  // ALPS ETFs
+  "00162Q866": "AMLP",  // "ALPS Alerian MLP ETF" — NYSE Arca AMLP
+  "00162Q452": "ENFR",  // "Alerian Energy Infrastructure ETF" — NYSE Arca ENFR
+  // Acquired / delisted
+  "96949L105": "WPZ",   // "Williams Partners LP" — merged into Williams Companies 2018; was NYSE WPZ
+  "88104R100": "TERP",  // "TerraForm Power Inc" — acquired by Brookfield Renewable 2020; was NASDAQ TERP
+  "88104R209": "TERP",  // "TerraForm Power Inc" (alt CUSIP) — was NASDAQ TERP
+  "90184L102": "TWTR",  // "Twitter Inc" — taken private Oct 2022; was NYSE TWTR
+  "29278N103": "ETP",   // "Energy Transfer Partners LP" — merged into ET 2018; was NYSE ETP
+  "29273R109": "ETP",   // "Energy Transfer Partners LP" (alt CUSIP) — was NYSE ETP
+  "88104M101": "GLBL",  // "TerraForm Global Inc" — acquired by SunEdison 2017; was NASDAQ GLBL
+  "G9329Z100": "VNTR",  // "Venator Materials PLC" — filed bankruptcy Dec 2023; was NYSE VNTR
+  "29788T103": "ETWO",  // "E2open Parent Holdings Inc" — went private 2024; was NYSE ETWO
+  "292480100": "ENBL",  // "Enable Midstream Partners LP" — acquired by Energy Transfer 2021; was NYSE ENBL
+  "L5140P101": "I",     // "Intelsat SA" — filed bankruptcy 2020; last known NYSE I
+  "984332106": "YHOO",  // "Yahoo Inc" — acquired by Verizon/Oath 2017; was NASDAQ YHOO
+  "00771V108": "AERI",  // "Aerie Pharmaceuticals Inc" — acquired by Alcon 2022; was NASDAQ AERI
+  "N59465109": "MYL",   // "Mylan NV" — merged into Viatris 2020; was NASDAQ MYL
+  "780259107": "SHEL",  // "Royal Dutch Shell PLC" — unified as Shell PLC (SHEL) 2022; NYSE SHEL
+  "871503108": "GEN",   // "Symantec Corp" — became NortonLifeLock (NLOK), then Gen Digital (GEN); NASDAQ GEN
+  "G00349103": "AY",    // "Abengoa Yield PLC" — renamed Atlantica Yield; NASDAQ AY
+  "001547108": "AKS",   // "AK Steel Holding Corp" — acquired by Cleveland-Cliffs 2020; was NYSE AKS
+  "039380407": "ARCH",  // "Arch Coal Inc" — emerged from bankruptcy as Arch Resources 2016; NYSE ARCH
+  "559080106": "MMP",   // "Magellan Midstream Partners LP" — acquired by ONEOK 2023; was NYSE MMP
+  "708160106": "JCP",   // "JCPenney" — filed bankruptcy 2020; was NYSE JCP
+  "74909E106": "QHC",   // "Quorum Health Corp" — filed bankruptcy 2020; was NYSE QHC
+  "Y8565J101": "TOO",   // "Teekay Offshore Partners LP" — privatized by Brookfield 2019; was NYSE TOO
+  "72766Q105": "PAH",   // "Platform Specialty Products Corp" — renamed Element Solutions (ESI) 2019; was NYSE PAH
+  // General Motors alternate share classes
+  "37045V126": "GM",    // "General Motors Co" (alt class CUSIP) — NYSE GM
+  "37045V118": "GM",    // "General Motors Co" (alt class CUSIP) — NYSE GM
+  // SPACs
+  "G8704C124": "TCVA",  // "TCV Acquisition Corp" SPAC — was NYSE TCVA
+  "G1992N118": "PRPB",  // "CC Neuberger Principal Holdings III" SPAC — was NYSE PRPB
+  "42589T206": "HCIV",  // "Hennessy Capital Investment Corp V" SPAC — was NYSE HCIV
+  "53073L203": "LMAC",  // "Liberty Media Acquisition Corp" SPAC — was NASDAQ LMAC
+  "G8601L110": "SVFC",  // "SVF Investment Corp 3" (SoftBank SPAC) — was NYSE SVFC
+  // ETF price-matched identifications (generic filing names; identified by implied share price)
+  "78468R556": "XOP",  // SPDR Oil & Gas Exploration ETF — $58.50 Q4 2020→$81.34 Q1 2021 matches XOP energy rally
+  "78464A730": "MLPB", // SPDR S&P MLP ETF — $35.22 Q1 2018→$22.36 Q3 2019 matches MLP selloff period
+  "78464A870": "XSD",  // SPDR S&P Semiconductor ETF — $77.18 Q2 2017 matches XSD June 2017 close
+  "46138G508": "BKLN", // Invesco Senior Loan ETF — $20.46 Q1 2020 (COVID crash) matches BKLN range
+  // ── End Appaloosa LP-sourced fixes ────────────────────────────────────────────
   "N00985106": "AER",  // "AERCAP HOLDINGS NV" — Yahoo returns R1D.SG (Frankfurt) first; trades NYSE as AER
   "254687106": "DIS",  // "DISNEY WALT CO" — SEC abbreviation confuses Yahoo; NYSE as DIS
   "81686C104": "SEMR", // "SEMRUSH HLDGS INC" — Yahoo misses it; trades NYSE as SEMR
@@ -1016,6 +1094,7 @@ const TRACKED_FUNDS = [
   { cik: "1061768", name: "Baupost Group",              slug: "baupost-group",              proprietor: "Seth Klarman"      },
   { cik: "1375534", name: "Generation Investment Mgmt", slug: "generation-investment",       proprietor: "Al Gore"           },
   { cik: "1112520", name: "Akre Capital Management",   slug: "akre-capital",                proprietor: "Chuck Akre"        },
+  { cik: "1656456", name: "Appaloosa LP",              slug: "appaloosa",                   proprietor: "David Tepper"      },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

@@ -312,6 +312,7 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "G88272102": "TBA",   // "Thoma Bravo Advantage" SPAC — was NYSE TBA
   // ── End Baupost Group-sourced fixes ──────────────────────────────────────────
   // ── Generation Investment Management-sourced fixes ────────────────────────────
+  "81141R100": "SE",    // "Sea Ltd" — Yahoo returns IPVV (wrong); NYSE SE
   // Wrong exchange (Yahoo returns European listing)
   "075887109": "BDX",   // "Becton Dickinson & Co" — Yahoo returns BOX.F (Frankfurt); NYSE BDX
   "G47791101": "TT",    // "Ingersoll-Rand PLC" — became Trane Technologies in 2020; NYSE TT

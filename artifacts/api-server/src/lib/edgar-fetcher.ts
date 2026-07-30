@@ -311,6 +311,33 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "09074D103": "BTTHF", // "Biotie Therapies OYJ" — acquired by Acorda 2016; was OTC BTTHF
   "G88272102": "TBA",   // "Thoma Bravo Advantage" SPAC — was NYSE TBA
   // ── End Baupost Group-sourced fixes ──────────────────────────────────────────
+  // ── Generation Investment Management-sourced fixes ────────────────────────────
+  // Wrong exchange (Yahoo returns European listing)
+  "075887109": "BDX",   // "Becton Dickinson & Co" — Yahoo returns BOX.F (Frankfurt); NYSE BDX
+  "G47791101": "TT",    // "Ingersoll-Rand PLC" — became Trane Technologies in 2020; NYSE TT
+  "H84989104": "TEL",   // "TE Connectivity Ltd" — Yahoo misses Swiss/Irish CUSIP; NYSE TEL
+  "G1151C101": "ACN",   // "Accenture PLC Ireland" — Yahoo misses Irish CUSIP; NYSE ACN
+  // Active stocks Yahoo misses
+  "955306105": "WST",   // "West Pharmaceutical Services Inc" — NYSE WST
+  "74144T108": "TROW",  // "T. Rowe Price Group Inc" — NASDAQ TROW
+  "257651109": "DCI",   // "Donaldson Company Inc" — NYSE DCI
+  "45168D104": "IDXX",  // "IDEXX Laboratories Inc" — NASDAQ IDXX
+  // Acquired / delisted
+  "156782104": "CERN",  // "Cerner Corp" — acquired by Oracle Jun 2022; was NASDAQ CERN
+  "858912108": "SRCL",  // "Stericycle Inc" — acquired by Waste Management Nov 2023; was NASDAQ SRCL
+  "92220P105": "VAR",   // "Varian Medical Systems" — acquired by Siemens Healthineers Apr 2021; was NYSE VAR
+  "74374T109": "PTRA",  // "Proterra Inc" — bankrupt Aug 2023; was NASDAQ PTRA
+  "636518102": "NATI",  // "National Instruments Corp" — acquired by Emerson Electric Oct 2023; was NASDAQ NATI
+  "91843L103": "VWR",   // "VWR Corp" — acquired by Avantor Nov 2017; was NASDAQ VWR
+  "003654100": "ABMD",  // "Abiomed Inc" — acquired by Johnson & Johnson Dec 2022; was NASDAQ ABMD
+  "535678106": "LLTC",  // "Linear Technology Corp" — acquired by Analog Devices Mar 2017; was NASDAQ LLTC
+  "53578A108": "LNKD",  // "LinkedIn Corp" — acquired by Microsoft Dec 2016; was NYSE LNKD
+  "22304C100": "CVET",  // "Covetrus Inc" — acquired by private equity Sep 2022; was NASDAQ CVET
+  "68375Y109": "OPWR",  // "Opower Inc" — acquired by Oracle Jun 2016; was NYSE OPWR
+  "582839106": "MJN",   // "Mead Johnson Nutrition Co" — acquired by Reckitt Benckiser 2017; was NYSE MJN
+  "625207105": "MULE",  // "MuleSoft Inc" — acquired by Salesforce May 2018; was NYSE MULE
+  "83416T100": "SCTY",  // "SolarCity Corp" — acquired by Tesla Nov 2016; was NASDAQ SCTY
+  // ── End Generation Investment Management-sourced fixes ───────────────────────
   "N00985106": "AER",  // "AERCAP HOLDINGS NV" — Yahoo returns R1D.SG (Frankfurt) first; trades NYSE as AER
   "254687106": "DIS",  // "DISNEY WALT CO" — SEC abbreviation confuses Yahoo; NYSE as DIS
   "81686C104": "SEMR", // "SEMRUSH HLDGS INC" — Yahoo misses it; trades NYSE as SEMR
@@ -967,6 +994,7 @@ const TRACKED_FUNDS = [
   { cik: "1036325", name: "Davis Selected Advisers",    slug: "davis-selected-advisers",   proprietor: "Christopher Davis" },
   { cik: "1358706", name: "Abrams Capital Management", slug: "abrams-capital",             proprietor: "David Abrams"      },
   { cik: "1061768", name: "Baupost Group",              slug: "baupost-group",              proprietor: "Seth Klarman"      },
+  { cik: "1375534", name: "Generation Investment Mgmt", slug: "generation-investment",       proprietor: "Al Gore"           },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

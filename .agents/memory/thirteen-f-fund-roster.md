@@ -19,6 +19,14 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Abrams Capital Management | 1358706 | abrams-capital | David Abrams | ~10–22 |
 | Baupost Group | 1061768 | baupost-group | Seth Klarman | ~18–47 |
 
+| Generation Investment Mgmt | 1375534 | generation-investment | Al Gore | ~29–50 |
+
+## Generation Investment Management-specific notes
+
+- **Files in raw dollars** (user confirmed) — auto-detection divided correctly; values stored as thousands.
+- **Quality-growth/ESG fund** — long holding periods mean many positions span the full 10-year window. Most ticker failures were foreign-CUSIP collisions (BDX→BOX.F, Ingersoll-Rand, TE Connectivity, Accenture) and acquisitions (Cerner, Varian, Stericycle, National Instruments, LinkedIn, SolarCity, Mead Johnson, MuleSoft, Linear Technology, Abiomed, Covetrus, VWR).
+- 22 CUSIP overrides applied; final null count: 0.
+
 ## Baupost-specific notes
 
 - **Files in thousands** (not raw dollars) — auto-detection threshold (10,000,000 check) correctly does NOT divide. Values stored as-is and display correctly.

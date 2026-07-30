@@ -26,6 +26,15 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | FundSmith LLP | 1569205 | fundsmith | Terry Smith | ~16–43 |
 | TCI Fund Management | 1647251 | tci-fund-management | Christopher Hohn | ~5–17 |
 | Tiger Global Management | 1167483 | tiger-global | Chase Coleman | ~20–165 |
+| Fairfax Financial Holdings | 915191 | fairfax-financial | Prem Watsa | ~26–65 |
+
+## Fairfax Financial Holdings-specific notes
+
+- **Files in raw dollars** — auto-detection divided correctly; values stored as thousands.
+- **Canadian-incorporated insurer** — portfolio is heavy on special situations, distressed, M&A targets. ~103 distinct null CUSIPs resolved after seeding.
+- **Big CUSIP patterns**: Canadian dual-listings (Osisko Gold `OR`, Turquoise Hill `TRQ`, Pengrowth `PGH`, Norbord `OSB`, Atlantic Power `AT`, Sierra Wireless `SWIR`), Y-prefix Cayman (Seaspan `SSW`, Diamond S Shipping `DSSI`), M-prefix Israel (MagicJack `CALL`), G-prefix Cayman/Ireland (Central European Media `CETV`, Strongbridge Biopharma `SBBP`, Nielsen `NLSN`, Ensco `ESV`, Brookfield Reinsurance `BNRE`, Arco Platform `ARCE`, Eros International `EROS`).
+- **Many private-equity-acquired targets** (USG, Envision Healthcare, Cvent, Citrix, Loyalty Ventures, Casper Sleep, CoreLogic, Stamps.com, RealPage, Forescout, Team Health, LHC Group, etc.) — all overridden to their last known US ticker.
+- **96+ CUSIP overrides** applied across two passes. Final null count: **0 / 1,813 holdings**.
 
 ## Generation Investment Management-specific notes
 

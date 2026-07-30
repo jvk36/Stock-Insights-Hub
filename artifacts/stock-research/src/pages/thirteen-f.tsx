@@ -116,6 +116,12 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "Pat Dorsey — Interview (Focused Compounding)", url: "https://focusedcompounding.com/pat-dorsey/", type: "commentary", description: "In-depth interviews with Pat Dorsey on moat investing, portfolio concentration, and stock analysis." },
     { title: "SEC EDGAR — Dorsey Asset Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1671657&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
   ],
+  "915191": [ // Fairfax Financial Holdings — Prem Watsa
+    { title: "Fairfax Financial Holdings — Official Website", url: "https://www.fairfax.ca/", type: "website", description: "Investor relations, annual reports, and shareholder letters from Prem Watsa's Toronto-based insurance and investment holding company." },
+    { title: "Prem Watsa — Wikipedia", url: "https://en.wikipedia.org/wiki/Prem_Watsa", type: "article", description: "Background on Watsa's career, his emigration from India, the founding of Fairfax in 1985, and his reputation as the 'Canadian Warren Buffett'." },
+    { title: "Fairfax Financial Holdings — Wikipedia", url: "https://en.wikipedia.org/wiki/Fairfax_Financial_Holdings", type: "article", description: "Overview of Fairfax's insurance subsidiaries, investment philosophy, and notable investments including the prescient credit default swap trade in 2007–2008." },
+    { title: "SEC EDGAR — Fairfax Financial Holdings 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=915191&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
   "1167483": [ // Tiger Global Management — Chase Coleman
     { title: "Tiger Global Management — Official Website", url: "https://www.tigerglobal.com/", type: "website", description: "Firm overview covering Tiger Global's public equity and private investment activities across global technology and internet businesses." },
     { title: "Chase Coleman — Wikipedia", url: "https://en.wikipedia.org/wiki/Chase_Coleman_III", type: "article", description: "Background on Coleman's career as a protégé of Julian Robertson at Tiger Management and his founding of Tiger Global in 2001." },

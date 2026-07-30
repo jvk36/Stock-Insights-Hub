@@ -560,7 +560,6 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "67181A107": "OSH",   // "OAK STR HEALTH INC" — primary care; acquired CVS 2023; was NYSE OSH
   "577096100": "MTTR",  // "MATTERPORT INC" — 3D spatial data; Nasdaq MTTR (private 2024 via CoStar)
   "02589Y100": "AFCO",  // "AMERICAN FARMLAND CO" — farmland REIT; merged Farmland Partners (FPI) 2017; was NYSE AFCO
-  "87336U105": "DATA",  // "TABLEAU SOFTWARE INC" — acquired Salesforce 2019; was NYSE DATA
   // SPACs (pre-merger or at-listing ticker)
   "G0370L124": "AGC",   // "ALTIMETER GROWTH CORP" — SPAC; merged Grab Holdings (GRAB) Dec 2021; was Nasdaq AGC
   "G8354H100": "SRNG",  // "SOARING EAGLE ACQUISITION CO" — SPAC; merged Ginkgo Bioworks (DNA); was Nasdaq SRNG
@@ -577,6 +576,82 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "29260Y109": "EDR",   // "ENDEAVOR GROUP HLDGS INC" — entertainment/sports; NYSE EDR
   "848637104": "SPLK",  // "SPLUNK INC" — data/security platform; acquired Cisco Mar 2024; was Nasdaq SPLK
   // ── End Tiger Global Management-sourced fixes ──────────────────────────────────────
+  // ── Fairfax Financial Holdings-sourced fixes ──────────────────────────────────────
+  // Active stocks Yahoo missed via CUSIP lookup
+  "24869P104": "DENN",  // "DENNY'S CORP" — restaurant chain; Nasdaq DENN
+  "462726100": "IRBT",  // "IROBOT CORP" — consumer robotics; Amazon deal terminated 2024; Nasdaq IRBT
+  "75508B104": "RYAM",  // "RAYONIER ADVANCED MATLS INC" — specialty cellulose; NYSE RYAM
+  "87901J105": "TGNA",  // "TEGNA INC" — TV broadcasting; acquired Standard Media 2024; was NYSE TGNA
+  "74275G107": "PRTH",  // "PRIORITY TECH HOLDINGS INC" — payments platform; Nasdaq PRTH
+  "357023100": "RAIL",  // "FREIGHTCAR AMER INC" — railcar manufacturer; Nasdaq RAIL
+  "90346E103": "SLCA",  // "U S SILICA HLDGS INC" / "US SILICA HOLDINGS INC" — acquired Apollo 2024; was NYSE SLCA
+  "453415606": "ICD",   // "INDEPENDENCE CONTRACT DRILLING" — drilling services; was NYSE ICD
+  "453415309": "ICD",   // "INDEPENDENCE CONTRACT DRIL I" — Class I CUSIP; same NYSE ICD
+  // Canadian dual-listings (filed via 13F as US-listed ADRs/NYSE shares)
+  "76117W109": "RFP",   // "RESOLUTE FOREST PRODUCTS INC" — paper/pulp; acquired Domtar/Paper Excellence 2023; was NYSE RFP
+  "Y75638109": "SSW",   // "SEASPAN CORP" — Y prefix = Cayman; container shipping; acquired Atlas Corp 2023; was NYSE SSW
+  "68827L101": "OR",    // "OSISKO GOLD ROYALTIES LTD" — Canadian gold royalty; dual-listed NYSE OR
+  "900435108": "TRQ",   // "TURQUOISE HILL RES LTD" — copper miner; acquired Rio Tinto 2022; was NYSE TRQ
+  "Y20676105": "DSSI",  // "DIAMOND S SHIPPING INC" — Y prefix; merged International Seaways 2021; was NYSE DSSI
+  "70706P104": "PGH",   // "PENGROWTH ENERGY CORP" — Canadian oil&gas; acquired Cona Resources 2020; was NYSE PGH
+  "04878Q863": "AT",    // "ATLANTIC POWER CORP" — Canadian power; taken private 2021; was NYSE AT
+  "826516106": "SWIR",  // "SIERRA WIRELESS INC" — IoT connectivity; acquired Semtech 2023; was Nasdaq SWIR
+  "12626F105": "CRHM",  // "CRH MEDICAL CORP" — anesthesia (Canadian); acquired WELL Health 2021; was NYSE American CRHM
+  "G16250105": "BNRE",  // "BROOKFIELD REINS LTD" — G prefix = Cayman; Brookfield Reinsurance Partners; NYSE BNRE
+  // Acquired companies — use last known US ticker
+  "903293405": "USG",   // "U S G CORP" — wallboard; acquired Knauf 2019; was NYSE USG
+  "269279402": "XCO",   // "EXCO RESOURCES INC" — oil&gas; bankrupt 2018; was NYSE XCO
+  "269279501": "XCO",   // "EXCO RESOURCES INC" — Class B/preferred CUSIP; same NYSE XCO
+  "057755209": "BWINA", // "BALDWIN & LYONS INC" — insurance; merged Protective 2019; was Nasdaq BWINA
+  "225223304": "CRAY",  // "CRAY INC" — supercomputers; acquired HPE 2019; was Nasdaq CRAY
+  "167250109": "CBI",   // "CHICAGO BRIDGE & IRON CO NV" — engineering; merged McDermott 2018; was NYSE CBI
+  "01449J105": "ALR",   // "ALERE INC" — diagnostics; acquired Abbott 2017; was NYSE ALR
+  "74972G103": "RPXC",  // "RPX CORP" — patent risk; acquired HGGC 2018; was Nasdaq RPXC
+  "140781105": "CRR",   // "CARBO CERAMICS INC" — oilfield; bankrupt/liquidated 2020; was NYSE CRR
+  "543881106": "LORL",  // "LORAL SPACE & COM INC" / "LORAL SPACE & COMMUNICATIONS INC" — acquired MHR 2021; was Nasdaq LORL
+  "84652J103": "ONCE",  // "SPARK THERAPEUTICS INC" — gene therapy; acquired Roche 2019; was Nasdaq ONCE
+  "886547108": "TIF",   // "TIFFANY & CO" — jewelry; acquired LVMH 2021; was NYSE TIF
+  "74374N102": "PRVB",  // "PROVENTION BIO INC" — biotech; acquired Sanofi 2023; was Nasdaq PRVB
+  "23345J104": "DICE",  // "DICE THERAPEUTICS INC" — biotech; acquired Eli Lilly 2023; was Nasdaq DICE
+  "89620X506": "TRIL",  // "TRILLIUM THERAPEUTICS INC" — biotech; acquired Pfizer 2021; was Nasdaq TRIL
+  "50187A107": "LHCG",  // "LHC GROUP INC" — home health; acquired UnitedHealth 2023; was Nasdaq LHCG
+  "92336X109": "VNE",   // "VEONEER INC" — auto safety; acquired Qualcomm 2023; was NYSE VNE
+  "458118106": "IDTI",  // "INTEGRATED DEVICE TECHNOLOGY" — semiconductor; acquired Renesas 2019; was Nasdaq IDTI
+  "04269X105": "ARRY",  // "ARRAY BIOPHARMA INC" — biotech; acquired Pfizer 2019; was Nasdaq ARRY
+  "529771107": "LXK",   // "LEXMARK INTL INC" — printers; taken private 2016; was NYSE LXK
+  "081437105": "BMS",   // "BEMIS INC" — packaging; acquired Amcor 2019; was NYSE BMS
+  "92927K102": "WBC",   // "WABCO HLDGS INC" — auto tech; acquired ZF Friedrichshafen 2020; was NYSE WBC
+  "92924F106": "WGL",   // "WGL HLDGS INC" — gas utility; acquired AltaGas 2018; was NYSE WGL
+  "80589M102": "SCG",   // "SCANA CORP" — electric utility; acquired Dominion Energy 2019; was NYSE SCG
+  "283677854": "EE",    // "EL PASO ELEC CO" — electric utility; acquired JPE Holdings 2020; was NYSE EE
+  "49803L109": "KITE",  // "KITE PHARMA INC" — biotech; acquired Gilead 2017; was Nasdaq KITE
+  "774341101": "COL",   // "ROCKWELL COLLINS INC" — avionics; acquired United Technologies 2018; was NYSE COL
+  "23247G109": "CVT",   // "CVENT INC" — event software; taken private 2016, re-IPO'd 2022; was NYSE CVT
+  "852857200": "STMP",  // "STAMPS COM INC" — shipping software; acquired Thoma Bravo 2021; was Nasdaq STMP
+  "21871D103": "CLGX",  // "CORELOGIC INC" — real estate data; private (Stone Point/Insight 2021); was NYSE CLGX
+  "452907108": "IMMU",  // "IMMUNOMEDICS INC" — biotech; acquired Gilead 2020; was Nasdaq IMMU
+  "834251100": "SOLY",  // "SOLITON INC" — medical devices; acquired AbbVie 2022; was Nasdaq SOLY
+  "75606N109": "RP",    // "REALPAGE INC" — prop-mgmt software; private (Thoma Bravo 2021); was Nasdaq RP
+  "92765X208": "VA",    // "VIRGIN AMER INC" — airline; acquired Alaska Air 2016; was Nasdaq VA
+  "34553D101": "FSCT",  // "FORESCOUT TECHNOLOGIES INC" — network security; private (Advent 2020); was Nasdaq FSCT
+  "85590A401": "HOT",   // "STARWOOD HOTELS & RESORTS WRLD" — acquired Marriott 2016; was NYSE HOT
+  "12561W105": "CNL",   // "CLECO CORP" — electric utility; acquired by investors 2016; was NYSE CNL
+  "30315R107": "FSTX",  // "F-STAR THERAPEUTICS INC" — bispecific antibody biotech; was Nasdaq FSTX
+  "45773Y105": "INWK",  // "INNERWORKINGS INC" — marketing supply chain; acquired HH Global 2020; was Nasdaq INWK
+  "209034107": "CNSL",  // "CONSOLIDATED COMM HLDGS INC" / "CONSOLIDATED COMM HOLDINGS INC" — private (Searchlight 2022); was Nasdaq CNSL
+  "87817A107": "TMH",   // "TEAM HEALTH HOLDINGS INC" — physician staffing; private (Blackstone 2017); was NYSE TMH
+  "15117P102": "CBMG",  // "CELLULAR BIOMEDICINE GROUP INC" — biotech; taken private; was Nasdaq CBMG
+  "750459109": "RSYS",  // "RADISYS CORP" — telecom software; acquired Reliance Industries 2018; was Nasdaq RSYS
+  "55825T103": "MSGS",  // "MADISON SQUARE GARDEN CO" / "MADISON SQUARE GRDN SPRT COR" — spun off MSGE 2020; surviving entity NYSE MSGS
+  "761330109": "RVNC",  // "REVANCE THERAPEUTICS INC" — medical aesthetics; was Nasdaq RVNC
+  "69355F102": "PPD",   // "PPD INC" — pharma CRO; acquired Thermo Fisher 2021; was Nasdaq PPD
+  // Foreign-incorporated — Yahoo returns non-US listing
+  "G20045202": "CETV",  // "CENTRAL EUROPEAN MEDIA ENTERPR" — G prefix = Cayman; acquired PPF Group 2020; was Nasdaq CETV
+  "G85347105": "SBBP",  // "STRONGBRIDGE BIOPHARMA PLC" — G prefix = Ireland; acquired Xeris 2022; was Nasdaq SBBP
+  "G6518L108": "NLSN",  // "NIELSEN HOLDINGS PLC" — G prefix = Jersey; acquired Elliott/Brookfield 2023; was NYSE NLSN
+  "G3157S106": "ESV",   // "ENSCO PLC" — G prefix = UK; merged with Rowan → Valaris; was NYSE ESV
+  "G04553106": "ARCE",  // "ARCO PLATFORM LTD" — G prefix = Cayman; Brazilian EdTech; acquired Gen Atlantic 2023; was Nasdaq ARCE
+  // ── End Fairfax Financial Holdings-sourced fixes ───────────────────────────────────
 };
 
 /**
@@ -1231,6 +1306,7 @@ const TRACKED_FUNDS = [
   { cik: "1569205", name: "FundSmith LLP",             slug: "fundsmith",                   proprietor: "Terry Smith"        },
   { cik: "1647251", name: "TCI Fund Management",       slug: "tci-fund-management",          proprietor: "Christopher Hohn"  },
   { cik: "1167483", name: "Tiger Global Management",   slug: "tiger-global",                  proprietor: "Chase Coleman"     },
+  { cik: "915191",  name: "Fairfax Financial Holdings", slug: "fairfax-financial",             proprietor: "Prem Watsa"        },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

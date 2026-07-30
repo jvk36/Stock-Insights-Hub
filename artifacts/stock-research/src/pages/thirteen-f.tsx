@@ -116,6 +116,12 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "Pat Dorsey — Interview (Focused Compounding)", url: "https://focusedcompounding.com/pat-dorsey/", type: "commentary", description: "In-depth interviews with Pat Dorsey on moat investing, portfolio concentration, and stock analysis." },
     { title: "SEC EDGAR — Dorsey Asset Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1671657&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
   ],
+  "1647251": [ // TCI Fund Management — Christopher Hohn
+    { title: "TCI Fund Management — Official Website", url: "https://www.tcifund.com/", type: "website", description: "Firm overview and investment approach from Christopher Hohn's concentrated, long-term, high-conviction fund." },
+    { title: "Christopher Hohn — Wikipedia", url: "https://en.wikipedia.org/wiki/Christopher_Hohn", type: "article", description: "Background on Hohn's career, TCI's founding, his activist campaigns, and his philanthropy through The Children's Investment Fund Foundation." },
+    { title: "TCI Fund Management — Wikipedia", url: "https://en.wikipedia.org/wiki/TCI_Fund_Management", type: "article", description: "Overview of TCI's strategy, its evolution from activist hedge fund to long-term concentrated equity investor, and notable campaigns." },
+    { title: "SEC EDGAR — TCI Fund Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1647251&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
   "1569205": [ // FundSmith LLP — Terry Smith
     { title: "FundSmith — Official Website", url: "https://www.fundsmith.co.uk/", type: "website", description: "Investor updates, annual letters, and the firm's philosophy of buying and holding great businesses at sensible prices." },
     { title: "FundSmith Annual Shareholder Letters", url: "https://www.fundsmith.co.uk/investor-resources/fund-documents", type: "report", description: "Terry Smith's annual letters to investors, covering portfolio activity, business quality, and long-term investment thinking." },

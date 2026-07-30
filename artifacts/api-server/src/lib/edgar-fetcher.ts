@@ -339,6 +339,25 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "625207105": "MULE",  // "MuleSoft Inc" — acquired by Salesforce May 2018; was NYSE MULE
   "83416T100": "SCTY",  // "SolarCity Corp" — acquired by Tesla Nov 2016; was NASDAQ SCTY
   // ── End Generation Investment Management-sourced fixes ───────────────────────
+  // ── Akre Capital Management-sourced fixes ────────────────────────────────────
+  // Active stocks Yahoo misses
+  "011642105": "ALRM", // "Alarm.com Holdings Inc" — NASDAQ ALRM
+  "48251w104": "KKR",  // "KKR & Co L P Del" — NYSE KKR
+  "25264R207": "DHIL", // "Diamond Hill Investment Group" — NASDAQ DHIL
+  "90347A100": "UI",   // "Ubiquiti Networks Inc" — NYSE UI
+  "12510Q100": "CCCS", // "CCC Intelligent Solutions Holdings" — NASDAQ CCCS
+  "113004105": "BAM",  // "Brookfield Asset Management Ltd" — NYSE BAM
+  // Wrong exchange (Yahoo returns European listing)
+  "610236101": "MNRO", // "Monro Muffler Brake Inc" — Yahoo returns MR2.SG (Frankfurt); NASDAQ MNRO
+  // Acquired / delisted
+  "74165N105": "PRMW", // "Primo Water Corp" — taken private Dec 2023; was NASDAQ PRMW
+  "74167P108": "PRMW", // "Primo Water Corporation" (redomicile CUSIP) — same company
+  "92936P100": "WMIH", // "WMIH Corp" — acquired by Nationstar Jan 2018; was NASDAQ WMIH
+  "194014106": "ENOV", // "Colfax Corp" — renamed to Enovis Corp Apr 2022; NYSE ENOV
+  "34417P100": "FOCS", // "Focus Financial Partners Inc" — taken private 2023; was NASDAQ FOCS
+  "041356205": "AAIC", // "Arlington Asset Investment Corp" — NYSE AAIC
+  "G16169107": "BNRE", // "Brookfield Asset Mgmt Reinsurance Partners" — NYSE BNRE
+  // ── End Akre Capital Management-sourced fixes ─────────────────────────────────
   "N00985106": "AER",  // "AERCAP HOLDINGS NV" — Yahoo returns R1D.SG (Frankfurt) first; trades NYSE as AER
   "254687106": "DIS",  // "DISNEY WALT CO" — SEC abbreviation confuses Yahoo; NYSE as DIS
   "81686C104": "SEMR", // "SEMRUSH HLDGS INC" — Yahoo misses it; trades NYSE as SEMR
@@ -996,6 +1015,7 @@ const TRACKED_FUNDS = [
   { cik: "1358706", name: "Abrams Capital Management", slug: "abrams-capital",             proprietor: "David Abrams"      },
   { cik: "1061768", name: "Baupost Group",              slug: "baupost-group",              proprietor: "Seth Klarman"      },
   { cik: "1375534", name: "Generation Investment Mgmt", slug: "generation-investment",       proprietor: "Al Gore"           },
+  { cik: "1112520", name: "Akre Capital Management",   slug: "akre-capital",                proprietor: "Chuck Akre"        },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

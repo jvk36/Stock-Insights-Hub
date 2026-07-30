@@ -67,6 +67,12 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "SEC EDGAR — Yacktman Asset Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=905567&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
     { title: "Yacktman Fund — Morningstar Profile", url: "https://www.morningstar.com/funds/xnas/yackx/quote", type: "commentary", description: "Performance, holdings, and ratings for the Yacktman Fund (YACKX)." },
   ],
+  "1112520": [ // Akre Capital Management — Chuck Akre
+    { title: "Akre Capital Management — Official Website", url: "https://www.akrekapital.com/", type: "website", description: "Firm overview and investment philosophy from Chuck Akre's concentrated, long-term compounding-focused fund." },
+    { title: "Chuck Akre — Acquirers Multiple Interview (2019)", url: "https://www.youtube.com/watch?v=LZsGSAsdxmc", type: "video", description: "Akre explains his three-legged stool framework: exceptional business, skilled management team, and reinvestment opportunity." },
+    { title: "Chuck Akre — Wikipedia", url: "https://en.wikipedia.org/wiki/Chuck_Akre", type: "article", description: "Background on Chuck Akre's career, his focus on compounders, and the founding of Akre Capital Management." },
+    { title: "SEC EDGAR — Akre Capital Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1112520&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
   "1375534": [ // Generation Investment Management — Al Gore / David Blood
     { title: "Generation Investment Management — Official Website", url: "https://www.generationim.com/", type: "website", description: "Firm overview, investment philosophy, and sustainability research from Al Gore and David Blood's long-term, ESG-integrated fund." },
     { title: "Generation Investment Management — Wikipedia", url: "https://en.wikipedia.org/wiki/Generation_Investment_Management", type: "article", description: "Overview of the firm's founding, philosophy, and its case that sustainable investing produces superior long-run returns." },

@@ -20,6 +20,7 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Baupost Group | 1061768 | baupost-group | Seth Klarman | ~18–47 |
 
 | Generation Investment Mgmt | 1375534 | generation-investment | Al Gore | ~29–50 |
+| Akre Capital Management | 1112520 | akre-capital | Chuck Akre | ~17–31 |
 
 ## Generation Investment Management-specific notes
 

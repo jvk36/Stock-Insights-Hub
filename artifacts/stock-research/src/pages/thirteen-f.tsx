@@ -67,11 +67,12 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "SEC EDGAR — Yacktman Asset Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=905567&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
     { title: "Yacktman Fund — Morningstar Profile", url: "https://www.morningstar.com/funds/xnas/yackx/quote", type: "commentary", description: "Performance, holdings, and ratings for the Yacktman Fund (YACKX)." },
   ],
-  "1061768": [ // Baupost Group — Seth Klarman
-    { title: "Baupost Group — Official Website", url: "https://www.baupost.com/", type: "website", description: "Firm overview and investor resources for the Baupost Group." },
-    { title: "Margin of Safety (1991) — Seth Klarman", url: "https://en.wikipedia.org/wiki/Margin_of_Safety_(book)", type: "article", description: "Klarman's out-of-print classic on risk-averse value investing, widely considered one of the most sought-after investment books." },
-    { title: "Seth Klarman — Wikipedia", url: "https://en.wikipedia.org/wiki/Seth_Klarman", type: "article", description: "Background on Seth Klarman, the Baupost Group, and his investment philosophy." },
-    { title: "SEC EDGAR — Baupost Group 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1061768&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  "1375534": [ // Generation Investment Management — Al Gore / David Blood
+    { title: "Generation Investment Management — Official Website", url: "https://www.generationim.com/", type: "website", description: "Firm overview, investment philosophy, and sustainability research from Al Gore and David Blood's long-term, ESG-integrated fund." },
+    { title: "Generation Investment Management — Wikipedia", url: "https://en.wikipedia.org/wiki/Generation_Investment_Management", type: "article", description: "Overview of the firm's founding, philosophy, and its case that sustainable investing produces superior long-run returns." },
+    { title: "Al Gore — TED Talk: The Case for Optimism on Climate Change (2016)", url: "https://www.ted.com/talks/al_gore_the_case_for_optimism_on_climate_change", type: "video", description: "Gore makes the investment and policy case for renewable energy and sustainable capitalism, the intellectual foundation behind Generation's strategy." },
+    { title: "Al Gore — Wikipedia", url: "https://en.wikipedia.org/wiki/Al_Gore", type: "article", description: "Background on Al Gore's career and his role co-founding Generation Investment Management with David Blood." },
+    { title: "SEC EDGAR — Generation Investment Mgmt 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1375534&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
   ],
   "1061768": [ // Baupost Group — Seth Klarman
     { title: "Baupost Group — Official Website", url: "https://www.baupost.com/", type: "website", description: "Firm overview and investment philosophy from one of the world's largest value-oriented hedge funds." },

@@ -472,6 +472,111 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "922908769": "VTI",  // "VANGUARD INDEX FDS" — Vanguard Total Stock Market ETF; $127.57/share Q4 2018 & ~$285/share 2024 match VTI
   "921909768": "VGLT", // "VANGUARD STAR FDS" — Vanguard Long-Term Government Bond ETF; $62-77/share 2025-2026 matches VGLT duration/rate profile
   // ── End Ruane, Cunniff & Goldfarb-sourced fixes ───────────────────────────────────
+  // ── FundSmith LLP-sourced fixes ───────────────────────────────────────────────────
+  // Active stocks Yahoo missed
+  "832696405": "SJM",   // "SMUCKER J M CO" — J.M. Smucker; Yahoo CUSIP lookup fails; NYSE SJM
+  // Acquired companies
+  "26138E109": "DPS",   // "DR PEPPER SNAPPLE GROUP INC" — acquired by KDP 2018; was NYSE DPS
+  "67383109":  "BCR",   // "BARD C R INC" — C.R. Bard; acquired Becton Dickinson 2017; was NYSE BCR
+  "12508E101": "CDK",   // "CDK GBL." — CDK Global; acquired Brookfield Business Partners 2022; was NASDAQ CDK
+  "265504100": "DNKN",  // "DUNKIN BRANDS GROUP INC" — Dunkin'; acquired Inspire Brands 2020; was NASDAQ DNKN
+  // Foreign-incorporated — Yahoo returns non-US listing
+  "M7518J104": "ODD",   // "ODDITY TECH LTD" — Israeli cosmetics; M prefix = Israel; Nasdaq ODD
+  "G98239109": "XP",    // "XP CLASS A" — XP Inc.; G prefix = Cayman; Brazilian fintech; Nasdaq XP
+  "92932M101": "WNS",   // "WNS HLDGS LTD" / "WNS HOLDINGS - ADR" — Indian BPO ADR; NYSE WNS
+  // ── End FundSmith LLP-sourced fixes ───────────────────────────────────────────────
+  // ── TCI Fund Management-sourced fixes ─────────────────────────────────────────────
+  // Canadian dual-listings — Yahoo returns TSX listing instead of NYSE
+  "136375102": "CNI",   // "CANADIAN NATL RY CO" — Canadian National Railway; dual-listed TSX/NYSE; NYSE CNI
+  "13645T100": "CP",    // "CANADIAN PAC RY LTD" — Canadian Pacific; dual-listed; NYSE CP
+  "13646K108": "CP",    // "CANADIAN PACIFIC KANSAS CITY" — CPKC post-2023 merger with KCS; NYSE CP
+  // Foreign-incorporated
+  "G47567105": "INFO",  // "IHS MARKIT LTD" — G prefix = Cayman; acquired S&P Global Feb 2022; was NYSE INFO
+  // Active stocks Yahoo missed
+  "49427F108": "KRC",   // "KILROY RLTY CORP" — Kilroy Realty; active office REIT; NYSE KRC
+  // ── End TCI Fund Management-sourced fixes ─────────────────────────────────────────
+  // ── Tiger Global Management-sourced fixes ─────────────────────────────────────────
+  // Active stocks Yahoo missed via CUSIP lookup
+  "339041105": "FLT",   // "FLEETCOR TECHNOLOGIES INC" — payment tech; Yahoo CUSIP lookup fails; NYSE FLT
+  "532457108": "LLY",   // "ELI LILLY & CO" / "LILLY ELI & CO" — pharma; Yahoo CUSIP fails; NYSE LLY
+  "15677J108": "CDAY",  // "CERIDIAN HCM HLDG INC" — HCM software; Nasdaq CDAY
+  "75737F108": "RDFN",  // "REDFIN CORP" — real-estate marketplace; Nasdaq RDFN
+  "20717M103": "CFLT",  // "CONFLUENT INC" — data streaming; Nasdaq CFLT
+  "47074L105": "JAMF",  // "JAMF HLDG CORP" — Apple device mgmt; Nasdaq JAMF
+  "68134L109": "OLO",   // "OLO INC" — restaurant SaaS; NYSE OLO
+  "68339B104": "ONTF",  // "ON24 INC" — virtual events platform; NYSE ONTF
+  "85225A107": "SQSP",  // "SQUARESPACE INC" — website builder; NYSE SQSP (private 2024 via Permira)
+  "05368X102": "AVDX",  // "AVIDXCHANGE HOLDINGS INC" — AP automation; Nasdaq AVDX
+  "26856L103": "ELF",   // "E L F BEAUTY INC" — cosmetics; NYSE ELF
+  "83417Q105": "SWI",   // "SOLARWINDS CORP" — IT mgmt software; NYSE SWI (re-IPO'd 2018)
+  "83417Q204": "SWI",   // "SOLARWINDS CORP" — alternate share-class CUSIP; NYSE SWI
+  "770700102": "HOOD",  // "ROBINHOOD MKTS INC" — retail brokerage; Nasdaq HOOD
+  "29975E109": "EB",    // "EVENTBRITE INC" — event platform; NYSE EB
+  // Foreign-incorporated — Yahoo returns non-US listing
+  "G06242104": "TEAM",  // "ATLASSIAN CORP PLC" — G prefix = Cayman; Atlassian; Nasdaq TEAM
+  "M7S64H106": "MNDY",  // "MONDAY COM LTD" — M prefix = Israel; Nasdaq MNDY
+  "985194109": "YSG",   // "YATSEN HLDG LTD" — G prefix implicit; Chinese cosmetics; NYSE ADR YSG
+  "69269L104": "OZON",  // "OZON HLDGS PLC" — Russian e-commerce; delisted Nasdaq (sanctions); was Nasdaq OZON
+  "26853A100": "EHIC",  // "EHI CAR SVCS LTD" — Chinese car rental; private 2019; was NYSE EHIC
+  "68276W103": "ONE",   // "ONESMART INTL ED GROUP LTD" — Chinese edu; NYSE ONE (delisted 2021 crackdown)
+  "74704P108": "NEW",   // "PUXIN LTD" — Chinese test-prep; NYSE NEW (delisted post-crackdown)
+  "719156101": "DNK",   // "PHOENIX TREE HLDGS LTD" — Danke Apartment; NYSE DNK (delisted)
+  "76761L102": "REDU",  // "RISE ED CAYMAN LTD" — Rise Education; NYSE ADR REDU (delisted 2022)
+  "74979W101": "RYB",   // "RYB ED INC" — Chinese childcare; NYSE ADR RYB (delisted)
+  "109199109": "BEDU",  // "BRIGHT SCHOLAR ED HLDGS LTD" — Chinese edu; NYSE ADR BEDU
+  "25985W105": "DOYU",  // "DOUYU INTERNATIONAL HLDNGS L" / "DOUYU INTL HLDGS LTD" — game streaming; Nasdaq DOYU
+  "48214T305": "JTKWY", // "JUST EAT TAKEAWAY COM N V" — Dutch food delivery; US OTC ADR JTKWY
+  // Acquired companies — use last known US ticker for historical display
+  "98936J101": "ZEN",   // "ZENDESK INC" — CRM; private (Thoma Bravo 2023); was Nasdaq ZEN
+  "22266L106": "COUP",  // "COUPA SOFTWARE INC" — procurement SaaS; private (Thoma Bravo 2023); was Nasdaq COUP
+  "78489X103": "SVMK",  // "SVMK INC" — SurveyMonkey; renamed Momentive (MNTV) 2021; was Nasdaq SVMK
+  "03272L108": "PLAN",  // "ANAPLAN INC" — planning SaaS; private (Thoma Bravo 2022); was NYSE PLAN
+  "68269G107": "ONEM",  // "1LIFE HEALTHCARE INC" — One Medical; acquired Amazon 2023; was Nasdaq ONEM
+  "747601201": "XM",    // "QUALTRICS INTL INC" — experience mgmt; private (Silver Lake 2023); was Nasdaq XM
+  "86646P103": "SUMO",  // "SUMO LOGIC INC" — log analytics; private (Francisco Partners 2023); was Nasdaq SUMO
+  "64829B100": "NEWR",  // "NEW RELIC INC" — observability; private (Francisco Partners 2023); was NYSE NEWR
+  "29079J103": "EMBK",  // "EMBARK TECHNOLOGY INC" — autonomous trucks; delisted/shutdown 2023; was Nasdaq EMBK
+  "29079J202": "EMBK",  // "EMBARK TECHNOLOGY INC" — Class B CUSIP; same Nasdaq EMBK
+  "10920V107": "BHG",   // "BRIGHT HEALTH GROUP INC" — health insurance; delisted/bankrupt; was NYSE BHG
+  "85572U102": "STRY",  // "STARRY GROUP HOLDINGS INC" — fixed wireless ISP; bankrupt; was Nasdaq STRY
+  "53619W101": "LINX",  // "LINX S A" / "LINX SA" — Brazilian software; acquired TOTVS 2021; was NYSE LINX
+  "682163100": "ONDK",  // "ON DECK CAP INC" — online lending; acquired Enova 2020; was NYSE ONDK
+  "72582H107": "PVTL",  // "PIVOTAL SOFTWARE INC" — cloud platform; acquired VMware 2019; was NYSE PVTL
+  "87336U105": "DATA",  // "TABLEAU SOFTWARE INC" — analytics; acquired Salesforce 2019; was NYSE DATA
+  "46122T102": "XON",   // "INTREXON CORP" — biotech (now Precigen PGEN); was NYSE XON
+  "33812L102": "FIT",   // "FITBIT INC" — wearables; acquired Google 2021; was Nasdaq FIT
+  "83409V104": "SOGO",  // "SOGOU INC" — Chinese search; acquired Tencent 2021; was NYSE SOGO
+  "18914U100": "CLDR",  // "CLOUDERA INC" — data platform; private (KKR 2021); was NYSE CLDR
+  "090043100": "BILL",  // "BILL COM HLDGS INC" — SMB payments; Nasdaq BILL
+  "539183103": "LVGO",  // "LIVONGO HEALTH INC" — digital health; acquired Teladoc 2020; was Nasdaq LVGO
+  "584021109": "MDLA",  // "MEDALLIA INC" — CX platform; private (Thoma Bravo 2021); was NYSE MDLA
+  "418100103": "HCP",   // "HASHICORP INC" — infrastructure software; acquired IBM 2024; was Nasdaq HCP
+  "60878Y108": "MNTV",  // "MOMENTIVE GLOBAL INC" — SurveyMonkey rebranded; private (STG 2023); was Nasdaq MNTV
+  "23821D100": "MSP",   // "DATTO HLDG CORP" — MSP platform; acquired Kaseya 2022; was NYSE MSP
+  "23344D108": "DADA",  // "DADA NEXUS LTD" — Chinese on-demand delivery; private (JD.com 2024); was Nasdaq DADA
+  "16955F107": "CD",    // "CHINDATA GROUP HLDGS LTD" — Chinese data centers; private (Bain 2023); was Nasdaq CD
+  "49926T104": "KNBE",  // "KNOWBE4 INC" — security training; private (Vista Equity 2023); was Nasdaq KNBE
+  "30744W107": "FTCH",  // "FARFETCH LTD" — luxury marketplace; delisted/bankrupt 2023; was NYSE FTCH
+  "67181A107": "OSH",   // "OAK STR HEALTH INC" — primary care; acquired CVS 2023; was NYSE OSH
+  "577096100": "MTTR",  // "MATTERPORT INC" — 3D spatial data; Nasdaq MTTR (private 2024 via CoStar)
+  "02589Y100": "AFCO",  // "AMERICAN FARMLAND CO" — farmland REIT; merged Farmland Partners (FPI) 2017; was NYSE AFCO
+  "87336U105": "DATA",  // "TABLEAU SOFTWARE INC" — acquired Salesforce 2019; was NYSE DATA
+  // SPACs (pre-merger or at-listing ticker)
+  "G0370L124": "AGC",   // "ALTIMETER GROWTH CORP" — SPAC; merged Grab Holdings (GRAB) Dec 2021; was Nasdaq AGC
+  "G8354H100": "SRNG",  // "SOARING EAGLE ACQUISITION CO" — SPAC; merged Ginkgo Bioworks (DNA); was Nasdaq SRNG
+  "G5S74L106": "MEKA",  // "MELI KASZEK PIONEER CORP" — SPAC (MercadoLibre/Kaszek); was Nasdaq MEKA
+  "G54085124": "LEGA",  // "LEAD EDGE GROWTH OPRTUNTS LT" — Lead Edge Growth SPAC; was Nasdaq LEGA
+  "76155Y207": "REVH",  // "REVOLUTION HEALTHCAR AQ CORP" — SPAC; merged Alignment Healthcare (ALHC); was Nasdaq REVH
+  "96951B201": "WRAC",  // "WILLIAMS ROWLAND ACQUISITION" — SPAC; was NYSE WRAC
+  "G7282L118": "PAQC",  // "PROVIDENT ACQUISITION CORP" — SPAC; was Nasdaq PAQC
+  "G8601M100": "SVFB",  // "SVF INVESTMENT CORP 2" — SoftBank Vision Fund SPAC #2; was Nasdaq SVFB
+  "G8601N108": "SVFC",  // "SVF INVESTMENT CORP 3" — SoftBank Vision Fund SPAC #3; was Nasdaq SVFC
+  // Active stocks Yahoo missed — acquired or delisted
+  "G81477104": "SINA",  // "SINA CORP" — Chinese news portal; went private Jul 2021; was Nasdaq SINA
+  "264120106": "DCT",   // "DUCK CREEK TECHNOLOGIES INC" — P&C insurance SaaS; private (Vista Equity 2023); was Nasdaq DCT
+  "29260Y109": "EDR",   // "ENDEAVOR GROUP HLDGS INC" — entertainment/sports; NYSE EDR
+  "848637104": "SPLK",  // "SPLUNK INC" — data/security platform; acquired Cisco Mar 2024; was Nasdaq SPLK
+  // ── End Tiger Global Management-sourced fixes ──────────────────────────────────────
 };
 
 /**
@@ -1125,6 +1230,7 @@ const TRACKED_FUNDS = [
   { cik: "1720792", name: "Ruane, Cunniff & Goldfarb", slug: "ruane-cunniff",               proprietor: "David Poppe"       },
   { cik: "1569205", name: "FundSmith LLP",             slug: "fundsmith",                   proprietor: "Terry Smith"        },
   { cik: "1647251", name: "TCI Fund Management",       slug: "tci-fund-management",          proprietor: "Christopher Hohn"  },
+  { cik: "1167483", name: "Tiger Global Management",   slug: "tiger-global",                  proprietor: "Chase Coleman"     },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

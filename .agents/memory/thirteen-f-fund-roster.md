@@ -25,6 +25,7 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Ruane, Cunniff & Goldfarb | 1720792 | ruane-cunniff | David Poppe | ~27–57 |
 | FundSmith LLP | 1569205 | fundsmith | Terry Smith | ~16–43 |
 | TCI Fund Management | 1647251 | tci-fund-management | Christopher Hohn | ~5–17 |
+| Tiger Global Management | 1167483 | tiger-global | Chase Coleman | ~20–165 |
 
 ## Generation Investment Management-specific notes
 

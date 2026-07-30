@@ -116,6 +116,12 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "Pat Dorsey — Interview (Focused Compounding)", url: "https://focusedcompounding.com/pat-dorsey/", type: "commentary", description: "In-depth interviews with Pat Dorsey on moat investing, portfolio concentration, and stock analysis." },
     { title: "SEC EDGAR — Dorsey Asset Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1671657&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
   ],
+  "1167483": [ // Tiger Global Management — Chase Coleman
+    { title: "Tiger Global Management — Official Website", url: "https://www.tigerglobal.com/", type: "website", description: "Firm overview covering Tiger Global's public equity and private investment activities across global technology and internet businesses." },
+    { title: "Chase Coleman — Wikipedia", url: "https://en.wikipedia.org/wiki/Chase_Coleman_III", type: "article", description: "Background on Coleman's career as a protégé of Julian Robertson at Tiger Management and his founding of Tiger Global in 2001." },
+    { title: "Tiger Global Management — Wikipedia", url: "https://en.wikipedia.org/wiki/Tiger_Global_Management", type: "article", description: "History of the firm, its evolution from a Tiger Cub hedge fund into a dual public/private equity investor, and its major positions in global technology companies." },
+    { title: "SEC EDGAR — Tiger Global Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1167483&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
   "1647251": [ // TCI Fund Management — Christopher Hohn
     { title: "TCI Fund Management — Official Website", url: "https://www.tcifund.com/", type: "website", description: "Firm overview and investment approach from Christopher Hohn's concentrated, long-term, high-conviction fund." },
     { title: "Christopher Hohn — Wikipedia", url: "https://en.wikipedia.org/wiki/Christopher_Hohn", type: "article", description: "Background on Hohn's career, TCI's founding, his activist campaigns, and his philanthropy through The Children's Investment Fund Foundation." },

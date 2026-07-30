@@ -116,6 +116,13 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "Pat Dorsey — Interview (Focused Compounding)", url: "https://focusedcompounding.com/pat-dorsey/", type: "commentary", description: "In-depth interviews with Pat Dorsey on moat investing, portfolio concentration, and stock analysis." },
     { title: "SEC EDGAR — Dorsey Asset Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1671657&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
   ],
+  "1720792": [ // Ruane, Cunniff & Goldfarb — David Poppe (Sequoia Fund)
+    { title: "Sequoia Fund — Official Website", url: "https://www.sequoiafund.com/", type: "website", description: "Shareholder letters, annual reports, and commentary from the managers of the Sequoia Fund, one of the most storied concentrated value funds in America." },
+    { title: "Sequoia Fund — Shareholder Letters", url: "https://www.sequoiafund.com/investor-resources/", type: "report", description: "Annual and semi-annual letters to Sequoia Fund shareholders covering portfolio activity, business analysis, and long-term investment thinking." },
+    { title: "Ruane, Cunniff & Goldfarb — Wikipedia", url: "https://en.wikipedia.org/wiki/Ruane,_Cunniff_%26_Goldfarb", type: "article", description: "History of the firm, its founding by William Ruane on Warren Buffett's personal recommendation in 1969, and its long association with the Sequoia Fund." },
+    { title: "Sequoia Fund — Wikipedia", url: "https://en.wikipedia.org/wiki/Sequoia_Fund", type: "article", description: "Overview of the Sequoia Fund's founding, long-term performance record, concentration philosophy, and the Valeant Pharmaceuticals controversy." },
+    { title: "SEC EDGAR — Ruane, Cunniff & Goldfarb 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1720792&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
 };
 
 const LINK_TYPE_STYLES: Record<FundLink["type"], { label: string; cls: string }> = {

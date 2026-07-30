@@ -445,6 +445,33 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "02156B103": "AYX",  // "ALTERYX INC" — taken private Mar 2024; was NYSE AYX
   "05338G106": "AVLR", // "AVALARA INC" — acquired Oct 2022; was NYSE AVLR
   "73739W104": "POSH", // "POSHMARK INC" — acquired by Naver Jan 2023; was NASDAQ POSH
+  // ── Ruane, Cunniff & Goldfarb-sourced fixes ───────────────────────────────────────
+  // Active stocks Yahoo CUSIP lookup missed or returned wrong exchange
+  "469814107": "J",    // "JACOBS ENGR GROUP INC" — renamed to Jacobs Solutions; ticker changed JEC→J in 2019; NYSE as J
+  "302130109": "EXPD", // "EXPEDITORS INTL WASH INC" — active logistics company; Yahoo missed CUSIP; NASDAQ as EXPD
+  "78463M107": "SPSC", // "SPS COMM INC" — active supply-chain SaaS; Yahoo missed CUSIP; NASDAQ as SPSC
+  "025537101": "AEP",  // "AMERICAN ELEC PWR CO INC" — active utility; Yahoo missed CUSIP; NASDAQ as AEP
+  // Foreign-incorporated / foreign exchange collisions
+  "N31738102": "FCAU", // "FIAT CHRYSLER AUTOMOBILES N" — Dutch-incorporated; Yahoo returns EU listing; was NYSE FCAU (merged into Stellantis 2021)
+  "N97284108": "YNDX", // "YANDEX N V" — Dutch holding for Russian internet co.; delisted from Nasdaq 2023; was NASDAQ YNDX
+  "N0731H103": "ATAI", // "ATAI LIFE SCIENCES NV" — Dutch-incorporated German biotech; Yahoo returns EU listing; was NASDAQ ATAI
+  "463588103": "IRCP", // "IRSA PROPIEDADES COMERCIALES" — Argentine real estate ADS; was NYSE IRCP
+  "G6455X107": "NETS", // "NETSHOES CAYMAN LTD" — Cayman-incorporated Brazilian e-com; acquired by Magazine Luiza 2019; was NYSE NETS
+  // Acquired / taken-private
+  "05591B109": "BMCH", // "BMC STK HLDGS INC" — building products distributor; acquired by US LBM 2018; was NASDAQ BMCH
+  "54561105":  "EQH",  // "AXA EQUITABLE HLDGS INC" — renamed Equitable Holdings; was NYSE EQH
+  "054561105": "EQH",  // "AXA EQUITABLE HLDGS INC" — renamed Equitable Holdings; was NYSE EQH (both 8 and 9-char forms)
+  "78781P105": "SAIL", // "SAILPOINT TECHNLGIES HLDGS" — went private 2022 (Vista Equity); re-IPO'd Nov 2024; was NASDAQ SAIL
+  "362393100": "GTT",  // "GTT COMMUNICATIONS INC" — telecom; filed Ch.11 2021, delisted; was NYSE GTT
+  "81367P101": "SECO", // "SECOO HLDG LTD" — Chinese luxury e-commerce ADS; delisted; was NASDAQ SECO
+  "46005L101": "IMXI", // "INTERNATIONAL MNY EXPRESS IN" — Intermex Wire Transfer; was NASDAQ IMXI
+  // SPACs / blank-check companies
+  "362409104": "GTYH", // "GTY TECHNOLOGY HOLDINGS INC" — govtech SPAC; completed merger 2019, went private; was NASDAQ GTYH
+  "48581R205": "KSPI", // "KASPI KZ JSC" — Kazakh fintech; listed on Nasdaq as KSPI since 2024
+  // ETF/fund price-matched identifications
+  "922908769": "VTI",  // "VANGUARD INDEX FDS" — Vanguard Total Stock Market ETF; $127.57/share Q4 2018 & ~$285/share 2024 match VTI
+  "921909768": "VGLT", // "VANGUARD STAR FDS" — Vanguard Long-Term Government Bond ETF; $62-77/share 2025-2026 matches VGLT duration/rate profile
+  // ── End Ruane, Cunniff & Goldfarb-sourced fixes ───────────────────────────────────
 };
 
 /**
@@ -1095,6 +1122,7 @@ const TRACKED_FUNDS = [
   { cik: "1375534", name: "Generation Investment Mgmt", slug: "generation-investment",       proprietor: "Al Gore"           },
   { cik: "1112520", name: "Akre Capital Management",   slug: "akre-capital",                proprietor: "Chuck Akre"        },
   { cik: "1656456", name: "Appaloosa LP",              slug: "appaloosa",                   proprietor: "David Tepper"      },
+  { cik: "1720792", name: "Ruane, Cunniff & Goldfarb", slug: "ruane-cunniff",               proprietor: "David Poppe"       },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

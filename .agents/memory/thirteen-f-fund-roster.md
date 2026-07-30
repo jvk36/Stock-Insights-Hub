@@ -22,6 +22,7 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Generation Investment Mgmt | 1375534 | generation-investment | Al Gore | ~29–50 |
 | Akre Capital Management | 1112520 | akre-capital | Chuck Akre | ~17–31 |
 | Appaloosa LP | 1656456 | appaloosa | David Tepper | ~20–57 |
+| Ruane, Cunniff & Goldfarb | 1720792 | ruane-cunniff | David Poppe | ~27–57 |
 
 ## Generation Investment Management-specific notes
 

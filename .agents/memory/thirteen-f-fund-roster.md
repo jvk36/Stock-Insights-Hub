@@ -28,6 +28,16 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Tiger Global Management | 1167483 | tiger-global | Chase Coleman | ~20–165 |
 | Fairfax Financial Holdings | 915191 | fairfax-financial | Prem Watsa | ~26–65 |
 | Duquesne Family Office | 1536411 | duquesne-family-office | Stanley Druckenmiller | ~29–74 |
+| Third Point LLC | 1040273 | third-point | Daniel Loeb | ~25–55 |
+
+## Third Point LLC-specific notes
+
+- **Files in raw dollars** (user confirmed) — auto-detection divided correctly; values stored as thousands.
+- **Event-driven activist + massive SPAC exposure** — largest activist targets: Sotheby's (BID, $4.5B), IAA (IAA, $2.6B), Black Knight (BKI, $1.25B), Catalent (CTLT), Global Blue (GB), Kadmon (KDMN). SPAC positions dominated 2019–2022 (Far Point FPAC $3B+, Khosla, Go Acquisition, Compute Health, ION 3, JAWS, FinTech V, etc.).
+- **~138 total CUSIP overrides** applied across two SQL passes. Final null count: **0 / 1,789 holdings** (100%).
+- **Key CUSIP patterns**: H-prefix Swiss company (Global Blue: `GB`), N-prefix Dutch company (Frank's International: `FI`), G-prefix Cayman SPACs (~60 distinct SPACs), unit-class variants of SPACs share ticker with the base class.
+- **SPAC ticker convention**: multiple CUSIPs per SPAC (units `*U`, class A, warrants) all map to the pre-merger equity ticker. Applied consistently across all ~60 Third Point SPAC positions.
+- **Far Point vs Far Peak**: two distinct SPACs — Far Point Acquisition Corp (`FPAC`, CUSIP `30734W*`) and Far Peak Acquisition Corp (`FPAA`, CUSIP `G3312L*`). Do not confuse them.
 
 ## Duquesne Family Office-specific notes
 

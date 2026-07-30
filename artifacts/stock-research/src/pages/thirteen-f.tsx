@@ -116,6 +116,14 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "Pat Dorsey — Interview (Focused Compounding)", url: "https://focusedcompounding.com/pat-dorsey/", type: "commentary", description: "In-depth interviews with Pat Dorsey on moat investing, portfolio concentration, and stock analysis." },
     { title: "SEC EDGAR — Dorsey Asset Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1671657&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
   ],
+  "1040273": [ // Third Point LLC — Daniel Loeb
+    { title: "Third Point LLC — Official Website", url: "https://www.thirdpoint.com/", type: "website", description: "Firm overview, investment philosophy, and investor resources from Dan Loeb's event-driven and activist hedge fund." },
+    { title: "Third Point Investor Letters", url: "https://www.thirdpoint.com/news", type: "report", description: "Third Point's quarterly investor letters, one of the most closely read documents on Wall Street for their candid assessments of portfolio companies and macro conditions." },
+    { title: "Daniel Loeb — Wikipedia", url: "https://en.wikipedia.org/wiki/Daniel_Loeb", type: "article", description: "Background on Loeb's career, his founding of Third Point in 1995, and his reputation for activist investing and sharply-worded letters to corporate management." },
+    { title: "Third Point LLC — Wikipedia", url: "https://en.wikipedia.org/wiki/Third_Point_LLC", type: "article", description: "Overview of Third Point's strategy, notable activist campaigns (Sony, Sotheby's, Campbell Soup, Shell), and its evolution into a multi-strategy fund." },
+    { title: "Daniel Loeb at the 2022 SALT Conference", url: "https://www.youtube.com/watch?v=3Q0JkX3g2Oo", type: "video", description: "Loeb discusses macro conditions, the transition from growth to value investing, and his approach to event-driven and activist opportunities." },
+    { title: "SEC EDGAR — Third Point LLC 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1040273&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
   "1536411": [ // Duquesne Family Office — Stanley Druckenmiller
     { title: "Stanley Druckenmiller — Wikipedia", url: "https://en.wikipedia.org/wiki/Stanley_Druckenmiller", type: "article", description: "Career overview: Druckenmiller's run at Duquesne Capital (1981–2010), his years as lead portfolio manager for George Soros, the trade that broke the Bank of England, and his conversion to a family office." },
     { title: "Stanley Druckenmiller — CNBC Interview Archive", url: "https://www.cnbc.com/stanley-druckenmiller/", type: "video", description: "Collection of Druckenmiller's televised interviews covering macro views, market structure, monetary policy, and portfolio positioning." },

@@ -708,6 +708,128 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "G28302100": "DRGN",   // "DRAGONEER GROWTH OPPORTUN CO" — G prefix = Cayman; SPAC; Nasdaq DRGN
   "020398707": "ALMTF",  // "ALMONTY INDS INC" — Canadian tungsten miner; US OTC ALMTF
   // ── End Duquesne Family Office-sourced fixes ────────────────────────────────────────
+  // ── Third Point LLC-sourced fixes ──────────────────────────────────────────────────
+  // Activist/event-driven targets — acquired, delisted, or merged
+  "835898107": "BID",    // "SOTHEBYS" — taken private Patrick Drahi 2019; was NYSE BID
+  "449253103": "IAA",    // "IAA INC" — acquired Ritchie Bros. 2023; was NYSE IAA
+  "09215C105": "BKI",    // "BLACK KNIGHT INC" — acquired ICE 2023; was NYSE BKI
+  "148806102": "CTLT",   // "CATALENT INC" — acquired Novo Holdings 2024; was NYSE CTLT
+  "48283N106": "KDMN",   // "KADMON HLDGS INC" — acquired Sanofi 2021; was NYSE KDMN
+  "13781Y103": "CANO",   // "CANO HEALTH INC" — bankrupt 2024; was NYSE CANO
+  "74978Q105": "RSPP",   // "RSP PERMIAN INC" — acquired Concho Resources 2018; was NYSE RSPP
+  "701877102": "PE",     // "PARSLEY ENERGY INC" — acquired Pioneer Natural Resources 2021; was NYSE PE
+  "92210H105": "VNTV",   // "VANTIV INC" — merged → Worldpay 2018; was NYSE VNTV
+  "98919V105": "ZAYO",   // "ZAYO GROUP HLDGS INC" — taken private EQT/Digital Bridge 2020; was NYSE ZAYO
+  "92332V107": "VTYX",   // "VENTYX BIOSCIENCES INC" — acquired AbbVie ~2024; was Nasdaq VTYX
+  "294600101": "ETRN",   // "EQUITRANS MIDSTREAM CORP" — acquired EQT Corp 2024; was NYSE ETRN
+  "790849103": "STJ",    // "ST JUDE MED INC" — acquired Abbott 2017; was NYSE STJ
+  "24790A101": "DEN",    // "DENBURY INC" — acquired ExxonMobil 2023; was NYSE DEN
+  "742962103": "PVTB",   // "PRIVATEBANCORP INC" — acquired CIBC 2017; was Nasdaq PVTB
+  "586001109": "SHCO",   // "MEMBERSHIP COLLECTIVE GROUP" / "SOHO HOUSE & CO INC" — same CUSIP; NYSE SHCO
+  "21077C107": "WISH",   // "CONTEXTLOGIC INC" — bankrupt 2024; was Nasdaq WISH
+  "03765N108": "APIC",   // "APIGEE CORP" — acquired Google 2016; was Nasdaq APIC
+  "03940F111": "LFG",    // "ARCHAEA ENERGY INC" — acquired BP 2022; was NYSE LFG
+  "413875105": "HRS",    // "HARRIS CORP DEL" — merged → L3Harris 2019; was NYSE HRS
+  "966387102": "WLL",    // "WHITING PETE CORP NEW" — acquired Chord Energy 2022; was NYSE WLL
+  "98212B103": "WPX",    // "WPX ENERGY INC" — merged Devon Energy 2021; was NYSE WPX
+  "69526K105": "PTVE",   // "PACTIV EVERGREEN INC" — taken private 2023; was Nasdaq PTVE
+  "81663L101": "SMFR",   // "SEMA4 HOLDINGS CORP" — became GeneDx Holdings (WGS); was Nasdaq SMFR
+  "892672106": "TW",     // "TRADEWEB MKTS INC" — still public; Yahoo CUSIP collision; Nasdaq TW
+  "85572U110": "STRY",   // "STARRY GROUP HOLDINGS INC" — bankrupt 2023; was NYSE STRY
+  "36467J108": "GLPI",   // "GAMING & LEISURE PPTYS INC" — still public; Yahoo collision; Nasdaq GLPI
+  "29670E107": "EPRT",   // "ESSENTIAL PPTYS RLTY TR INC" — still public; Yahoo collision; NYSE EPRT
+  // Foreign-incorporated — Yahoo returns non-US listing
+  "H33700115": "GB",     // "GLOBAL BLUE GROUP HOLDING AG" — H prefix = Switzerland; NYSE GB (still public)
+  "H33700107": "GB",     // "GLOBAL BLUE GROUP HOLDING AG" — H prefix, unit class; same NYSE GB
+  "N33462107": "FI",     // "FRANKS INTL N V" — N prefix = Netherlands; merged → Expro 2021; was NYSE FI
+  "G28923103": "DSEY",   // "DIVERSEY HLDGS LTD" — G prefix = Cayman; taken private 2023; Nasdaq DSEY
+  // SPACs — Third Point was a major SPAC investor 2019-2022; ~60 distinct positions
+  "30734W109": "FPAC",   // "FAR PT ACQUISITION CORP" — Far Point Acquisition Corp; NYSE FPAC (Third Point affiliate)
+  "30734W208": "FPAC",   // "FAR PT ACQUISITION CORP" — unit class; same FPAC
+  "482506102": "KVSA",   // "KHOSLA VENTURES ACQUT CO III" — NYSE KVSA
+  "482504107": "KVSB",   // "KHOSLA VENTURES ACQUISITION" — Khosla I or II; NYSE KVSB
+  "362019119": "GOAC",   // "GO ACQUISITION CORP" — NYSE GOAC
+  "362019200": "GOAC",   // "GO ACQUISITION CORP" — unit class; same GOAC
+  "204833115": "CPUH",   // "COMPUTE HEALTH ACQUISITIN CO" — NYSE CPUH
+  "G4940J114": "IACC",   // "ION ACQUISITION CORP 3 LTD" — G prefix; NYSE IACC
+  "G50744104": "JAWS",   // "JAWS ACQUISITION CORP" — G prefix; Peter Thiel SPAC; NYSE JAWS
+  "31810Q107": "FTCV",   // "FINTECH ACQUISITION CORP V" — NYSE FTCV (merged → eToro)
+  "G0633U127": "ASZ",    // "AUSTERLITZ ACQUISITION CORP" — G prefix; NYSE ASZ
+  "G75529126": "RONI",   // "RICE ACQUISITION CORP II" — G prefix; NYSE RONI
+  "526749106": "LHAA",   // "LERER HIPPEAU ACQUISITION CO" — NYSE LHAA
+  "344328117": "BFT",    // "FOLEY TRASIMENE ACQUISITION" — Foley Trasimene Acq II; NYSE BFT
+  "G2770Y110": "DISA",   // "DISRUPTIVE ACQUISITION CORP" — G prefix; NYSE DISA
+  "G2770Y128": "DISA",   // "DISRUPTIVE ACQUISITION CORP" — G prefix, unit class; same DISA
+  "G23726113": "CRHC",   // "COHN ROBBINS HOLDINGS CORP" — G prefix; Gary Cohn SPAC; NYSE CRHC
+  "G82514129": "IPOE",   // "SOCIAL CAPITAL HEDOSOPHA HLD" — G prefix; Chamath SPAC V; NYSE IPOE
+  "G8251L113": "IPOD",   // "SOCIAL CAPITAL HEDOSOPHA HLD" — G prefix; Chamath SPAC IV; NYSE IPOD
+  "33765Y119": "FMAC",   // "FIRSTMARK HORIZON ACQUISITIO" — FirstMark Horizon Acquisition Corp; NYSE FMAC
+  "33765Y200": "FMAC",   // "FIRSTMARK HORIZON ACQUISITIO" — unit class; same FMAC
+  "G75130123": "RPLA",   // "REPLAY ACQUISITION CORP" — G prefix; NYSE RPLA
+  "G9444H100": "VYGG",   // "VY GLOBAL GROWTH" — G prefix; VY Capital Acquisition; NYSE VYGG
+  "G1195N113": "BLUA",   // "BLUESCAPE OPPORTUNITIES ACQU" — G prefix; NYSE BLUA
+  "G1195N121": "BLUA",   // "BLUESCAPE OPPORTUNITIES ACQU" — G prefix, unit class; same BLUA
+  "G34142102": "FWAB",   // "FIFTH WALL ACQUISITN CORP II" — G prefix; NYSE FWAB
+  "G3312L129": "FPAA",   // "FAR PEAK ACQUISITION CORP" — G prefix; NYSE FPAA (distinct from Far Point FPAC)
+  "G49393120": "IACB",   // "ION ACQUISITION CORP 2 LTD" — G prefix; NYSE IACB
+  "G54094118": "LDHA",   // "LDH GROWTH CORP I" — G prefix; NYSE LDHA
+  "G0R21B120": "ACTD",   // "ARCLIGHT CLEAN TRANSITION II" — G prefix; NYSE ACTD
+  "G8210L113": "SLAM",   // "SLAM CORP" — G prefix; NYSE SLAM
+  "83363K201": "SLAC",   // "SOCIAL LEVERAGE ACQUISN CORP" — NYSE SLAC
+  "G1330M129": "BWAQ",   // "BLUE WHALE ACQUISITION CORP" — G prefix; NYSE BWAQ
+  "G1330M111": "BWAQ",   // "BLUE WHALE ACQUISITION CORP" — G prefix, unit class; same BWAQ
+  "G5462L114": "LVRA",   // "LEVERE HOLDINGS CORP" — G prefix; NYSE LVRA
+  "65413D113": "NDAC",   // "NIGHTDRAGON ACQUISITION CORP" — NYSE NDAC
+  "65413D204": "NDAC",   // "NIGHTDRAGON ACQUISITION CORP" — unit class; same NDAC
+  "G5960S124": "MSAC",   // "MEDICUS SCIENCES ACQUISITION" — G prefix; NYSE MSAC
+  "G5960S116": "MSAC",   // "MEDICUS SCIENCES ACQUISITION" — G prefix, unit class
+  "G5960S108": "MSAC",   // "MEDICUS SCIENCES ACQUISITION" — G prefix, unit class
+  "G58442115": "MARC",   // "MARQUEE RAINE ACQUISITION CO" — G prefix; NYSE MARC
+  "G58442123": "MARC",   // "MARQUEE RAINE ACQUISITION CO" — G prefix, unit class; same MARC
+  "88825H118": "TSIA",   // "TISHMAN SPEYER INNOVATION CO" — Tishman Speyer Innovation Corp; NYSE TSIA
+  "88825H209": "TSIA",   // "TISHMAN SPEYER INNOVATION CO" — unit class; same TSIA
+  "62752R209": "TMAC",   // "THE MUSIC ACQUISITION CORP" — NYSE TMAC
+  "40749M202": "HLAH",   // "HAMILTON LANE ALLIANCE HLDGS" — NYSE HLAH
+  "125841205": "CMLT",   // "CM LIFE SCIENCES III INC" — NYSE CMLT
+  "855185104": "STPK",   // "STAR PEAK ENERGY TRANSITION" — merged → Stem Inc; was NYSE STPK
+  "44487N208": "HMCO",   // "HUMANCO ACQUISITION CORP" — NYSE HMCO
+  "38286R105": "GHVI",   // "GORES HOLDINGS VI INC" — Gores Holdings VI; NYSE GHVI
+  "G0447J110": "APNB",   // "ANGEL POND HOLDINGS CORP" — G prefix; SE Asia SPAC; NYSE APNB
+  "G1355V103": "BTNB",   // "BRIDGETOWN 2 HOLDINGS LTD" — G prefix; Peter Thiel/Richard Li; NYSE BTNB
+  "302438205": "FACA",   // "FIGURE ACQUISITION CORP I" — Figure Acquisition Corp I; NYSE FACA
+  "G39714111": "HHLA",   // "HH&L ACQUISITION CO" — G prefix; NYSE HHLA
+  "316790104": "FWAA",   // "FIFTH WALL ACQUISITION CORP" — Fifth Wall Acquisition Corp (I); NYSE FWAA
+  "855179206": "STPC",   // "STAR PEAK CORP II" — Star Peak Corp II; NYSE STPC
+  "G8598Y117": "SOAC",   // "SUSTAINABLE OPPORTNTS ACQ CO" — G prefix; NYSE SOAC
+  "187171202": "CLIM",   // "CLIMATE REAL IMPACT SLUTINS" — Climate Real Impact Solutions; NYSE CLIM
+  "G50740110": "JWSM",   // "JAWS SPITFIRE ACQUISITION CO" — G prefix; NYSE JWSM
+  "47201B202": "JWSA",   // "JAWS HURRICANE ACQUISITN COR" — JAWS Hurricane Acquisition Corp; NYSE JWSA
+  "989570205": "ZTAQ",   // "ZIMMER ENERGY TRANSITION ACQ" — Zimmer Energy Transition; NYSE ZTAQ
+  "54141L118": "LITT",   // "LOGISTICS INNOVTN TECHNLGS C" — Logistics Innovation Technologies; NYSE LITT
+  "54141L209": "LITT",   // "LOGISTICS INNOVTN TECHNLGS C" — unit class; same LITT
+  // Third Point — second-pass unit-class variants & newly-surfaced CUSIPs
+  "47201B111": "JWSA",   // "JAWS HURRICANE ACQUISITN COR" — unit class A; same JAWS Hurricane
+  "G9460A104": "VACQ",   // "VECTOR ACQUISITION CORP II" — G prefix; NYSE VACQ (merged → Rocket Lab RKLB)
+  "G0370L116": "AGC",    // "ALTIMETER GROWTH CORP" — G prefix; Brad Gerstner SPAC; NYSE AGC (merged → Grab GRAB)
+  "G0633D117": "ASC",    // "AUSTERLITZ ACQUISITION CORP" — G prefix; Austerlitz I (different from II=ASZ); NYSE ASC
+  "G23726121": "CRHC",   // "COHN ROBBINS HOLDINGS CORP" — G prefix, unit class; same CRHC
+  "344328208": "BFT",    // "FOLEY TRASIMENE ACQUISITION" — unit class; same BFT
+  "83363K110": "SLAC",   // "SOCIAL LEVERAGE ACQUISN CORP" — unit class; same SLAC
+  "881609101": "TSO",    // "TESORO CORP" — Tesoro Corporation; renamed Andeavor (ANDV) 2017; was NYSE TSO
+  "87257M116": "TLGA",   // "TLG ACQUISITION ONE CORP" — TLG Acquisition One Corp; NYSE TLGA
+  "482505104": "KVSA",   // "KHOSLA VENTURES ACQUSTN CO I" — explicitly Khosla I; NYSE KVSA
+  "G3312L111": "FPAA",   // "FAR PEAK ACQUISITION CORP" — G prefix, unit class; same Far Peak FPAA
+  "78463V107": "GLD",    // "SPDR GOLD TR" — SPDR Gold Trust; Yahoo CUSIP collision; NYSE GLD
+  "40537Q605": "HK",     // "HALCON RES CORP" — Halcon Resources Corp; NYSE HK (eventually acquired/merged)
+  "18978W109": "CMLS",   // "CM LIFE SCIENCES INC" — CM Life Sciences Inc (I); NYSE CMLS
+  "16115Q308": "GTLS",   // "CHART INDS INC" — Chart Industries; still public; Yahoo collision; NYSE GTLS
+  "G50740128": "JWSM",   // "JAWS SPITFIRE ACQUISITION CO" — G prefix, unit class; same JWSM
+  "44487N117": "HMCO",   // "HUMANCO ACQUISITION CORP" — unit class; same HMCO
+  "G75529118": "RONI",   // "RICE ACQUISITION CORP II" — G prefix, unit class; same RONI
+  "G9460N114": "VLAT",   // "VALOR LATITUDE ACQUISITN COR" — G prefix; NYSE VLAT
+  "G8990D125": "TPGB",   // "TPG PACE BEN FIN CORP" — G prefix; TPG Pace Beneficial Finance; NYSE TPGB
+  "292766102": "ERF",    // "ENERPLUS CORP" — Canadian E&P company; NYSE ADR ERF
+  // ── End Third Point LLC-sourced fixes ───────────────────────────────────────────────
 };
 
 /**
@@ -1364,6 +1486,7 @@ const TRACKED_FUNDS = [
   { cik: "1167483", name: "Tiger Global Management",   slug: "tiger-global",                  proprietor: "Chase Coleman"     },
   { cik: "915191",  name: "Fairfax Financial Holdings", slug: "fairfax-financial",             proprietor: "Prem Watsa"        },
   { cik: "1536411", name: "Duquesne Family Office",     slug: "duquesne-family-office",         proprietor: "Stanley Druckenmiller" },
+  { cik: "1040273", name: "Third Point LLC",            slug: "third-point",                    proprietor: "Daniel Loeb"             },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

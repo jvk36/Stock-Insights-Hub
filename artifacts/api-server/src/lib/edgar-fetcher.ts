@@ -1123,6 +1123,7 @@ const TRACKED_FUNDS = [
   { cik: "1112520", name: "Akre Capital Management",   slug: "akre-capital",                proprietor: "Chuck Akre"        },
   { cik: "1656456", name: "Appaloosa LP",              slug: "appaloosa",                   proprietor: "David Tepper"      },
   { cik: "1720792", name: "Ruane, Cunniff & Goldfarb", slug: "ruane-cunniff",               proprietor: "David Poppe"       },
+  { cik: "1569205", name: "FundSmith LLP",             slug: "fundsmith",                   proprietor: "Terry Smith"        },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

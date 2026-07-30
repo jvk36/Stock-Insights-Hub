@@ -116,6 +116,13 @@ const FUND_LINKS: Record<string, FundLink[]> = {
     { title: "Pat Dorsey — Interview (Focused Compounding)", url: "https://focusedcompounding.com/pat-dorsey/", type: "commentary", description: "In-depth interviews with Pat Dorsey on moat investing, portfolio concentration, and stock analysis." },
     { title: "SEC EDGAR — Dorsey Asset Management 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1671657&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
   ],
+  "1569205": [ // FundSmith LLP — Terry Smith
+    { title: "FundSmith — Official Website", url: "https://www.fundsmith.co.uk/", type: "website", description: "Investor updates, annual letters, and the firm's philosophy of buying and holding great businesses at sensible prices." },
+    { title: "FundSmith Annual Shareholder Letters", url: "https://www.fundsmith.co.uk/investor-resources/fund-documents", type: "report", description: "Terry Smith's annual letters to investors, covering portfolio activity, business quality, and long-term investment thinking." },
+    { title: "Terry Smith — Wikipedia", url: "https://en.wikipedia.org/wiki/Terry_Smith_(fund_manager)", type: "article", description: "Background on Terry Smith's career, the founding of FundSmith in 2010, and his concentrated buy-and-hold approach." },
+    { title: "Terry Smith — Interview (The Investor's Podcast, 2021)", url: "https://www.youtube.com/watch?v=yHcIy0p-dXA", type: "video", description: "Smith discusses his three investment rules: buy good companies, don't overpay, and do nothing. A rare long-form conversation with one of the UK's most outspoken fund managers." },
+    { title: "SEC EDGAR — FundSmith LLP 13F Filings", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=1569205&type=13F", type: "report", description: "Direct link to all 13F-HR filings on SEC EDGAR." },
+  ],
   "1720792": [ // Ruane, Cunniff & Goldfarb — David Poppe (Sequoia Fund)
     { title: "Sequoia Fund — Official Website", url: "https://www.sequoiafund.com/", type: "website", description: "Shareholder letters, annual reports, and commentary from the managers of the Sequoia Fund, one of the most storied concentrated value funds in America." },
     { title: "Sequoia Fund — Shareholder Letters", url: "https://www.sequoiafund.com/investor-resources/", type: "report", description: "Annual and semi-annual letters to Sequoia Fund shareholders covering portfolio activity, business analysis, and long-term investment thinking." },

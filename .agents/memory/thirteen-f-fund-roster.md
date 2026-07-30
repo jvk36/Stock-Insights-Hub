@@ -23,6 +23,7 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Akre Capital Management | 1112520 | akre-capital | Chuck Akre | ~17–31 |
 | Appaloosa LP | 1656456 | appaloosa | David Tepper | ~20–57 |
 | Ruane, Cunniff & Goldfarb | 1720792 | ruane-cunniff | David Poppe | ~27–57 |
+| FundSmith LLP | 1569205 | fundsmith | Terry Smith | ~16–43 |
 
 ## Generation Investment Management-specific notes
 

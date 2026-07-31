@@ -30,6 +30,7 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Duquesne Family Office | 1536411 | duquesne-family-office | Stanley Druckenmiller | ~29–74 |
 | Third Point LLC | 1040273 | third-point | Daniel Loeb | ~25–55 |
 | Icahn Capital LP | 921669 | icahn-capital | Carl Icahn | ~8–20 |
+| Public Investment Fund | 1767640 | public-investment-fund | Yasir Al-Rumayyan | ~20–40 | 30 qtrs only (Q4 2018–Q1 2026) |
 
 ## Third Point LLC-specific notes
 

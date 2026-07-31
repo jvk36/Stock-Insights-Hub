@@ -847,6 +847,18 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "071705107": "BLCO",   // Bausch + Lomb Corp — spun off from Bausch Health May 2022; NYSE BLCO
   "563571108": "MTW",    // Manitowoc Company Inc — crane manufacturer; still public; NYSE MTW
   // ── End Icahn Capital LP-sourced fixes ───────────────────────────────────────────────
+
+  // ── Public Investment Fund (CIK 1767640) — Saudi Arabia sovereign wealth fund ────────
+  "62548M100": "MPLN",   // MultiPlan Corporation — data analytics for healthcare; went public via SPAC (Churchill III) 2020; NYSE MPLN
+  "62548M118": "MPLN",   // MultiPlan Corporation — unit/warrant class; same MPLN
+  "058586108": "BLDP",   // Ballard Power Systems Inc — Canadian hydrogen fuel cell company; NASDAQ BLDP; Yahoo CUSIP collision
+  "204833206": "CPUH",   // Compute Health Acquisition Corp — SPAC unit class; NYSE CPUH (also held by Third Point)
+  "204833107": "CPUH",   // Compute Health Acquisition Corp — second unit class; same CPUH
+  "G07031100": "BBLN",   // Babylon Holdings Ltd — G prefix (Cayman); digital health SPAC merger; NYSE BBLN; went bankrupt Aug 2023
+  "G07031209": "BBLN",   // Babylon Holdings Ltd — G prefix unit class; same BBLN
+  "44951Y102": "HYZN",   // Hyzon Motors Inc — hydrogen fuel cell trucks; NASDAQ HYZN; delisted ~2024
+  "N80029106": "SSU",    // Signa Sports United NV — N prefix (Netherlands); e-commerce sports retail; NYSE SSU; filed bankruptcy Nov 2023
+  // ── End Public Investment Fund-sourced fixes ─────────────────────────────────────────
 };
 
 /**
@@ -1505,6 +1517,7 @@ const TRACKED_FUNDS = [
   { cik: "1536411", name: "Duquesne Family Office",     slug: "duquesne-family-office",         proprietor: "Stanley Druckenmiller" },
   { cik: "1040273", name: "Third Point LLC",            slug: "third-point",                    proprietor: "Daniel Loeb"             },
   { cik: "921669",  name: "Icahn Capital LP",           slug: "icahn-capital",                  proprietor: "Carl Icahn"              },
+  { cik: "1767640", name: "Public Investment Fund",    slug: "public-investment-fund",         proprietor: "Yasir Al-Rumayyan"       },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

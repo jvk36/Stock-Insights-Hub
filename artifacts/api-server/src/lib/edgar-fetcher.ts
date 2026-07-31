@@ -930,6 +930,98 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "18885T306": "CLPR",   // Clipper Realty Inc — NYC residential REIT; NYSE CLPR
   "726503105": "PAA",    // Plains All American Pipeline LP — midstream oil MLP; NASDAQ PAA
   // ── End Fairholme Capital Management-sourced fixes ────────────────────────────────────
+
+  // ── Greenlight Capital (CIK 1079114 + linkedCik 1489933) — David Einhorn ─────────────
+  // CONSOL Energy ecosystem — Einhorn's dominant multi-year position
+  "20854P109": "CNX",    // Old CONSOL Energy Inc (pre-Nov 2017 split); NYSE CNX (now CNX Resources natural gas)
+  "20854L108": "CEIX",   // New CONSOL Energy Inc (post-split coal division); NYSE CEIX
+  "20855T100": "CCR",    // CONSOL Coal Resources LP — coal royalties MLP; acquired back by CONSOL Energy Sep 2020; NYSE CCR
+  "12592V100": "CNXC",   // CNX Coal Resources LP — pre-rename version of CCR; NYSE CNXC
+  // Acquired / taken-private companies
+  "G60754101": "KORS",   // Michael Kors Holdings Ltd — G prefix (Cayman); NYSE KORS; renamed Capri Holdings (CPRI) 2018
+  "131347304": "CPN",    // Calpine Corp — power producer; taken private by ECP Group Mar 2018; NYSE CPN
+  "41902R103": "HTS",    // Hatteras Financial Corp — mortgage REIT; acquired by Annaly Capital Jul 2016; NYSE HTS
+  "02314M108": "AYA",    // Amaya Inc — online poker/gambling; NASDAQ AYA; renamed Stars Group (TSGI) 2017
+  "049164205": "AAWW",   // Atlas Air Worldwide Holdings Inc — air cargo; acquired by Apollo consortium Aug 2023; NASDAQ AAWW
+  "767754104": "RAD",    // Rite Aid Corp — pharmacy chain; filed Chapter 11 Oct 2023; NYSE RAD
+  "G0551A103": "ARRS",   // ARRIS International Inc — G prefix (Cayman); cable equipment; acquired by CommScope Apr 2019; NASDAQ ARRS
+  "80874P109": "SGMS",   // Scientific Games Corp — lottery/gaming; NASDAQ SGMS; renamed Light & Wonder 2022
+  "82568P304": "SFLY",   // Shutterfly Inc — photo printing; taken private by Apollo Global Sep 2019; NASDAQ SFLY
+  "878237106": "TECD",   // Tech Data Corp — IT distributor; acquired by Apollo Global Sep 2020; NASDAQ TECD
+  "457153104": "IM",     // Ingram Micro Inc — IT distributor; taken private by HNA Group Dec 2016; NASDAQ IM
+  "45845P108": "ICPT",   // Intercept Pharmaceuticals Inc — liver disease; acquired by Alfasigma Jan 2024; NASDAQ ICPT
+  "30227M303": "XOG",    // Extraction Oil & Gas Inc — Wattenberg Basin E&P; merged with Bonanza Creek → Civitas Nov 2021; NASDAQ XOG
+  "G3166L100": "ESV",    // Ensco Rowan PLC — G prefix (Cayman); offshore driller; merged with Valaris Feb 2019; NYSE ESV
+  "86732Y109": "SUNE",   // SunEdison Inc — solar energy; filed Chapter 11 Apr 2016; NYSE SUNE
+  "356108100": "FRED",   // Fred's Inc — dollar store/pharmacy chain; filed Chapter 7 Sep 2019; NASDAQ FRED
+  "Y8564M105": "TGP",    // Teekay LNG Partners LP — Y prefix (Bermuda); LNG shipping; taken private by Teekay Corp Jan 2022; NYSE TGP
+  "34431F104": "FPA",    // Foley Trasimene Acquisition Corp I — NYSE FPA; merged with Paysafe Group 2020
+  // Bankruptcy / restructured
+  "236272100": "DNMR",   // Danimer Scientific Inc — bioplastics; NYSE DNMR; filed bankruptcy Jan 2024
+  "236272118": "DNMR",   // Danimer Scientific Inc — unit class; same DNMR
+  "64132K102": "NBSE",   // NeuBase Therapeutics Inc — antisense therapy; NASDAQ NBSE; renamed Tevogen Bio 2024
+  "64132K201": "NBSE",   // NeuBase Therapeutics Inc — unit class; same NBSE
+  "72814P109": "PLBY",   // PLBY Group Inc (fmr Playboy Enterprises) — NASDAQ PLBY; delisted 2024
+  "13803R102": "GOEV",   // Canoo Inc — EV startup; NASDAQ GOEV; essentially defunct
+  "74374T117": "PTRA",   // Proterra Inc — EV bus; NASDAQ PTRA; filed Chapter 11 Aug 2023
+  "90138Q116": "ME",     // 23andMe Holding Co — consumer genomics; NASDAQ ME; filed Chapter 11 Mar 2024
+  "90138Q108": "ME",     // 23andMe Holding Co — unit class; same ME
+  "04634X111": "ASTR",   // Astra Space Inc — small launch vehicle; NASDAQ ASTR; operations ceased 2023
+  "04634X103": "ASTR",   // Astra Space Inc — unit class; same ASTR
+  "536221112": "LEV",    // The Lion Electric Company — EV bus; NYSE LEV; practical insolvency 2024
+  // Still-public companies (Yahoo Finance CUSIP collisions)
+  "88337F105": "ODP",    // The ODP Corp (Office Depot + OfficeMax); NASDAQ ODP
+  "05351W103": "AGR",    // Avangrid Inc — Iberdrola US subsidiary; NYSE AGR
+  "44919P508": "IAC",    // IAC/InterActiveCorp (old CUSIP pre-spinoffs); NASDAQ IAC
+  "37940X102": "GPN",    // Global Payments Inc; NYSE GPN
+  "87265H109": "TPH",    // Tri Pointe Group Inc — homebuilder; NYSE TPH
+  "17888H103": "CIVI",   // Civitas Resources Inc — Colorado E&P; NYSE CIVI
+  "649445103": "NYCB",   // New York Community Bancorp Inc; NYSE NYCB
+  "678026105": "OIS",    // Oil States International Inc — oilfield services; NYSE OIS
+  "948626106": "WW",     // Weight Watchers International New (renamed WW International); NYSE WW
+  "85208M102": "SFM",    // Sprouts Farmers Market Inc; NASDAQ SFM
+  "086516101": "BBY",    // Best Buy Inc; NYSE BBY
+  "02503X105": "AGNC",   // American Capital Agency Corp (= AGNC Investment Corp); NASDAQ AGNC
+  "G5480U138": "LBTYA",  // Liberty Global PLC Class A — G prefix (UK); NASDAQ LBTYA
+  "00547W208": "ADMP",   // Adamis Pharmaceuticals Corp; NASDAQ ADMP
+  // SPAC positions — 2020–2022 wave
+  "G06536125": "WAVC",   // Waverley Capital Acquisition Corp — G prefix; NYSE WAVC
+  "31809Y202": "FSRV",   // FinServ Acquisition Corp II — NASDAQ FSRV
+  "318085115": "FSRV",   // FinServ Acquisition Corp I — NASDAQ FSRV
+  "31809Y111": "FSRV",   // FinServ Acquisition Corp II — unit class; same FSRV
+  "86846V108": "SPNV",   // Supernova Partners Acquisition Corp — NYSE SPNV
+  "G7483N129": "RTP",    // Reinvent Technology Partners — G prefix; NASDAQ RTP (Reid Hoffman/Mark Pincus SPAC)
+  "G7484L114": "RTPY",   // Reinvent Technology Partners Y — G prefix; NASDAQ RTPY
+  "G6882C106": "PANA",   // Panacea Acquisition Corp II — G prefix; NASDAQ PANA
+  "698102118": "PANA",   // Panacea Acquisition Corp I — NASDAQ PANA
+  "G8354H126": "SRNG",   // Soaring Eagle Acquisition Corp — G prefix; NASDAQ SRNG
+  "G8251K107": "IPOA",   // Social Capital Hedosophia Holdings Corp I — G prefix; NYSE IPOA; merged with Virgin Galactic → SPCE
+  "G65305107": "NGAC",   // NextGen Acquisition Corp — G prefix; NASDAQ NGAC
+  "G75529100": "RONI",   // Rice Acquisition Corp II — G prefix; same RONI (also Third Point)
+  "G9446E113": "VGAC",   // VG Acquisition Corp — G prefix; NYSE VGAC; merged with 23andMe → ME
+  "66516T112": "NGA",    // Northern Genesis Acquisition Corp — NYSE NGA; merged with Lion Electric → LEV
+  "84918M106": "SEAH",   // Sports Entertainment Acquisition Corp — NYSE SEAH
+  "629070103": "NEBC",   // Nebula Caravel Acquisition Corp — NYSE NEBC
+  "00775W201": "AEAC",   // Aequi Acquisition Corp — NASDAQ AEAC
+  "74348Q116": "PSAC",   // Property Solutions Acquisition Corp — NASDAQ PSAC
+  "G0103T105": "ACIC",   // Acies Acquisition Corp — G prefix; NASDAQ ACIC; merged with Playtika → PLTK
+  "307359117": "FFIE",   // Faraday Future Intelligent Electric Inc — NASDAQ FFIE
+  "G8990D117": "TPGB",   // TPG Pace Beneficial Finance Corp — G prefix unit class; same TPGB (also Third Point)
+  "G9441E118": "VPCC",   // VPC Impact Acquisition Holdings III — G prefix; NASDAQ VPCC
+  "233277110": "DMYD",   // dMY Technology Group Inc II — NYSE DMYD
+  "233278100": "DMYI",   // dMY Technology Group Inc III — NYSE DMYI
+  "443761101": "HUDA",   // Hudson Executive Investment Corp — NASDAQ HUDA
+  "435063110": "HOL",    // HoliCity Inc — NASDAQ HOL; merged with Ginkgo Bioworks → DNA
+  "68622E112": "BARK",   // The Original BARK Company — NYSE BARK; SPAC merger 2021
+  "665742110": "NSTB",   // Northern Star Acquisition Corp — NYSE NSTB
+  "34619R110": "FRX",    // Forest Road Acquisition Corp — NYSE FRX
+  "G04561125": "ACTD",   // Arclight Clean Transition Corp — G prefix; NASDAQ ACTD (also Third Point)
+  "90069K112": "THCB",   // Tuscan Holdings Corp — NASDAQ THCB; merged with Microvast → MVST
+  "18716C118": "CLIM",   // Climate Change Crisis Real Impact I Acquisition Corp — NYSE CLIM (also Third Point)
+  "G0083D104": "ACEV",   // ACE Convergence Acquisition Corp — G prefix; NASDAQ ACEV
+  // Note: 57060U100 (Market Vectors ETF), 46137V100/357 (Invesco ETFs), 78464A631/714 (SPDR ETFs),
+  //       33733E807 (First Trust ETF), 46090F100 (Invesco ETF) — CUSIP→specific ticker unresolvable
+  // ── End Greenlight Capital-sourced fixes ──────────────────────────────────────────────
 };
 
 /**
@@ -1322,8 +1414,8 @@ const FETCH_DELAY_MS = 3_000;
  */
 const GAP_RETRY_DELAY_MS = 8_000;
 
-export async function seedFundFilings(cik: string): Promise<void> {
-  logger.info({ cik }, "Starting 13F filing seed");
+export async function seedFundFilings(cik: string, linkedCiks: string[] = []): Promise<void> {
+  logger.info({ cik, linkedCiks }, "Starting 13F filing seed");
 
   const fund = await db.select().from(hedgeFundsTable).where(eq(hedgeFundsTable.cik, cik)).limit(1);
   if (fund.length === 0) {
@@ -1337,6 +1429,7 @@ export async function seedFundFilings(cik: string): Promise<void> {
     .where(eq(sec13fFilingsTable.fundCik, cik));
   const existingSet = new Set(existing.map((r) => r.accessionNumber));
 
+  // Gather stubs from the primary CIK
   let stubs;
   try {
     stubs = await fetch13fFilingStubs(cik);
@@ -1345,14 +1438,28 @@ export async function seedFundFilings(cik: string): Promise<void> {
     return;
   }
 
-  const toProcess = stubs
+  // Also gather stubs from any linked CIKs (same fund, different legal entity over time),
+  // tagging each with the fetch CIK so we use the right EDGAR URL.
+  const allStubs: Array<{ accessionNumber: string; reportDate: string; filingDate: string; fetchCik: string }> =
+    stubs.map((s) => ({ ...s, fetchCik: cik }));
+
+  for (const linkedCik of linkedCiks) {
+    try {
+      const linkedStubs = await fetch13fFilingStubs(linkedCik);
+      for (const s of linkedStubs) allStubs.push({ ...s, fetchCik: linkedCik });
+    } catch (err) {
+      logger.error({ err, linkedCik }, "Failed to fetch linked CIK EDGAR submissions — skipping");
+    }
+  }
+
+  const toProcess = allStubs
     .filter((s) => s.reportDate >= MIN_REPORT_DATE && !existingSet.has(s.accessionNumber));
 
-  logger.info({ cik, total: stubs.length, toProcess: toProcess.length }, "13F stubs found");
+  logger.info({ cik, total: allStubs.length, toProcess: toProcess.length }, "13F stubs found");
 
   for (const stub of toProcess) {
     try {
-      await processFiling(cik, stub);
+      await processFiling(stub.fetchCik, stub, cik /* storeCik */);
       await sleep(FETCH_DELAY_MS);
     } catch (err) {
       logger.warn({ err, cik, accession: stub.accessionNumber }, "Failed to process filing — skipping");
@@ -1446,9 +1553,11 @@ export async function retryGapFilings(cik: string): Promise<void> {
 async function processFiling(
   cik: string,
   stub: { accessionNumber: string; reportDate: string; filingDate: string },
+  storeCik?: string, // CIK used for DB storage — defaults to cik (used when a fund changed legal entity)
 ): Promise<void> {
+  const fundCikForDb = storeCik ?? cik;
   const periodLabel = reportDateToQuarter(stub.reportDate);
-  logger.info({ cik, period: periodLabel }, "Processing 13F filing");
+  logger.info({ cik, storeCik: fundCikForDb, period: periodLabel }, "Processing 13F filing");
 
   // Fetch the full submission text file — one request gets ALL documents
   const txtUrl = `https://www.sec.gov/Archives/edgar/data/${cik}/${stub.accessionNumber}.txt`;
@@ -1489,7 +1598,7 @@ async function processFiling(
   const [filing] = await db
     .insert(sec13fFilingsTable)
     .values({
-      fundCik: cik,
+      fundCik: fundCikForDb,
       periodLabel,
       reportDate: stub.reportDate,
       filingDate: stub.filingDate,
@@ -1591,7 +1700,11 @@ const TRACKED_FUNDS = [
   { cik: "1767640", name: "Public Investment Fund",    slug: "public-investment-fund",         proprietor: "Yasir Al-Rumayyan"       },
   { cik: "1263508", name: "Baker Bros. Advisors LP",  slug: "baker-bros-advisors",            proprietor: "Felix & Julian Baker"    },
   { cik: "1056831", name: "Fairholme Capital Mgmt",  slug: "fairholme-capital",              proprietor: "Bruce Berkowitz"         },
-] as const;
+  // Greenlight Capital filed as "Greenlight Capital Inc" (CIK 1079114) through Q4 2023,
+  // then switched to "DME Capital Management LP" (CIK 1489933) from Q1 2024 onwards.
+  // linkedCik tells the seeder to fetch DME stubs but store them under the primary CIK.
+  { cik: "1079114", name: "Greenlight Capital",      slug: "greenlight-capital",             proprietor: "David Einhorn",          linkedCik: "1489933" },
+];
 
 export async function initEdgarFetcher(): Promise<void> {
   // Upsert all tracked funds into the DB (name/slug may change but CIK is stable)
@@ -1605,13 +1718,24 @@ export async function initEdgarFetcher(): Promise<void> {
       });
   }
 
+  // Build a lookup of primary CIK → linked CIKs for funds that changed legal entity over time
+  const linkedCikMap = new Map<string, string[]>();
+  for (const entry of TRACKED_FUNDS) {
+    if ("linkedCik" in entry && entry.linkedCik) {
+      const existing = linkedCikMap.get(entry.cik) ?? [];
+      existing.push(entry.linkedCik);
+      linkedCikMap.set(entry.cik, existing);
+    }
+  }
+
   // Seed every fund on startup after a brief delay, then gap-fill and re-resolve
   // tickers for any holdings that had null tickers from prior runs.
   setTimeout(async () => {
     const funds = await db.select().from(hedgeFundsTable);
     for (const fund of funds) {
+      const linkedCiks = linkedCikMap.get(fund.cik) ?? [];
       try {
-        await seedFundFilings(fund.cik);
+        await seedFundFilings(fund.cik, linkedCiks);
       } catch (err) {
         logger.error({ err, cik: fund.cik }, "Initial 13F seed failed");
       }
@@ -1634,8 +1758,9 @@ export async function initEdgarFetcher(): Promise<void> {
     logger.info("13F refresh check: inside filing window — refreshing all funds");
     const funds = await db.select().from(hedgeFundsTable);
     for (const fund of funds) {
+      const linkedCiks = linkedCikMap.get(fund.cik) ?? [];
       try {
-        await seedFundFilings(fund.cik);
+        await seedFundFilings(fund.cik, linkedCiks);
       } catch (err) {
         logger.error({ err, cik: fund.cik }, "Scheduled 13F refresh failed");
       }

@@ -32,6 +32,8 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Icahn Capital LP | 921669 | icahn-capital | Carl Icahn | ~8–20 |
 | Public Investment Fund | 1767640 | public-investment-fund | Yasir Al-Rumayyan | ~20–40 | 30 qtrs only (Q4 2018–Q1 2026) |
 | Baker Bros. Advisors LP | 1263508 | baker-bros-advisors | Felix & Julian Baker | ~80–110 | 1 residual null: 220485AB2 (Corsicanto II — convertible bond, no equity ticker) |
+| Fairholme Capital Mgmt | 1056831 | fairholme-capital | Bruce Berkowitz | ~2–15 | 0 nulls |
+| Greenlight Capital | 1079114 | greenlight-capital | David Einhorn | ~20–50 | dual-CIK: 1079114 (Q1 2016–Q4 2023) + linkedCik 1489933/DME Capital (Q1 2024–Q1 2026); 28 residual nulls (7 ETF CUSIPs — trust-family resolvable, specific fund not: 57060U100 VanEck, 46137V100/357 Invesco, 78464A631/714 SPDR, 33733E807 First Trust, 46090F100 Invesco actively managed) |
 
 ## Third Point LLC-specific notes
 

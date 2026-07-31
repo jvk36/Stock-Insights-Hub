@@ -36,6 +36,7 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Greenlight Capital | 1079114 | greenlight-capital | David Einhorn | ~20–50 | dual-CIK: 1079114 (Q1 2016–Q4 2023) + linkedCik 1489933/DME Capital (Q1 2024–Q1 2026); 28 residual nulls (7 ETF CUSIPs — trust-family resolvable, specific fund not: 57060U100 VanEck, 46137V100/357 Invesco, 78464A631/714 SPDR, 33733E807 First Trust, 46090F100 Invesco actively managed) |
 | Paulson & Co. | 1035674 | paulson | John Paulson | 9–54 | classic merger-arb fund; shrank dramatically 2016→2026; 9 residual nulls — 2 Cobalt bonds (19075FAB2/FAA4), MGIC bond (552848AE3), BAC TARP warrant (060505153 ×5), Solstice Advanced Materials (83443Q103 unresolvable); 1,593/1,602 holdings resolved (99.4%) |
 | Viking Global Investors | 1103804 | viking-global | Andreas Halvorsen | ~75–90 | long/short global equity Tiger Cub; 1 residual null — 29445S100 EquipmentShare.com Inc (private company, unresolvable); 3,033/3,034 resolved (99.97%) |
+| Coatue Management | 1135730 | coatue | Philippe Laffont | ~40–120 | tech long/short Tiger Cub; 5 residual nulls — 83443Q103 Solstice (unresolvable), 46138G706 Invesco ETF trust, 78463X202 SPDR trust; 3,627/3,632 resolved (99.9%) |
 
 ## Third Point LLC-specific notes
 

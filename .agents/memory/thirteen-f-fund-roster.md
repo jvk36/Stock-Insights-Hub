@@ -34,6 +34,7 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Baker Bros. Advisors LP | 1263508 | baker-bros-advisors | Felix & Julian Baker | ~80–110 | 1 residual null: 220485AB2 (Corsicanto II — convertible bond, no equity ticker) |
 | Fairholme Capital Mgmt | 1056831 | fairholme-capital | Bruce Berkowitz | ~2–15 | 0 nulls |
 | Greenlight Capital | 1079114 | greenlight-capital | David Einhorn | ~20–50 | dual-CIK: 1079114 (Q1 2016–Q4 2023) + linkedCik 1489933/DME Capital (Q1 2024–Q1 2026); 28 residual nulls (7 ETF CUSIPs — trust-family resolvable, specific fund not: 57060U100 VanEck, 46137V100/357 Invesco, 78464A631/714 SPDR, 33733E807 First Trust, 46090F100 Invesco actively managed) |
+| Paulson & Co. | 1035674 | paulson | John Paulson | 9–54 | classic merger-arb fund; shrank dramatically 2016→2026; 9 residual nulls — 2 Cobalt bonds (19075FAB2/FAA4), MGIC bond (552848AE3), BAC TARP warrant (060505153 ×5), Solstice Advanced Materials (83443Q103 unresolvable); 1,593/1,602 holdings resolved (99.4%) |
 
 ## Third Point LLC-specific notes
 

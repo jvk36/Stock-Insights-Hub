@@ -931,6 +931,112 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "726503105": "PAA",    // Plains All American Pipeline LP — midstream oil MLP; NASDAQ PAA
   // ── End Fairholme Capital Management-sourced fixes ────────────────────────────────────
 
+  // ── Paulson & Co. (CIK 1035674) — John Paulson ──────────────────────────────────────
+  // Classic merger-arb / event-driven fund; most holdings are acquired, privatised, or bankrupt companies
+  // M&A arb targets
+  "30224P200": "STAY",   // Extended Stay America — acquired by Blackstone/Starwood Oct 2021; NASDAQ STAY
+  "94946T106": "WCG",    // WellCare Health Plans — acquired by Centene Jan 2020; NYSE WCG
+  "032511107": "APC",    // Anadarko Petroleum — acquired by Occidental Petroleum Aug 2019; NYSE APC
+  "073302101": "BEAV",   // B/E Aerospace — acquired by Rockwell Collins Apr 2017; NASDAQ BEAV
+  "756577102": "RHT",    // Red Hat — acquired by IBM Jul 2019; NYSE RHT
+  "92532W103": "VSM",    // Versum Materials — acquired by Merck KGaA Oct 2019; NYSE VSM
+  "12686C109": "CVC",    // Cablevision Systems — acquired by Altice Jun 2016; NYSE CVC
+  "413086109": "HAR",    // Harman International — acquired by Samsung Mar 2017; NYSE HAR
+  "485170302": "KSU",    // Kansas City Southern — acquired by Canadian Pacific Dec 2021; NYSE KSU
+  "32008D106": "FDC",    // First Data Corp — acquired by Fiserv Jul 2019; NYSE FDC
+  "74102M103": "PSDO",   // Presidio — acquired by BC Partners/Apollo Jan 2020; NASDAQ PSDO
+  "59408Q106": "MIK",    // Michaels Companies — acquired by Apollo Jun 2021; NASDAQ MIK
+  "24802Y105": "DWRE",   // Demandware — acquired by Salesforce Jul 2016; NYSE DWRE
+  "64126X201": "NSR",    // Neustar — acquired by TransUnion Dec 2021; NYSE NSR
+  "94770V102": "WBMD",   // WebMD — acquired by Internet Brands/KKR Sep 2017; NASDAQ WBMD
+  "315785105": "FGL",    // Fidelity & Guaranty Life — acquired by CF Corp Nov 2017; NYSE FGL
+  "74876Y101": "Q",      // Quintiles Transnational Holdings — merged with IMS Health to form IQVIA (IQV) May 2016; NYSE Q
+  "54142L109": "LOGM",   // LogMeIn — acquired by Francisco Partners/Evergreen Aug 2020; NASDAQ LOGM
+  "84760C107": "SPNC",   // Spectranetics — acquired by Philips Sep 2017; NASDAQ SPNC
+  "611742107": "MWW",    // Monster Worldwide — acquired by Randstad Oct 2016; NYSE MWW
+  "012423109": "AMRI",   // Albany Molecular Research — acquired by Carlyle/CDPQ Dec 2017; NASDAQ AMRI
+  "90385D107": "ULTI",   // Ultimate Software — acquired by Hellman & Friedman May 2019; NASDAQ ULTI
+  "45672H104": "BLOX",   // Infoblox — acquired by Vista Equity Nov 2016; NYSE BLOX
+  "48273J107": "KTWO",   // K2M Group Holdings — acquired by Stryker Jan 2019; NASDAQ KTWO
+  "465685105": "ITC",    // ITC Holdings Corp — acquired by Fortis Oct 2016; NYSE ITC
+  "45774N108": "IPHS",   // Innophos Holdings — acquired by One Rock Capital Jan 2020; NASDAQ IPHS
+  "143436400": "CKEC",   // Carmike Cinemas — acquired by AMC Dec 2016; NASDAQ CKEC
+  "04685W103": "ATHN",   // athenahealth — acquired by Veritas/Evergreen Feb 2019; NASDAQ ATHN
+  "31430F101": "FCH",    // FelCor Lodging Trust — merged with RLJ Lodging Trust Aug 2017; NYSE FCH
+  "128195104": "CAA",    // CalAtlantic Group — merged with Lennar Feb 2018; NYSE CAA
+  "42210P102": "HW",     // Headwaters — acquired by Boral Limited Mar 2017; NYSE HW
+  "009363102": "ARG",    // Airgas — acquired by Air Liquide May 2016; NYSE ARG
+  "29363K105": "ENTL",   // Entellus Medical — acquired by Stryker Mar 2018; NASDAQ ENTL
+  "64156L101": "NSU",    // Nevsun Resources — acquired by Zijin Mining Mar 2019; NYSE NSU
+  "29978A104": "EVBG",   // Everbridge — acquired by Thoma Bravo Dec 2023; NASDAQ EVBG
+  "712704105": "PBCT",   // People's United Financial — acquired by M&T Bank Apr 2022; NASDAQ PBCT
+  "14574X104": "TAST",   // Carrols Restaurant Group — acquired by Restaurant Brands Feb 2024; NASDAQ TAST
+  "67072V103": "NXTM",   // NxStage Medical — acquired by Fresenius Medical Sep 2019; NASDAQ NXTM
+  "74733V100": "QEP",    // QEP Resources — acquired by Diamondback Energy Mar 2021; NYSE QEP
+  "177376100": "CTXS",   // Citrix Systems — acquired by Elliott/Vista Sep 2022; NASDAQ CTXS
+  "G9019D104": "TVPT",   // Travelport Worldwide — taken private by Siris Capital May 2019; NYSE TVPT
+  "380956409": "GG",     // Goldcorp — merged with Newmont Apr 2019; NYSE GG
+  "26483E100": "DNB",    // Dun & Bradstreet — taken private by consortium Jan 2019 (re-IPO'd 2020); NYSE DNB
+  // Still-public or recently delisted via restructuring
+  "48203R104": "JNPR",   // Juniper Networks — still trading; NYSE JNPR
+  "12503M108": "CBOE",   // Cboe Holdings — still trading; NASDAQ CBOE
+  "13123X102": "CPE",    // Callon Petroleum — still trading (merged into APA Corp 2024); NYSE CPE
+  "87968A104": "TELL",   // Tellurian — still trading; NYSE TELL
+  "03152W109": "FOLD",   // Amicus Therapeutics — still trading; NASDAQ FOLD
+  "269796108": "EGRX",   // Eagle Pharmaceuticals — still trading; NASDAQ EGRX
+  "82621J105": "SIEN",   // Sientra — medical aesthetics; NASDAQ SIEN
+  "112463104": "BKD",    // Brookdale Senior Living — still trading; NYSE BKD
+  "552848103": "MTG",    // MGIC Investment Corp (common stock) — still trading; NYSE MTG
+  // Gold / resources
+  "49741E100": "KL",     // Kirkland Lake Gold — merged with Agnico Eagle Feb 2022; TSX/NYSE KL
+  "74139C102": "PVG",    // Pretium Resources — acquired by Newcrest Feb 2022; TSX/NYSE PVG
+  "98400J108": "XCRA",   // Xcerra Corp — acquired by Cohu Sep 2018; NASDAQ XCRA
+  // Pharma / biotech / specialty
+  "G5785G107": "MNK",    // Mallinckrodt Pharmaceuticals — filed bankruptcy Oct 2020; NYSE MNK (Irish-incorporated)
+  "G30401106": "ENDP",   // Endo International — filed bankruptcy Aug 2022; NASDAQ ENDP (Irish-incorporated)
+  "009728106": "AKRX",   // Akorn — filed bankruptcy Feb 2020; NASDAQ AKRX
+  "G4617B105": "HZNP",   // Horizon Pharma — acquired by Amgen Oct 2023; NASDAQ HZNP (Irish-incorporated)
+  "871639308": "SGYP",   // Synergy Pharmaceuticals — filed bankruptcy Jan 2019; NASDAQ SGYP
+  "M4059L101": "ENZY",   // Enzymotec — acquired by Frutarom Jan 2018; NASDAQ ENZY (Israeli)
+  "M75253100": "ORBK",   // Orbotech — acquired by KLA Feb 2019; NASDAQ ORBK (Israeli)
+  "M15332121": "ATTU",   // Attunity — acquired by Qlik Feb 2019; NASDAQ ATTU (Israeli)
+  "580037109": "MDR",    // McDermott International — filed bankruptcy Jan 2020; NYSE MDR
+  "761299106": "RTRX",   // Retrophin — specialty pharma; NASDAQ RTRX
+  "82640U404": "SRRA",   // Sierra Oncology — acquired by GlaxoSmithKline Jun 2022; NASDAQ SRRA
+  "038505400": "ARDM",   // Aradigm Corp — filed bankruptcy Jun 2018; NASDAQ ARDM
+  // Telecoms / media / tech
+  "88706P205": "TSU",    // TIM Participações SA — Brazilian telecom ADR; NYSE TSU
+  "60671Q104": "MITL",   // Mitel Networks — acquired by Searchlight Jul 2018; NASDAQ MITL
+  "874224207": "TLND",   // Talend SA — data integration ADR; acquired by Qlik Mar 2023; NASDAQ TLND
+  "25213A107": "DXM",    // Dex Media — directory publisher; filed bankruptcy May 2016; NYSE DXM
+  // Event-driven / special situations
+  "19075F106": "CIE",    // Cobalt International Energy — deepwater E&P; filed bankruptcy Dec 2017; NYSE CIE
+  "19075F304": "CIE",    // Cobalt International Energy (different series) — same company; NYSE CIE
+  "G1644T109": "BSIG",   // BrightSphere Investment Group — asset management; NYSE BSIG (UK-incorporated)
+  "G98290104": "XL",     // XL Group — P&C insurance; acquired by AXA Sep 2018; NYSE XL (Irish-incorporated)
+  "75605Y106": "RLGY",   // Realogy Holdings — rebranded Anywhere Real Estate; NYSE RLGY
+  "12768T103": "CACQ",   // Caesars Acquisition Co — gaming SPAC/merger vehicle; absorbed into CZR 2015; NASDAQ CACQ
+  "03965L100": "ARNC",   // Arconic — aluminum products; spun from Alcoa Nov 2016; NYSE ARNC
+  "552074700": "WLH",    // William Lyon Homes — homebuilder; acquired by Taylor Morrison Feb 2020; NYSE WLH
+  "92923C807": "WCI",    // WCI Communities — homebuilder; acquired by Lennar Aug 2017; NYSE WCI
+  "69036R863": "OSG",    // Overseas Shipholding Group (Class A) — emerged bankruptcy 2014; NYSE OSG
+  "69036R301": "OSG",    // Overseas Shipholding Group (Class B/units) — same company; NYSE OSG
+  "02503Y103": "ACAS",   // American Capital — BDC; acquired by Ares Capital Jan 2017; NASDAQ ACAS
+  "11120U105": "BRCM",   // Broadcom Corp — acquired by Avago/Broadcom Feb 2016; NASDAQ BRCM
+  "45321L100": "IMPV",   // Imperva — cybersecurity; acquired by Thales Jan 2019; NASDAQ IMPV
+  "98462Y100": "AUY",    // Yamana Gold — merged with Pan American Silver/Agnico 2023; NYSE AUY
+  "761713106": "RAI",    // Reynolds American — acquired by BAT Jul 2017; NYSE RAI
+  "864909106": "SCMP",   // Sucampo Pharmaceuticals — acquired by Mallinckrodt Jan 2018; NASDAQ SCMP
+  "025676206": "AEL",    // American Equity Investment Life Holding — still trading; NYSE AEL
+  "46071F103": "XENT",   // Intersect ENT — ENT devices; acquired by Medtronic May 2022; NASDAQ XENT
+  "233326107": "DST",    // DST Systems — acquired by SS&C Technologies Apr 2018; NYSE DST
+  "09238E104": "HAWK",   // Blackhawk Network Holdings — acquired by Silver Lake Mar 2018; NASDAQ HAWK
+  "876664103": "TCO",    // Taubman Centers — acquired by Simon Property Group Jun 2020; NYSE TCO
+  "096761101": "BOBE",   // Bob Evans Farms — acquired by Post Holdings Jan 2018; NASDAQ BOBE
+  "G9319H102": "VR",     // Validus Holdings — acquired by AIG Jan 2018; NYSE VR (Bermuda-incorporated)
+  "14964U108": "CAVM",   // Cavium — acquired by Marvell Technology Jul 2018; NASDAQ CAVM
+  // ── End Paulson & Co.-sourced fixes ──────────────────────────────────────────────────
+
   // ── Greenlight Capital (CIK 1079114 + linkedCik 1489933) — David Einhorn ─────────────
   // CONSOL Energy ecosystem — Einhorn's dominant multi-year position
   "20854P109": "CNX",    // Old CONSOL Energy Inc (pre-Nov 2017 split); NYSE CNX (now CNX Resources natural gas)
@@ -1704,6 +1810,7 @@ const TRACKED_FUNDS = [
   // then switched to "DME Capital Management LP" (CIK 1489933) from Q1 2024 onwards.
   // linkedCik tells the seeder to fetch DME stubs but store them under the primary CIK.
   { cik: "1079114", name: "Greenlight Capital",      slug: "greenlight-capital",             proprietor: "David Einhorn",          linkedCik: "1489933" },
+  { cik: "1035674", name: "Paulson & Co.",            slug: "paulson",                        proprietor: "John Paulson"            },
 ];
 
 export async function initEdgarFetcher(): Promise<void> {

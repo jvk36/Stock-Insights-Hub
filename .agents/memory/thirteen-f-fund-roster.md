@@ -29,6 +29,7 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Fairfax Financial Holdings | 915191 | fairfax-financial | Prem Watsa | ~26–65 |
 | Duquesne Family Office | 1536411 | duquesne-family-office | Stanley Druckenmiller | ~29–74 |
 | Third Point LLC | 1040273 | third-point | Daniel Loeb | ~25–55 |
+| Icahn Capital LP | 921669 | icahn-capital | Carl Icahn | ~8–20 |
 
 ## Third Point LLC-specific notes
 

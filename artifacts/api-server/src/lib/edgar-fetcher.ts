@@ -830,6 +830,23 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "G8990D125": "TPGB",   // "TPG PACE BEN FIN CORP" — G prefix; TPG Pace Beneficial Finance; NYSE TPGB
   "292766102": "ERF",    // "ENERPLUS CORP" — Canadian E&P company; NYSE ADR ERF
   // ── End Third Point LLC-sourced fixes ───────────────────────────────────────────────
+
+  // ── Icahn Capital LP (CIK 921669) — Carl Icahn ──────────────────────────────────────
+  // Icahn-controlled / activist targets that went private or were acquired
+  "63934E108": "NAV",    // Navistar International Corporation — Icahn's long-term position; acquired by Traton (Volkswagen) in Nov 2021; NYSE NAV
+  "02916P103": "ARII",   // American Railcar Industries Inc — Icahn-controlled MFG company; taken private Oct 2019; NYSE ARII
+  "313549404": "FDML",   // Federal-Mogul Holdings Corp — Icahn controlled after 2007 bankruptcy; acquired by Tenneco Oct 2018; NYSE FDML
+  "12663P107": "CVRR",   // CVR Refining LP — Icahn-controlled refinery MLP; taken private by CVR Energy Aug 2018; NYSE CVRR
+  "032359309": "AFSI",   // AmTrust Financial Services Inc — targeted position; taken private Jul 2018 by Stone Point Capital; NYSE AFSI
+  "92870X309": "VLTC",   // Voltari Corporation (formerly Mogreet) — tiny mobile-marketing company; eventually went dark; NYSE VLTC
+  "293904108": "ENZN",   // Enzon Pharmaceuticals Inc — shell company; still technically listed; NYSE ENZN
+  "818097107": "SSE",    // Seventy Seven Energy Inc — oilfield services; filed bankruptcy Jun 2016; pre-bankruptcy NYSE SSE
+  // Warrants
+  "674599162": "OXY.WS", // Occidental Petroleum Corp Warrants (Series A, 2019) — traded NYSE as OXY WS; expired Aug 2023
+  // Yahoo Finance CUSIP collision resolutions (still-public companies)
+  "071705107": "BLCO",   // Bausch + Lomb Corp — spun off from Bausch Health May 2022; NYSE BLCO
+  "563571108": "MTW",    // Manitowoc Company Inc — crane manufacturer; still public; NYSE MTW
+  // ── End Icahn Capital LP-sourced fixes ───────────────────────────────────────────────
 };
 
 /**
@@ -1487,6 +1504,7 @@ const TRACKED_FUNDS = [
   { cik: "915191",  name: "Fairfax Financial Holdings", slug: "fairfax-financial",             proprietor: "Prem Watsa"        },
   { cik: "1536411", name: "Duquesne Family Office",     slug: "duquesne-family-office",         proprietor: "Stanley Druckenmiller" },
   { cik: "1040273", name: "Third Point LLC",            slug: "third-point",                    proprietor: "Daniel Loeb"             },
+  { cik: "921669",  name: "Icahn Capital LP",           slug: "icahn-capital",                  proprietor: "Carl Icahn"              },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

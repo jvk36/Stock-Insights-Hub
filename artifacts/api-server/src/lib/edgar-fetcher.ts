@@ -1037,6 +1037,66 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "14964U108": "CAVM",   // Cavium — acquired by Marvell Technology Jul 2018; NASDAQ CAVM
   // ── End Paulson & Co.-sourced fixes ──────────────────────────────────────────────────
 
+  // ── Viking Global Investors (CIK 1103804) — Andreas Halvorsen ────────────────────────
+  // Long/short global equity; heavy healthcare M&A and biotech pipeline plays
+  // Large-cap acquired / still-trading
+  "45720L107": "INBX",   // Inhibrx — acquired by Roche Jan 2024; NASDAQ INBX
+  "891160509": "TD",     // Toronto-Dominion Bank — still trades; NYSE TD
+  "159864107": "CRL",    // Charles River Laboratories — still trades; NYSE CRL
+  "08579W103": "BERY",   // Berry Global Group — still trades; NYSE BERY
+  "534187109": "LNC",    // Lincoln National Corp — still trades; NYSE LNC
+  "G0260P102": "AS",     // Amer Sports — IPO'd Feb 2024; NYSE AS (Cayman Islands)
+  // Healthcare / pharma acquired
+  "75525N107": "RYZB",   // RayzeBio — acquired by BMS Jan 2024; NASDAQ RYZB
+  "87166B102": "SYNH",   // Syneos Health — acquired by PE consortium Sep 2023; NASDAQ SYNH
+  "670704105": "NUVA",   // NuVasive — merged with Globus Medical Sep 2023; NASDAQ NUVA
+  "49705R105": "KNTE",   // Kinnate Biopharma — acquired by Pfizer Jan 2024; NASDAQ KNTE
+  "24344T101": "DCPH",   // Deciphera Pharmaceuticals — acquired by Novo Nordisk Jul 2024; NASDAQ DCPH
+  "87410C104": "TALS",   // Talaris Therapeutics — merged with Tourmaline Bio 2023; NASDAQ TALS
+  "926613100": "VIE",    // Viela Bio — acquired by Horizon Therapeutics Mar 2021; NASDAQ VIE
+  "G11196105": "BHVN",   // Biohaven Pharmaceutical — acquired by Pfizer Oct 2022; NYSE BHVN (Bermuda)
+  "28249H104": "EIDX",   // Eidos Therapeutics — acquired by BridgeBio Jun 2021; NASDAQ EIDX
+  "82489T104": "SWAV",   // ShockWave Medical — acquired by J&J May 2024; NASDAQ SWAV
+  "54300N103": "LBPH",   // Longboard Pharmaceuticals — acquired by AbbVie Nov 2024; NASDAQ LBPH
+  "45114M109": "ICVX",   // Icosavax — acquired by AstraZeneca Jan 2024; NASDAQ ICVX
+  "040047607": "ARNA",   // Arena Pharmaceuticals — acquired by Pfizer Mar 2022; NASDAQ ARNA
+  "881569107": "TSRO",   // TESARO — acquired by GSK Jan 2019; NASDAQ TSRO
+  // Envision Healthcare (pre- and post-AmSurg merger — same ticker, different CUSIP)
+  "29413U103": "EVHC",   // Envision Healthcare Holdings (pre-merger entity) — NYSE EVHC
+  "29414D100": "EVHC",   // Envision Healthcare Corp (post-merger entity) — NYSE EVHC
+  "03232P405": "AMSG",   // AmSurg Corp — merged into Envision Healthcare Dec 2016; NASDAQ AMSG
+  // Healthcare services
+  "45329R109": "INCR",   // INC Research Holdings — merged with inVentiv → Syneos Aug 2017; NASDAQ INCR
+  "023436108": "AMED",   // Amedisys — acquired by UnitedHealth Jul 2024; NASDAQ AMED
+  "59267L107": "MTSR",   // Metsera — GLP-1 biotech; IPO'd 2025; NASDAQ MTSR
+  // Industrial / services acquired
+  "36555P107": "GDI",    // Gardner Denver Holdings — merged with Ingersoll Rand Feb 2020; NYSE GDI
+  "400110102": "GRUB",   // Grubhub — acquired by Just Eat Takeaway Jun 2021; NYSE GRUB
+  "579063108": "MCFE",   // McAfee Corp — acquired by investor group Mar 2022; NASDAQ MCFE
+  "N6865W105": "PTHN",   // Patheon NV — acquired by Thermo Fisher Feb 2017; NYSE PTHN (Netherlands)
+  "80283M101": "SC",     // Santander Consumer USA — acquired by Banco Santander Oct 2022; NYSE SC
+  // Energy
+  "30227M105": "XOG",    // Extraction Oil and Gas — acquired by Civitas Nov 2021; NASDAQ XOG
+  "171798101": "XEC",    // Cimarex Energy — acquired by Coterra Oct 2021; NYSE XEC
+  "27890G100": "ECR",    // Eclipse Resources — merged → Montage Resources Feb 2019; NYSE ECR
+  "212015101": "CLR",    // Continental Resources — went private Oct 2022; NYSE CLR
+  "18911Q102": "CLD",    // Cloud Peak Energy — filed bankruptcy May 2019; NYSE CLD
+  // Still-trading
+  "679369108": "OLPX",   // Olaplex Holdings — NASDAQ OLPX
+  "410345102": "HBI",    // Hanesbrands — NYSE HBI
+  "654110105": "NKLA",   // Nikola Corp — NASDAQ NKLA
+  "91822J103": "VBIV",   // VBI Vaccines — NASDAQ VBIV
+  "87190U100": "TDCX",   // TDCX Inc — Singapore BPO; NYSE TDCX
+  "64157F103": "NVRO",   // Nevro Corp — NYSE NVRO
+  "83193E102": "EM",     // Smart Share Global (Energy Monster) — NASDAQ EM
+  "33616C100": "FRC",    // First Republic Bank — seized by FDIC May 2023; NYSE FRC
+  // SPACs
+  "68626A207": "OHPA",   // Orion Acquisition Corp — NYSE OHPA
+  "62477L107": "MUDS",   // Mudrick Capital Acquisition Corp II — NASDAQ MUDS
+  // Went private
+  "918194101": "VCA",    // VCA Inc — acquired by Mars Sep 2017; NASDAQ VCA
+  // ── End Viking Global Investors-sourced fixes ─────────────────────────────────────────
+
   // ── Greenlight Capital (CIK 1079114 + linkedCik 1489933) — David Einhorn ─────────────
   // CONSOL Energy ecosystem — Einhorn's dominant multi-year position
   "20854P109": "CNX",    // Old CONSOL Energy Inc (pre-Nov 2017 split); NYSE CNX (now CNX Resources natural gas)
@@ -1811,6 +1871,7 @@ const TRACKED_FUNDS = [
   // linkedCik tells the seeder to fetch DME stubs but store them under the primary CIK.
   { cik: "1079114", name: "Greenlight Capital",      slug: "greenlight-capital",             proprietor: "David Einhorn",          linkedCik: "1489933" },
   { cik: "1035674", name: "Paulson & Co.",            slug: "paulson",                        proprietor: "John Paulson"            },
+  { cik: "1103804", name: "Viking Global Investors",  slug: "viking-global",                  proprietor: "Andreas Halvorsen"       },
 ];
 
 export async function initEdgarFetcher(): Promise<void> {

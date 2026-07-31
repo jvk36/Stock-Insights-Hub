@@ -1873,6 +1873,7 @@ const TRACKED_FUNDS = [
   { cik: "1035674", name: "Paulson & Co.",            slug: "paulson",                        proprietor: "John Paulson"            },
   { cik: "1103804", name: "Viking Global Investors",  slug: "viking-global",                  proprietor: "Andreas Halvorsen"       },
   { cik: "1135730", name: "Coatue Management",        slug: "coatue",                         proprietor: "Philippe Laffont"        },
+  { cik: "1061165", name: "Lone Pine Capital",        slug: "lone-pine-capital",              proprietor: "Lee Ainslie"             },
 ];
 
 export async function initEdgarFetcher(): Promise<void> {

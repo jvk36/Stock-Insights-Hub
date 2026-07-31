@@ -37,6 +37,7 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Paulson & Co. | 1035674 | paulson | John Paulson | 9–54 | classic merger-arb fund; shrank dramatically 2016→2026; 9 residual nulls — 2 Cobalt bonds (19075FAB2/FAA4), MGIC bond (552848AE3), BAC TARP warrant (060505153 ×5), Solstice Advanced Materials (83443Q103 unresolvable); 1,593/1,602 holdings resolved (99.4%) |
 | Viking Global Investors | 1103804 | viking-global | Andreas Halvorsen | ~75–90 | long/short global equity Tiger Cub; 1 residual null — 29445S100 EquipmentShare.com Inc (private company, unresolvable); 3,033/3,034 resolved (99.97%) |
 | Coatue Management | 1135730 | coatue | Philippe Laffont | ~40–120 | tech long/short Tiger Cub; 5 residual nulls — 83443Q103 Solstice (unresolvable), 46138G706 Invesco ETF trust, 78463X202 SPDR trust; 3,627/3,632 resolved (99.9%) |
+| Lone Pine Capital | 1061165 | lone-pine-capital | Lee Ainslie | ~22–41 | long/short global equity Tiger Cub; 0 nulls — 1,272/1,272 resolved (100%) |
 
 ## Third Point LLC-specific notes
 

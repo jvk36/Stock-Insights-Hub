@@ -1195,6 +1195,13 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "625383104": "LABL",   // Multi-Color Corp (label solutions; went private 2019; held Q1–Q3 2016)
   "16954L105": "COE",    // China Online Education Group / 51Talk (NYSE)
   // ── End Joho Capital-sourced fixes ────────────────────────────────────────────────────
+
+  // ── Trian Fund Management (CIK 1345471) — Nelson Peltz ────────────────────────────────
+  "G4474Y214": "JHG",    // Janus Henderson Group plc — ordinary shares (G-prefix = UK-incorporated, NYSE: JHG)
+  "G4474Y904": "JHG",    // Janus Henderson Group plc — alternate share class CUSIP, same company
+  "263534109": "DD",     // E.I. du Pont de Nemours & Co. (held Q1–Q4 2016, pre-DowDuPont merger)
+  "524901105": "LM",     // Legg Mason Inc. (acquired by Franklin Templeton 2020; held through Q4 2019)
+  // ── End Trian Fund Management-sourced fixes ────────────────────────────────────────────
 };
 
 /**
@@ -1882,6 +1889,7 @@ const TRACKED_FUNDS = [
   { cik: "1135730", name: "Coatue Management",        slug: "coatue",                         proprietor: "Philippe Laffont"        },
   { cik: "1061165", name: "Lone Pine Capital",        slug: "lone-pine-capital",              proprietor: "Lee Ainslie"             },
   { cik: "1106500", name: "Joho Capital",             slug: "joho-capital",                   proprietor: "Robert Karr"             },
+  { cik: "1345471", name: "Trian Fund Management",   slug: "trian-fund-management",          proprietor: "Nelson Peltz"            },
 ];
 
 export async function initEdgarFetcher(): Promise<void> {

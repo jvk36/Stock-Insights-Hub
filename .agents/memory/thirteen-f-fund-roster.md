@@ -39,6 +39,7 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Coatue Management | 1135730 | coatue | Philippe Laffont | ~40–120 | tech long/short Tiger Cub; 5 residual nulls — 83443Q103 Solstice (unresolvable), 46138G706 Invesco ETF trust, 78463X202 SPDR trust; 3,627/3,632 resolved (99.9%) |
 | Lone Pine Capital | 1061165 | lone-pine-capital | Lee Ainslie | ~22–41 | long/short global equity Tiger Cub; 0 nulls — 1,272/1,272 resolved (100%) |
 | Joho Capital | 1106500 | joho-capital | Robert Karr | ~6–22 | concentrated global long/short Tiger Cub, heavy Asia tilt; 0 nulls after overrides — LTHM (Livent), NXT (NextTracker), LABL (Multi-Color, went private), COE (51Talk); 490/490 resolved (100%) |
+| Trian Fund Management | 1345471 | trian-fund-management | Nelson Peltz | ~7–12 | activist long-only; 0 nulls after overrides — JHG (Janus Henderson, two CUSIPs G4474Y214/G4474Y904), DD (old DuPont pre-merger), LM (Legg Mason, acquired 2020); 345/345 resolved (100%) |
 
 ## Third Point LLC-specific notes
 

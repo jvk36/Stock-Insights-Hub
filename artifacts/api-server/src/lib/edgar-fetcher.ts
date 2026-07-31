@@ -1221,6 +1221,13 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "85225a107": "SQSP",   // Squarespace Inc (direct listing May 2021; NYSE: SQSP)
   "12508e101": "CDK",    // CDK Global Inc (acquired by Brookfield Business Partners Aug 2022)
   // ── End Brave Warrior Advisors-sourced fixes ───────────────────────────────────────────
+
+  // ── Egerton Capital (CIK 1581811) — John Armitage ─────────────────────────────────────
+  "573284106": "MLM",    // Martin Marietta Materials Inc (NYSE: MLM)
+  "09257W100": "BXMT",   // Blackstone Mortgage Trust Inc (NYSE: BXMT)
+  "09261X102": "BXSL",   // Blackstone Secured Lending Fund (NYSE: BXSL)
+  "100557107": "SAM",    // Boston Beer Company Inc (NYSE: SAM)
+  // ── End Egerton Capital-sourced fixes ─────────────────────────────────────────────────
 };
 
 /**
@@ -1910,6 +1917,7 @@ const TRACKED_FUNDS = [
   { cik: "1106500", name: "Joho Capital",             slug: "joho-capital",                   proprietor: "Robert Karr"             },
   { cik: "1345471", name: "Trian Fund Management",   slug: "trian-fund-management",          proprietor: "Nelson Peltz"            },
   { cik: "1553733", name: "Brave Warrior Advisors",  slug: "brave-warrior-advisors",         proprietor: "Glenn Greenberg"         },
+  { cik: "1581811", name: "Egerton Capital",         slug: "egerton-capital",                proprietor: "John Armitage"           },
 ];
 
 export async function initEdgarFetcher(): Promise<void> {

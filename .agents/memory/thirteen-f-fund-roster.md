@@ -41,6 +41,7 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Joho Capital | 1106500 | joho-capital | Robert Karr | ~6–22 | concentrated global long/short Tiger Cub, heavy Asia tilt; 0 nulls after overrides — LTHM (Livent), NXT (NextTracker), LABL (Multi-Color, went private), COE (51Talk); 490/490 resolved (100%) |
 | Trian Fund Management | 1345471 | trian-fund-management | Nelson Peltz | ~7–12 | activist long-only; 0 nulls after overrides — JHG (Janus Henderson, two CUSIPs G4474Y214/G4474Y904), DD (old DuPont pre-merger), LM (Legg Mason, acquired 2020); 345/345 resolved (100%) |
 | Brave Warrior Advisors | 1553733 | brave-warrior-advisors | Glenn Greenberg | ~12–35 | concentrated value long-only; 0 nulls after 16 overrides — Liberty Global (2 CUSIPs), Millrose Properties (MRP), Cimpress (CMPR), Nielsen (NLSN), Facebook pre-rename (META), Express Scripts (ESRX), IQVIA/Quintiles (IQV), Valeant (VRX), First American Financial (2 case-variant CUSIPs→FAF), Brookfield Business Partners (BBU), Liberty Interactive (QVCA), Antero Midstream GP (AMGP), Squarespace (SQSP), CDK Global (CDK); 907/907 resolved (100%) |
+| Egerton Capital | 1581811 | egerton-capital | John Armitage | ~21–35 | London-based global long/short; 42 quarters (Q1 2016–Q2 2026 inclusive); 0 nulls after 4 overrides — MLM (Martin Marietta), BXMT (Blackstone Mortgage Trust), BXSL (Blackstone Secured Lending), SAM (Boston Beer); 1,173/1,173 resolved (100%) |
 
 ## Third Point LLC-specific notes
 

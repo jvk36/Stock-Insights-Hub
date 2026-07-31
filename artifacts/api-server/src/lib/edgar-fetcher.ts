@@ -1188,6 +1188,13 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   // Note: 57060U100 (Market Vectors ETF), 46137V100/357 (Invesco ETFs), 78464A631/714 (SPDR ETFs),
   //       33733E807 (First Trust ETF), 46090F100 (Invesco ETF) — CUSIP→specific ticker unresolvable
   // ── End Greenlight Capital-sourced fixes ──────────────────────────────────────────────
+
+  // ── Joho Capital (CIK 1106500) — Robert Karr ──────────────────────────────────────────
+  "53814L108": "LTHM",   // Livent Corp (lithium; merged into Arcadium Lithium 2023; held Q1 2020–Q4 2022)
+  "65290E101": "NXT",    // NextTracker Inc (solar tracker; IPO Feb 2023)
+  "625383104": "LABL",   // Multi-Color Corp (label solutions; went private 2019; held Q1–Q3 2016)
+  "16954L105": "COE",    // China Online Education Group / 51Talk (NYSE)
+  // ── End Joho Capital-sourced fixes ────────────────────────────────────────────────────
 };
 
 /**
@@ -1874,6 +1881,7 @@ const TRACKED_FUNDS = [
   { cik: "1103804", name: "Viking Global Investors",  slug: "viking-global",                  proprietor: "Andreas Halvorsen"       },
   { cik: "1135730", name: "Coatue Management",        slug: "coatue",                         proprietor: "Philippe Laffont"        },
   { cik: "1061165", name: "Lone Pine Capital",        slug: "lone-pine-capital",              proprietor: "Lee Ainslie"             },
+  { cik: "1106500", name: "Joho Capital",             slug: "joho-capital",                   proprietor: "Robert Karr"             },
 ];
 
 export async function initEdgarFetcher(): Promise<void> {

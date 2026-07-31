@@ -1202,6 +1202,25 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "263534109": "DD",     // E.I. du Pont de Nemours & Co. (held Q1–Q4 2016, pre-DowDuPont merger)
   "524901105": "LM",     // Legg Mason Inc. (acquired by Franklin Templeton 2020; held through Q4 2019)
   // ── End Trian Fund Management-sourced fixes ────────────────────────────────────────────
+
+  // ── Brave Warrior Advisors (CIK 1553733) — Glenn Greenberg ────────────────────────────
+  "g5480u104": "LBTYA",  // Liberty Global PLC Class A (G-prefix = UK-incorporated; NASDAQ: LBTYA)
+  "g5480u120": "LBTYK",  // Liberty Global PLC Class C (alternate share class)
+  "601137102": "MRP",    // Millrose Properties Inc (Lennar spinoff, began trading Feb 2025)
+  "n20146101": "CMPR",   // Cimpress N.V. (parent of Vistaprint; N-prefix = Netherlands-incorporated)
+  "g6518l108": "NLSN",   // Nielsen Holdings PLC (G-prefix = UK-incorporated; went private Oct 2022)
+  "30303m102": "META",   // Facebook Inc (pre-rename CUSIP; became Meta Platforms Oct 2021)
+  "30219g108": "ESRX",   // Express Scripts Holding Co (acquired by Cigna Dec 2018)
+  "74876y101": "IQV",    // Quintiles IMS Holdings Inc (merged/renamed IQVIA Holdings 2017)
+  "91911k102": "VRX",    // Valeant Pharmaceuticals Intl (renamed Bausch Health 2018)
+  "31847R102": "FAF",    // First American Financial Corp (CUSIP uppercase variant)
+  "31847r102": "FAF",    // First American Financial Corp (CUSIP lowercase variant)
+  "g16234109": "BBU",    // Brookfield Business Partners LP (G-prefix = Bermuda-incorporated; NYSE: BBU)
+  "53071m856": "QVCA",   // Liberty Interactive Corp Series A QVC Group (tracking stock)
+  "03675y103": "AMGP",   // Antero Midstream GP LP (merged into Antero Midstream Corp 2019)
+  "85225a107": "SQSP",   // Squarespace Inc (direct listing May 2021; NYSE: SQSP)
+  "12508e101": "CDK",    // CDK Global Inc (acquired by Brookfield Business Partners Aug 2022)
+  // ── End Brave Warrior Advisors-sourced fixes ───────────────────────────────────────────
 };
 
 /**
@@ -1890,6 +1909,7 @@ const TRACKED_FUNDS = [
   { cik: "1061165", name: "Lone Pine Capital",        slug: "lone-pine-capital",              proprietor: "Lee Ainslie"             },
   { cik: "1106500", name: "Joho Capital",             slug: "joho-capital",                   proprietor: "Robert Karr"             },
   { cik: "1345471", name: "Trian Fund Management",   slug: "trian-fund-management",          proprietor: "Nelson Peltz"            },
+  { cik: "1553733", name: "Brave Warrior Advisors",  slug: "brave-warrior-advisors",         proprietor: "Glenn Greenberg"         },
 ];
 
 export async function initEdgarFetcher(): Promise<void> {

@@ -31,6 +31,7 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Third Point LLC | 1040273 | third-point | Daniel Loeb | ~25–55 |
 | Icahn Capital LP | 921669 | icahn-capital | Carl Icahn | ~8–20 |
 | Public Investment Fund | 1767640 | public-investment-fund | Yasir Al-Rumayyan | ~20–40 | 30 qtrs only (Q4 2018–Q1 2026) |
+| Baker Bros. Advisors LP | 1263508 | baker-bros-advisors | Felix & Julian Baker | ~80–110 | 1 residual null: 220485AB2 (Corsicanto II — convertible bond, no equity ticker) |
 
 ## Third Point LLC-specific notes
 

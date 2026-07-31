@@ -859,6 +859,59 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "44951Y102": "HYZN",   // Hyzon Motors Inc — hydrogen fuel cell trucks; NASDAQ HYZN; delisted ~2024
   "N80029106": "SSU",    // Signa Sports United NV — N prefix (Netherlands); e-commerce sports retail; NYSE SSU; filed bankruptcy Nov 2023
   // ── End Public Investment Fund-sourced fixes ─────────────────────────────────────────
+
+  // ── Baker Bros. Advisors LP (CIK 1263508) — Felix & Julian Baker ─────────────────────
+  // Seagen — Baker Bros' career-defining holding (~$100B peak); acquired by Pfizer Dec 2023
+  "81181C104": "SGEN",   // Seagen Inc. (fmr Seattle Genetics) — NASDAQ SGEN; Pfizer acquisition closed Dec 2023
+  // Acquired biotech companies
+  "74257L108": "PRNB",   // Principia Biopharma Inc. — acquired by Sanofi Aug 2020; NASDAQ PRNB
+  "00790T100": "AAAP",   // Advanced Accelerator Applications S.A. — French radiopharma; acquired by Novartis Jan 2018; NASDAQ AAAP
+  "00372Y105": "ABLX",   // Ablynx NV — Belgian nanobody pharma; acquired by Sanofi Jun 2018; NASDAQ ABLX
+  "185575107": "CMTA",   // Clementia Pharmaceuticals Inc. — acquired by Ipsen Mar 2019; NASDAQ CMTA
+  "45252L103": "IMDZ",   // Immune Design Corp. — acquired by Merck Mar 2019; NASDAQ IMDZ
+  "09075E100": "BIVV",   // Bioverativ Inc. — hemophilia spinoff from Biogen; acquired by Sanofi Mar 2018; NASDAQ BIVV
+  "68570P101": "ORTX",   // Orchard Therapeutics plc — gene therapy; acquired by Kyowa Kirin 2023; NASDAQ ORTX
+  "730541109": "PNT",    // POINT Biopharma Global Inc. — radiopharmaceuticals; acquired by Eli Lilly Oct 2023; NASDAQ PNT
+  "38406L103": "GRCL",   // Gracell Biotechnologies Inc. — Chinese cell therapy; acquired by AstraZeneca Jan 2024; NASDAQ GRCL
+  "03217L106": "AMYT",   // Amryt Pharma plc — Irish rare disease; acquired by Chiesi Mar 2023; NASDAQ AMYT
+  "M74231107": "NDRM",   // NeuroDerm Ltd. — M prefix (Israel); CNS drug delivery; acquired by Mitsubishi Tanabe 2017; NASDAQ NDRM
+  "503459604": "LJPC",   // La Jolla Pharmaceutical Company — acquired by Innoviva Apr 2022; NASDAQ LJPC
+  "G9381B108": "UROV",   // Urovant Sciences Ltd. — G prefix (Cayman); urology biotech; acquired by Sumitomo 2022; NASDAQ UROV
+  "87162T206": "SNTA",   // Synta Pharmaceuticals Corp. — merged with Madrigal Pharmaceuticals 2016; NASDAQ SNTA
+  // Merged / restructured companies
+  "M46135105": "FOMX",   // Foamix Pharmaceuticals Ltd. — M prefix (Israel); merged with Menlo → Vyne Therapeutics 2020; NASDAQ FOMX
+  "586858102": "MNLO",   // Menlo Therapeutics Inc. — merged with Foamix → Vyne 2020; NASDAQ MNLO
+  "87808K106": "TCRR",   // TCR2 Therapeutics Inc. — merged with Appia Bio 2023; NASDAQ TCRR
+  "M2239P109": "ADHD",   // Alcobra Ltd. — M prefix (Israel); CNS; merged with Arctus Biotherapeutics 2017; NASDAQ ADHD
+  "09072X101": "BPMX",   // BioPharmX Corporation — merged with Timber Pharmaceuticals 2020; NYSE American BPMX
+  // Bankrupt / delisted companies
+  "46185L103": "NVTA",   // Invitae Corporation — genetic testing; filed Chapter 11 Feb 2024; NASDAQ NVTA
+  "M47364100": "GMDA",   // Gamida Cell Ltd. — M prefix (Israel); cell therapy; filed bankruptcy Jun 2024; NASDAQ GMDA
+  "00449L102": "ACHL",   // Achilles Therapeutics plc — UK neoantigen therapy; effectively defunct/delisted ~2023; NASDAQ ACHL
+  "87424L108": "TLIS",   // Talis Biomedical Corporation — diagnostics; stock near zero; NASDAQ TLIS
+  "87424L207": "TLIS",   // Talis Biomedical Corporation — unit class; same TLIS
+  "651511107": "NLNK",   // NewLink Genetics / NovaBay — restructured multiple times; NASDAQ NLNK
+  "37186H100": "GTH",    // Genetron Holdings Limited — Chinese cancer genomics; went private/delisted 2023; NASDAQ GTH
+  "62957M104": "NBRV",   // Nabriva Therapeutics AG — Austrian antibiotics; delisted ~2022; NASDAQ NBRV
+  "29604W108": "ERYP",   // ERYTECH Pharma S.A. — French red-cell biotech; restructured/delisted; NASDAQ ERYP
+  "46186M209": "NVIV",   // InVivo Therapeutics Holdings Corp. — spinal cord injury; effectively defunct; NASDAQ NVIV
+  "683745103": "OPHT",   // Ophthotech Corporation — renamed Iveric Bio; acquired by Astellas 2023; NASDAQ OPHT (pre-rename)
+  "232828509": "CYTR",   // CytRx Corporation — tiny oncology company; still listed; NASDAQ CYTR
+  // Still-public companies (Yahoo CUSIP collisions)
+  "N5749R100": "MRUS",   // Merus N.V. — N prefix (Netherlands); bispecific antibodies; NASDAQ MRUS
+  "30063P105": "EXAS",   // Exact Sciences Corporation — colorectal cancer screening; NASDAQ EXAS
+  "01671P100": "ALLK",   // Allakos Inc. — failed phase 3; still listed; NASDAQ ALLK
+  "43906K100": "HOOK",   // HOOKIPA Pharma Inc. — arenavirus immunotherapy; NASDAQ HOOK
+  "43906K209": "HOOK",   // HOOKIPA Pharma Inc. — unit class; same HOOK
+  "09627Y109": "BPMC",   // Blueprint Medicines Corporation — kinase inhibitors; NASDAQ BPMC
+  "268158201": "DVAX",   // Dynavax Technologies Corporation — hepatitis B vaccine; NASDAQ DVAX
+  "37148K100": "GBIO",   // Generation Bio Co. — non-viral gene therapy; NASDAQ GBIO
+  "37148K209": "GBIO",   // Generation Bio Co. — unit class; same GBIO
+  "75915K309": "RGLS",   // Regulus Therapeutics Inc. — microRNA therapeutics; NASDAQ RGLS
+  "G3165V109": "ARYA",   // ARYA Sciences Acquisition Corp. — G prefix (Cayman); biotech SPAC; NASDAQ ARYA
+  "G63365103": "MRAL",   // Mural Oncology plc — G prefix (Cayman); spun off from Alkermes 2024; NASDAQ MRAL
+  // Note: 220485AB2 (Corsicanto II Designated Activity Company) is a convertible bond — no equity ticker assigned
+  // ── End Baker Bros. Advisors LP-sourced fixes ─────────────────────────────────────────
 };
 
 /**
@@ -1518,6 +1571,7 @@ const TRACKED_FUNDS = [
   { cik: "1040273", name: "Third Point LLC",            slug: "third-point",                    proprietor: "Daniel Loeb"             },
   { cik: "921669",  name: "Icahn Capital LP",           slug: "icahn-capital",                  proprietor: "Carl Icahn"              },
   { cik: "1767640", name: "Public Investment Fund",    slug: "public-investment-fund",         proprietor: "Yasir Al-Rumayyan"       },
+  { cik: "1263508", name: "Baker Bros. Advisors LP",  slug: "baker-bros-advisors",            proprietor: "Felix & Julian Baker"    },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

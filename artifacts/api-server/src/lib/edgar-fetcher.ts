@@ -912,6 +912,24 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "G63365103": "MRAL",   // Mural Oncology plc — G prefix (Cayman); spun off from Alkermes 2024; NASDAQ MRAL
   // Note: 220485AB2 (Corsicanto II Designated Activity Company) is a convertible bond — no equity ticker assigned
   // ── End Baker Bros. Advisors LP-sourced fixes ─────────────────────────────────────────
+
+  // ── Fairholme Capital Management LLC (CIK 1056831) — Bruce Berkowitz ────────────────
+  // Sears ecosystem — Berkowitz was one of Sears Holdings' largest outside shareholders
+  "812350106": "SHLD",   // Sears Holdings Corporation — filed Chapter 11 Oct 2018; NASDAQ SHLD
+  "81752R100": "SRG",    // Seritage Growth Properties — REIT spun out of Sears 2015; NYSE SRG
+  "81234D109": "SRSCF",  // Sears Canada Inc — majority-owned Sears subsidiary; TSX SCC / OTC SRSCF; filed bankruptcy 2017
+  "812362101": "SHOS",   // Sears Hometown & Outlet Stores — spun from Sears 2012; NASDAQ SHOS; eventual bankruptcy
+  // Other acquired / delisted companies
+  "40434J100": "HRG",    // HRG Group Inc (fmr Harbinger Group) — parent of Spectrum Brands; merged into SPB 2018; NYSE HRG
+  "93964W108": "WPG",    // Washington Prime Group — retail REIT; filed Chapter 11 Jun 2021; NYSE WPG
+  "800013104": "SAFM",   // Sanderson Farms Inc — poultry producer; acquired by Wayne Farms/Cargill Aug 2022; NASDAQ SAFM
+  // Yahoo Finance CUSIP collisions (still-public or recently split companies)
+  "928377100": "VSTO",   // Vista Outdoor Inc — outdoor sports products; NYSE VSTO; split into Revelyst+SportCo 2024
+  "84790A105": "SPB",    // Spectrum Brands Holdings Inc — household/pet/garden products; NYSE SPB
+  "931427108": "WBA",    // Walgreens Boots Alliance Inc — pharmacy chain; NASDAQ WBA
+  "18885T306": "CLPR",   // Clipper Realty Inc — NYC residential REIT; NYSE CLPR
+  "726503105": "PAA",    // Plains All American Pipeline LP — midstream oil MLP; NASDAQ PAA
+  // ── End Fairholme Capital Management-sourced fixes ────────────────────────────────────
 };
 
 /**
@@ -1572,6 +1590,7 @@ const TRACKED_FUNDS = [
   { cik: "921669",  name: "Icahn Capital LP",           slug: "icahn-capital",                  proprietor: "Carl Icahn"              },
   { cik: "1767640", name: "Public Investment Fund",    slug: "public-investment-fund",         proprietor: "Yasir Al-Rumayyan"       },
   { cik: "1263508", name: "Baker Bros. Advisors LP",  slug: "baker-bros-advisors",            proprietor: "Felix & Julian Baker"    },
+  { cik: "1056831", name: "Fairholme Capital Mgmt",  slug: "fairholme-capital",              proprietor: "Bruce Berkowitz"         },
 ] as const;
 
 export async function initEdgarFetcher(): Promise<void> {

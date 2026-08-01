@@ -1222,6 +1222,11 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "12508e101": "CDK",    // CDK Global Inc (acquired by Brookfield Business Partners Aug 2022)
   // ── End Brave Warrior Advisors-sourced fixes ───────────────────────────────────────────
 
+  // ── Aquamarine Capital Management (CIK 1404599) — Guy Spier ──────────────────────────
+  "60505104": "BAC",    // Bank of America Corp (NYSE: BAC)
+  "29336T100": "ENLC",  // EnLink Midstream LLC (NYSE: ENLC)
+  // ── End Aquamarine Capital Management-sourced fixes ───────────────────────────────────
+
   // ── Polen Capital Management (CIK 1034524) — David Polen ─────────────────────────────
   "021369103": "ALTR",   // Altair Engineering Inc (Nasdaq: ALTR)
   "58471A105": "MDSO",   // Medidata Solutions Inc (Nasdaq: MDSO; acquired by Dassault 2019)
@@ -1953,6 +1958,7 @@ const TRACKED_FUNDS = [
   { cik: "1553733", name: "Brave Warrior Advisors",  slug: "brave-warrior-advisors",         proprietor: "Glenn Greenberg"         },
   { cik: "1581811", name: "Egerton Capital",         slug: "egerton-capital",                proprietor: "John Armitage"           },
   { cik: "1034524", name: "Polen Capital Management", slug: "polen-capital",                  proprietor: "David Polen"              },
+  { cik: "1404599", name: "Aquamarine Capital Management", slug: "aquamarine-capital",        proprietor: "Guy Spier"                },
 ];
 
 export async function initEdgarFetcher(): Promise<void> {

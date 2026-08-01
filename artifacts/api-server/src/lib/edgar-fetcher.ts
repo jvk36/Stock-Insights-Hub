@@ -1958,7 +1958,7 @@ const TRACKED_FUNDS = [
   { cik: "1553733", name: "Brave Warrior Advisors",  slug: "brave-warrior-advisors",         proprietor: "Glenn Greenberg"         },
   { cik: "1581811", name: "Egerton Capital",         slug: "egerton-capital",                proprietor: "John Armitage"           },
   { cik: "1034524", name: "Polen Capital Management", slug: "polen-capital",                  proprietor: "David Polen"              },
-  { cik: "1404599", name: "Aquamarine Capital Management", slug: "aquamarine-capital",        proprietor: "Guy Spier"                },
+  { cik: "1404599", name: "Aquamarine Capital Management", slug: "aquamarine-capital",        proprietor: "Guy Spier",               linkedCik: "1953324" },
 ];
 
 export async function initEdgarFetcher(): Promise<void> {

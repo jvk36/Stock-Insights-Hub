@@ -1222,6 +1222,40 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "12508e101": "CDK",    // CDK Global Inc (acquired by Brookfield Business Partners Aug 2022)
   // ── End Brave Warrior Advisors-sourced fixes ───────────────────────────────────────────
 
+  // ── Polen Capital Management (CIK 1034524) — David Polen ─────────────────────────────
+  "021369103": "ALTR",   // Altair Engineering Inc (Nasdaq: ALTR)
+  "58471A105": "MDSO",   // Medidata Solutions Inc (Nasdaq: MDSO; acquired by Dassault 2019)
+  "185123106": "CWAN",   // Clearwater Analytics Holdings Inc (NYSE: CWAN)
+  "29404K106": "ENV",    // Envestnet Inc (NYSE: ENV; acquired by Bain Capital 2024)
+  "V5633W109": "MMYT",   // MakeMy Trip Ltd (Nasdaq: MMYT)
+  "29109X106": "AZPN",   // Aspen Technology Inc (Nasdaq: AZPN; Emerson merger 2022)
+  "45780R101": "IBP",    // Installed Building Products Inc (NYSE: IBP)
+  "609839105": "MPWR",   // Monolithic Power Systems Inc (Nasdaq: MPWR)
+  "75955B102": "RELX",   // RELX NV (NYSE: RELX; formerly Reed Elsevier)
+  "67079K100": "SMR",    // NuScale Power Corp (NYSE: SMR)
+  "L1995B107": "CAAP",   // Corporacion America Airports SA (NYSE: CAAP)
+  "55406W103": "MYTE",   // Mytheresa / MYT Netherlands Parent BV (NYSE: MYTE)
+  "138098108": "CMD",    // Cantel Medical Corp (NYSE: CMD; acquired by Steris 2021)
+  "740444104": "PLPC",   // Preformed Line Products Co (Nasdaq: PLPC)
+  "90337L108": "USPH",   // U.S. Physical Therapy Inc (NYSE: USPH)
+  "28849P100": "ELLI",   // Ellie Mae Inc (NYSE: ELLI; acquired by Thoma Bravo 2019)
+  "67069D108": "NTRI",   // Nutrisystem Inc (Nasdaq: NTRI; acquired by Tivity Health 2019)
+  "624756102": "MLI",    // Mueller Industries Inc (NYSE: MLI)
+  "G39108108": "GTES",   // Gates Industrial Corp plc (NYSE: GTES)
+  "74112D101": "PBH",    // Prestige Consumer Healthcare / Prestige Brands Holdings (NYSE: PBH)
+  "163086101": "CHEF",   // Chef's Warehouse Inc (Nasdaq: CHEF)
+  "600551204": "MLR",    // Miller Industries Inc Tennessee (NYSE: MLR)
+  "88362T103": "THR",    // Thermon Group Holdings Inc (NYSE: THR)
+  "922417100": "VECO",   // Veeco Instruments Inc (Nasdaq: VECO)
+  "21676P103": "CPS",    // Cooper-Standard Holdings Inc (NYSE: CPS)
+  "55405Y100": "MTSI",   // MACOM Technology Solutions Holdings Inc (Nasdaq: MTSI)
+  "930427109": "WAGE",   // WageWorks Inc (NYSE: WAGE; acquired by HealthEquity 2019)
+  "80517M109": "SVV",    // Savers Value Village Inc (NYSE: SVV)
+  // intentional nulls: 37954Y889 (Global X ETF trust), 922908736/92206C680 (Vanguard mutual fund shares),
+  //   46137V357/337344105 (Invesco/First Trust ETF trusts), 248019101 (Deluxe debt note),
+  //   G1827P106 (Cantor SPAC), 62945V109 (NV5 Global — ticker unconfirmed)
+  // ── End Polen Capital Management-sourced fixes ────────────────────────────────────────
+
   // ── Egerton Capital (CIK 1581811) — John Armitage ─────────────────────────────────────
   "573284106": "MLM",    // Martin Marietta Materials Inc (NYSE: MLM)
   "09257W100": "BXMT",   // Blackstone Mortgage Trust Inc (NYSE: BXMT)
@@ -1918,6 +1952,7 @@ const TRACKED_FUNDS = [
   { cik: "1345471", name: "Trian Fund Management",   slug: "trian-fund-management",          proprietor: "Nelson Peltz"            },
   { cik: "1553733", name: "Brave Warrior Advisors",  slug: "brave-warrior-advisors",         proprietor: "Glenn Greenberg"         },
   { cik: "1581811", name: "Egerton Capital",         slug: "egerton-capital",                proprietor: "John Armitage"           },
+  { cik: "1034524", name: "Polen Capital Management", slug: "polen-capital",                  proprietor: "David Polen"              },
 ];
 
 export async function initEdgarFetcher(): Promise<void> {

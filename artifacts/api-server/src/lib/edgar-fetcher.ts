@@ -1222,6 +1222,15 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "12508e101": "CDK",    // CDK Global Inc (acquired by Brookfield Business Partners Aug 2022)
   // ── End Brave Warrior Advisors-sourced fixes ───────────────────────────────────────────
 
+  // ── SouthernSun Asset Management (CIK 1089755) — Michael Cook ───────────────────────
+  "651290108": "NFX",   // Newfield Exploration Co. (NYSE: NFX; acquired by Encana/Ovintiv 2019)
+  "00770F104":  "AEGN", // Aegion Corp. (Nasdaq: AEGN; taken private by New Mountain Capital 2021)
+  "12571T100":  "CCMP", // CMC Materials Inc (Nasdaq: CCMP; acquired by Entegris 2022)
+  "88087E100":  "TMX",  // Terminix Global Holdings (NYSE: TMX; acquired by Rentokil Initial 2022)
+  "93317W102":  "WAC",  // Walter Investment Management Corp (NYSE: WAC; renamed Ditech, bankrupt 2019)
+  "78467Y107":  "MDY",  // SPDR S&P MidCap 400 ETF Trust (NYSE Arca: MDY)
+  // ── End SouthernSun Asset Management-sourced fixes ────────────────────────────────────
+
   // ── Semper Augustus Investment Group (CIK 1115373) — Christopher Bloomstran ──────────
   "589400100": "MCY",   // Mercury General Corp (NYSE: MCY; Bloomstran's flagship long-term holding)
   "002444107": "AVX",   // AVX Corp (NYSE: AVX; acquired by Kyocera 2020)
@@ -1971,6 +1980,7 @@ const TRACKED_FUNDS = [
   { cik: "1034524", name: "Polen Capital Management", slug: "polen-capital",                  proprietor: "David Polen"              },
   { cik: "1404599", name: "Aquamarine Capital Management", slug: "aquamarine-capital",        proprietor: "Guy Spier",               linkedCik: "1953324" },
   { cik: "1115373", name: "Semper Augustus Investment Group", slug: "semper-augustus",        proprietor: "Christopher Bloomstran"   },
+  { cik: "1089755", name: "SouthernSun Asset Management",    slug: "southernsun",             proprietor: "Michael Cook"             },
 ];
 
 export async function initEdgarFetcher(): Promise<void> {

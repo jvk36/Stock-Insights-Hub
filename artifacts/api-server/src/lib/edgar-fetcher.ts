@@ -1222,6 +1222,23 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "12508e101": "CDK",    // CDK Global Inc (acquired by Brookfield Business Partners Aug 2022)
   // ── End Brave Warrior Advisors-sourced fixes ───────────────────────────────────────────
 
+  // ── Vulcan Value Partners (CIK 1556785) — C.T. Fitzpatrick ──────────────────────────
+  "G2717B108": "CWK",   // Cushman & Wakefield PLC (NYSE: CWK; Irish HQ, G-CUSIP)
+  "G05384105": "AHL",   // Aspen Insurance Holdings Ltd (NYSE: AHL; taken private by Apollo 2019)
+  "638904102": "NAVG",  // Navigators Group Inc (Nasdaq: NAVG; acquired by The Hartford 2018)
+  "81616X103": "SCSS",  // Select Comfort Corp (Nasdaq: SCSS; rebranded to Sleep Number / SNBR 2017)
+  "899896104": "TUP",   // Tupperware Brands Corp (NYSE: TUP; bankrupt 2023)
+  "26484T106": "DNB",   // Dun & Bradstreet Holdings Inc (NYSE: DNB; re-IPO 2020, acquired 2025)
+  "63935N107": "NCI",   // Navigant Consulting Inc (NYSE: NCI; acquired by Guidehouse 2019)
+  "498904200": "KNL",   // Knoll Inc (NYSE: KNL; acquired by Herman Miller/MillerKnoll 2021)
+  "14309L102": "CG",    // Carlyle Group LP (Nasdaq: CG; converted to C-corp 2020)
+  "125134106": "CEB",   // CEB Inc (NYSE: CEB; acquired by Gartner 2017)
+  "515098101": "LSTR",  // Landstar System Inc (Nasdaq: LSTR; active ticker, Yahoo missed it)
+  "067806109": "B",     // Barnes Group Inc (NYSE: B)
+  "29283F103": "ESMT",  // EngageSmart Inc (NYSE: ESMT; taken private by Vista Equity 2023)
+  "732872106": "PLKI",  // Popeyes Louisiana Kitchen Inc (Nasdaq: PLKI; acquired by Restaurant Brands 2017)
+  // ── End Vulcan Value Partners-sourced fixes ───────────────────────────────────────────
+
   // ── SouthernSun Asset Management (CIK 1089755) — Michael Cook ───────────────────────
   "651290108": "NFX",   // Newfield Exploration Co. (NYSE: NFX; acquired by Encana/Ovintiv 2019)
   "00770F104":  "AEGN", // Aegion Corp. (Nasdaq: AEGN; taken private by New Mountain Capital 2021)
@@ -1981,6 +1998,7 @@ const TRACKED_FUNDS = [
   { cik: "1404599", name: "Aquamarine Capital Management", slug: "aquamarine-capital",        proprietor: "Guy Spier",               linkedCik: "1953324" },
   { cik: "1115373", name: "Semper Augustus Investment Group", slug: "semper-augustus",        proprietor: "Christopher Bloomstran"   },
   { cik: "1089755", name: "SouthernSun Asset Management",    slug: "southernsun",             proprietor: "Michael Cook"             },
+  { cik: "1556785", name: "Vulcan Value Partners",           slug: "vulcan-value-partners",   proprietor: "C.T. Fitzpatrick"         },
 ];
 
 export async function initEdgarFetcher(): Promise<void> {

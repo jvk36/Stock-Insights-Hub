@@ -1222,6 +1222,17 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   "12508e101": "CDK",    // CDK Global Inc (acquired by Brookfield Business Partners Aug 2022)
   // ── End Brave Warrior Advisors-sourced fixes ───────────────────────────────────────────
 
+  // ── Semper Augustus Investment Group (CIK 1115373) — Christopher Bloomstran ──────────
+  "589400100": "MCY",   // Mercury General Corp (NYSE: MCY; Bloomstran's flagship long-term holding)
+  "002444107": "AVX",   // AVX Corp (NYSE: AVX; acquired by Kyocera 2020)
+  "436106108": "HFC",   // HollyFrontier Corp (NYSE: HFC; renamed HF Sinclair / DINO in 2022)
+  "003264108": "SIVR",  // abrdn Silver ETF Trust (NYSE Arca: SIVR)
+  "76009N100":  "RCII", // Rent-A-Center Inc (Nasdaq: RCII; acquired by Upbound Group 2022)
+  "925602203": "VICL",  // Vical Inc (Nasdaq: VICL; merged into Brickell Biotech 2019) — CUSIP variant A
+  "925602104": "VICL",  // Vical Inc (Nasdaq: VICL) — CUSIP variant B
+  // intentional null: 74347B714 (ProShares ETF trust — specific fund unidentifiable)
+  // ── End Semper Augustus Investment Group-sourced fixes ────────────────────────────────
+
   // ── Aquamarine Capital Management (CIK 1404599) — Guy Spier ──────────────────────────
   "60505104": "BAC",    // Bank of America Corp (NYSE: BAC)
   "29336T100": "ENLC",  // EnLink Midstream LLC (NYSE: ENLC)
@@ -1959,6 +1970,7 @@ const TRACKED_FUNDS = [
   { cik: "1581811", name: "Egerton Capital",         slug: "egerton-capital",                proprietor: "John Armitage"           },
   { cik: "1034524", name: "Polen Capital Management", slug: "polen-capital",                  proprietor: "David Polen"              },
   { cik: "1404599", name: "Aquamarine Capital Management", slug: "aquamarine-capital",        proprietor: "Guy Spier",               linkedCik: "1953324" },
+  { cik: "1115373", name: "Semper Augustus Investment Group", slug: "semper-augustus",        proprietor: "Christopher Bloomstran"   },
 ];
 
 export async function initEdgarFetcher(): Promise<void> {

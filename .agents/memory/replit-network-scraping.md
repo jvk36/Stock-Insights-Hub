@@ -10,6 +10,20 @@ When an external site returns 403 or ETIMEDOUT from Node.js `fetch` (undici) but
 
 **How to apply:** Add a `curlGet(url, extraArgs?)` helper in any file that needs to scrape bot-protected pages. Pass browser-like headers (`-A`, `-H Accept`, `-H Referer`) as curl flags. This is already implemented in `artifacts/api-server/src/routes/indexes.ts` for the Nasdaq-100 scraper.
 
+## Production PATH quirk — resolve curl at startup
+
+`execFile("curl", ...)` silently fails with ENOENT in the production vm container because the Node process does not inherit the Nix store PATH (where curl lives in dev). Fix: resolve the binary once at module load using `execSync("which curl")` and pass the absolute path to `execFile`.
+
+```ts
+const CURL_BIN = (() => {
+  try { return execSync("which curl", { encoding: "utf8" }).trim(); }
+  catch { return "curl"; }
+})();
+// then: execFile(CURL_BIN, args, ...)
+```
+
+**Why:** The production run command (`node dist/index.mjs`) is invoked without a login shell, so the Nix profile PATH (`/nix/store/.../bin`) is not set. `which curl` is invoked via `execSync` which itself uses `/bin/sh -c which curl`, and that shell does have the Nix PATH.
+
 ## Known working sources (Node.js fetch OK)
 - Wikipedia (en.wikipedia.org) — no bot filtering
 - Yahoo Finance (via yahoo-finance2 library)

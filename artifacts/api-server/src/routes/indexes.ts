@@ -1,10 +1,21 @@
 import { Router, type Request, type Response } from "express";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { execFile } from "node:child_process";
+import { execFile, execSync } from "node:child_process";
 import * as cheerio from "cheerio";
 import YahooFinance from "yahoo-finance2";
 import { logger } from "../lib/logger";
+
+/**
+ * Absolute path to curl, resolved once at startup via the shell (which has the
+ * full Nix-store PATH). The production Node process may not inherit that PATH,
+ * so `execFile("curl", ...)` would fail with ENOENT — using the resolved path
+ * avoids that entirely.
+ */
+const CURL_BIN = (() => {
+  try { return execSync("which curl", { encoding: "utf8" }).trim(); }
+  catch { return "curl"; } // last-resort fallback
+})();
 
 /**
  * HTTP GET using the system curl binary.
@@ -25,8 +36,8 @@ function curlGet(url: string, extraArgs: string[] = []): Promise<string> {
       ...extraArgs,
       url,
     ];
-    execFile("curl", args, { maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
-      if (err) { reject(new Error(`curl failed: ${err.message} — ${stderr}`)); return; }
+    execFile(CURL_BIN, args, { maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
+      if (err) { reject(new Error(`curl failed (bin=${CURL_BIN}): ${err.message} — ${stderr}`)); return; }
       resolve(stdout);
     });
   });

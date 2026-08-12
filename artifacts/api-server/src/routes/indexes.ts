@@ -53,7 +53,7 @@ interface IndexCache {
   revalidating: boolean;
 }
 
-const CACHE_TTL_MS    = 24 * 60 * 60 * 1000;          // 24 h — index constituent lists
+const CACHE_TTL_MS    = 10 * 24 * 60 * 60 * 1000;     // 10 d — in-memory stock list TTL (aligned with metrics)
 const METRICS_TTL_MS  = 10 * 24 * 60 * 60 * 1000;    // 10 d — screener metrics
 
 // ─── Metrics disk-cache helpers ───────────────────────────────────────────────
@@ -82,7 +82,16 @@ async function tryLoadFromDisk(indexId: string): Promise<void> {
     const mc       = indexMetricsCache[indexId];
     mc.data  = entry;
     mc.ready = true;
-    if (Date.now() - entry.fetchedAt < CACHE_TTL_MS) {
+    // Restore constituent stock list so the stocks endpoint serves immediately
+    // without a cold-start scrape, even when metrics are still fresh.
+    if (Array.isArray(entry.stocks) && entry.stocks.length > 0) {
+      const sc = getStockCacheForIndex(indexId);
+      if (sc && !sc.data) {
+        sc.data = { stocks: entry.stocks, fetchedAt: entry.fetchedAt };
+        logger.info(`Restored ${entry.stocks.length} stocks for ${indexId} from disk cache`);
+      }
+    }
+    if (Date.now() - entry.fetchedAt < METRICS_TTL_MS) {
       logger.info(`Loaded fresh metrics cache from disk for ${indexId} (age ${ageMin} min)`);
     } else {
       logger.info(`Loaded stale metrics cache from disk for ${indexId} (age ${ageMin} min) — revalidation will follow`);
@@ -249,6 +258,12 @@ async function scrapeNasdaq100(): Promise<IndexStock[]> {
     const symbol = $(cells[2]).text().trim().replace(/\s+/g, "");
     if (symbol && name) stocks.push({ symbol, name, sector: "" });
   });
+  // Guard against bot-challenge pages or structure changes returning too few rows
+  if (stocks.length < 50) {
+    throw new Error(
+      `Slickcharts returned only ${stocks.length} rows — likely a bot-challenge page or structure change`,
+    );
+  }
   return stocks;
 }
 
@@ -448,7 +463,8 @@ const NULL_METRICS: StockMetrics = {
 };
 
 interface MetricsCacheEntry {
-  metrics: Record<string, StockMetrics>;
+  metrics:  Record<string, StockMetrics>;
+  stocks?:  IndexStock[];   // constituent snapshot saved alongside metrics for disk persistence
   fetchedAt: number;
 }
 
@@ -603,7 +619,13 @@ async function enrichIndexMetrics(indexId: string, symbols: string[]): Promise<v
       }
     });
 
-    mc.data = { metrics: metricsMap, fetchedAt: Date.now() };
+    // Embed the constituent stock list so restarts can skip re-scraping
+    const sc = getStockCacheForIndex(indexId);
+    mc.data = {
+      metrics:  metricsMap,
+      stocks:   sc?.data?.stocks ?? [],
+      fetchedAt: Date.now(),
+    };
     mc.ready = true;
     logger.info(`Metrics enrichment complete for ${indexId}`);
     await saveMetricsCacheToDisk(indexId, mc.data);

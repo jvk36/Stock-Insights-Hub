@@ -556,7 +556,9 @@ function IndexTabContent({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-const STALE_TIME = 24 * 60 * 60 * 1000;
+// 5 min — short enough that a stale/empty browser cache refreshes quickly after a
+// server restart, while still avoiding unnecessary back-to-back fetches.
+const STALE_TIME = 5 * 60 * 1000;
 
 export default function StockIndexes() {
   const [, setLocation] = useLocation();

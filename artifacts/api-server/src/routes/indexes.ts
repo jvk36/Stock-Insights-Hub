@@ -26,7 +26,8 @@ interface IndexCache {
   revalidating: boolean;
 }
 
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const CACHE_TTL_MS    = 24 * 60 * 60 * 1000;          // 24 h — index constituent lists
+const METRICS_TTL_MS  = 10 * 24 * 60 * 60 * 1000;    // 10 d — screener metrics
 
 // ─── Metrics disk-cache helpers ───────────────────────────────────────────────
 
@@ -200,6 +201,8 @@ router.get("/indexes/sp500", makeRoute(sp500Cache, scrapeSp500, "S&P 500"));
 // ─── Nasdaq-100 ───────────────────────────────────────────────────────────────
 // Source: https://en.wikipedia.org/wiki/Nasdaq-100
 // Table: under "Current components" heading — cols: Company[0] | Ticker[1] | GICS Sector[2]
+// Note: Wikipedia's Nasdaq-100 table lists Company first, then Ticker — unlike the
+// S&P tables which lead with the ticker. cells[0] = company name, cells[1] = symbol.
 
 const nasdaq100Cache: IndexCache = { data: null, revalidating: false };
 
@@ -207,12 +210,12 @@ async function scrapeNasdaq100(): Promise<IndexStock[]> {
   const $ = await fetchWikiHtml("https://en.wikipedia.org/wiki/Nasdaq-100");
   const stocks: IndexStock[] = [];
   const $table = tableAfterHeading($, "Current components") ?? $(".wikitable").first();
-  // Headers: Ticker[0] | Company[1] | ICB Industry[2] | ICB Subsector[3]
+  // Cols: Company[0] | Ticker[1] | GICS Sector[2]
   $table.find("tbody tr").each((_, row) => {
     const cells = $(row).find("td");
     if (cells.length < 2) return;
-    const symbol = $(cells[0]).text().trim().replace(/\s+/g, "");
-    const name   = $(cells[1]).text().trim();
+    const name   = $(cells[0]).text().trim();
+    const symbol = $(cells[1]).text().trim().replace(/\s+/g, "");
     const sector = cells.length >= 3 ? $(cells[2]).text().trim() : "";
     if (symbol && name) stocks.push({ symbol, name, sector });
   });
@@ -359,8 +362,8 @@ router.get("/indexes/adrs", makeRoute(adrsCache, fetchAdrs, "Top ADRs", 503));
 
 // ─── Per-index metrics enrichment ─────────────────────────────────────────────
 // Fetches Yahoo Finance quoteSummary for each constituent in the background.
-// Results cached 24 h (stale-while-revalidate). Returns metricsReady=false while
-// enrichment is in progress so the UI can show a "Computing…" state immediately.
+// Results cached 10 d on disk (stale-while-revalidate). The server proactively
+// warms the cache at startup so metricsReady is true before the first user visit.
 
 export interface StockMetrics {
   epsGrowth: number;
@@ -593,7 +596,7 @@ router.get("/indexes/:indexId/metrics", async (req: Request, res: Response) => {
   const now = Date.now();
 
   // Fresh cache — serve immediately
-  if (mc.data && mc.ready && now - mc.data.fetchedAt < CACHE_TTL_MS) {
+  if (mc.data && mc.ready && now - mc.data.fetchedAt < METRICS_TTL_MS) {
     return res.json({
       metrics:      mc.data.metrics,
       fetchedAt:    new Date(mc.data.fetchedAt).toISOString(),
@@ -611,7 +614,7 @@ router.get("/indexes/:indexId/metrics", async (req: Request, res: Response) => {
   }
 
   // Stale but have data — serve stale immediately and revalidate in background
-  if (mc.data && mc.ready && now - mc.data.fetchedAt >= CACHE_TTL_MS && !mc.enriching) {
+  if (mc.data && mc.ready && now - mc.data.fetchedAt >= METRICS_TTL_MS && !mc.enriching) {
     enrichIndexMetrics(indexId, symbols).catch((err) => {
       logger.error({ err }, `Background metrics revalidation failed for ${indexId}`);
     });
@@ -631,5 +634,72 @@ router.get("/indexes/:indexId/metrics", async (req: Request, res: Response) => {
 
   return res.json({ metrics: {}, fetchedAt: new Date().toISOString(), metricsReady: false });
 });
+
+// ─── Startup warm-up ──────────────────────────────────────────────────────────
+// Called once at server start. For each index: loads the disk cache first, then
+// (if stale/missing) scrapes constituents and triggers enrichment — all in the
+// background so the server binds immediately. By the time a user opens the
+// Stock Screens tab the metrics will already be ready.
+
+const scraperMap: Record<string, () => Promise<IndexStock[]>> = {
+  sp500:     scrapeSp500,
+  nasdaq100: scrapeNasdaq100,
+  sp400:     scrapeSp400,
+  sp600:     scrapeSp600,
+  djia:      scrapeDjia,
+  adrs:      fetchAdrs,
+};
+
+async function warmSingleIndex(indexId: string): Promise<void> {
+  await tryLoadFromDisk(indexId);
+  const mc = indexMetricsCache[indexId];
+
+  // Already fresh — nothing to do
+  if (mc.data && mc.ready && Date.now() - mc.data.fetchedAt < METRICS_TTL_MS) {
+    logger.info(`Startup warm-up: metrics already fresh for ${indexId} — skipping enrichment`);
+    return;
+  }
+
+  // Need constituent symbols
+  const stockCache = getStockCacheForIndex(indexId);
+  let symbols = stockCache?.data?.stocks.map((s) => s.symbol) ?? [];
+
+  if (symbols.length === 0) {
+    // Stock list not in memory yet — scrape it first
+    const scraper = scraperMap[indexId];
+    if (!scraper) return;
+    const stocks = await scraper();
+    const sc = getStockCacheForIndex(indexId);
+    if (sc) sc.data = { stocks, fetchedAt: Date.now() };
+    symbols = stocks.map((s) => s.symbol);
+    logger.info(`Startup warm-up: scraped ${symbols.length} constituents for ${indexId}`);
+  }
+
+  if (!mc.enriching && symbols.length > 0) {
+    await enrichIndexMetrics(indexId, symbols);
+  }
+}
+
+/**
+ * Pre-warms the metrics cache for all tracked indexes at server startup.
+ * Runs entirely in the background — does not block server binding.
+ * Indexes are processed in order of size (smallest first) so the most
+ * interactive screens (DJIA, Nasdaq-100) become ready soonest.
+ */
+export function warmIndexMetricsCache(): void {
+  const order = ["djia", "nasdaq100", "sp500", "sp400", "sp600", "adrs"];
+  logger.info("Startup warm-up: beginning background metrics enrichment for all indexes");
+
+  (async () => {
+    for (const indexId of order) {
+      try {
+        await warmSingleIndex(indexId);
+      } catch (err) {
+        logger.warn({ err }, `Startup warm-up failed for ${indexId} — continuing`);
+      }
+    }
+    logger.info("Startup warm-up: all index metrics enrichment complete");
+  })().catch(() => { /* non-fatal */ });
+}
 
 export default router;

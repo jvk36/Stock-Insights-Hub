@@ -1,3 +1,4 @@
+- [Replit network scraping quirks](replit-network-scraping.md) — slickcharts/NASDAQ API block undici; use curlGet (execFile curl) instead
 - [Yahoo Finance module quirks](yahoo-finance-module-quirks.md) — key gotchas for yahoo-finance2 v3 field names, units, and availability
 - [FRED API rate limiting on Replit](fred-rate-limit.md) — Akamai CDN burst-limits FRED requests; batched enrichment strategy
 - [EDGAR 13F value units](edgar-13f-value-units.md) — all tracked funds file raw dollars (not thousands); auto-detection + namespace parsing fix for ns1:-prefixed XML

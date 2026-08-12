@@ -1,9 +1,36 @@
 import { Router, type Request, type Response } from "express";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { execFile } from "node:child_process";
 import * as cheerio from "cheerio";
 import YahooFinance from "yahoo-finance2";
 import { logger } from "../lib/logger";
+
+/**
+ * HTTP GET using the system curl binary.
+ * Used for sites that block Node.js fetch (undici) and Node.js https module
+ * via TLS fingerprinting or IP-range rules — curl uses a different network
+ * stack and is not fingerprinted the same way. Confirmed to work from Replit
+ * for slickcharts.com which blocks both undici and Node.js https.
+ */
+function curlGet(url: string, extraArgs: string[] = []): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const args = [
+      "-s", "-L",
+      "--max-time", "30",
+      "-A", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "-H", "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "-H", "Accept-Language: en-US,en;q=0.9",
+      "-H", "Referer: https://www.google.com/",
+      ...extraArgs,
+      url,
+    ];
+    execFile("curl", args, { maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
+      if (err) { reject(new Error(`curl failed: ${err.message} — ${stderr}`)); return; }
+      resolve(stdout);
+    });
+  });
+}
 
 const yahooFinance = new YahooFinance();
 
@@ -199,25 +226,28 @@ async function scrapeSp500(): Promise<IndexStock[]> {
 router.get("/indexes/sp500", makeRoute(sp500Cache, scrapeSp500, "S&P 500"));
 
 // ─── Nasdaq-100 ───────────────────────────────────────────────────────────────
-// Source: https://en.wikipedia.org/wiki/Nasdaq-100
-// Table: under "Current components" heading — cols: Company[0] | Ticker[1] | GICS Sector[2]
-// Note: Wikipedia's Nasdaq-100 table lists Company first, then Ticker — unlike the
-// S&P tables which lead with the ticker. cells[0] = company name, cells[1] = symbol.
+// Source: https://www.slickcharts.com/nasdaq100
+// Table cols: #[0] | Company[1] | Symbol[2] | Weight[3] | Price[4] | …
+// Wikipedia's Nasdaq-100 article no longer carries an inline components table.
+// api.nasdaq.com times out via ETIMEDOUT from Replit's network.
+// Slickcharts requires full browser-like headers (User-Agent + Accept + Referer)
+// or it returns 403; these headers allow normal access.
 
 const nasdaq100Cache: IndexCache = { data: null, revalidating: false };
 
 async function scrapeNasdaq100(): Promise<IndexStock[]> {
-  const $ = await fetchWikiHtml("https://en.wikipedia.org/wiki/Nasdaq-100");
+  // Use curlGet — slickcharts blocks both Node.js fetch (undici) and the https module
+  // via TLS fingerprinting / IP-range rules; curl works from Replit (confirmed).
+  const html = await curlGet("https://www.slickcharts.com/nasdaq100");
+  const $ = cheerio.load(html);
   const stocks: IndexStock[] = [];
-  const $table = tableAfterHeading($, "Current components") ?? $(".wikitable").first();
-  // Cols: Company[0] | Ticker[1] | GICS Sector[2]
-  $table.find("tbody tr").each((_, row) => {
+  // First table: #[0] | Company[1] | Symbol[2] | Weight[3] | …
+  $("table").first().find("tbody tr").each((_, row) => {
     const cells = $(row).find("td");
-    if (cells.length < 2) return;
-    const name   = $(cells[0]).text().trim();
-    const symbol = $(cells[1]).text().trim().replace(/\s+/g, "");
-    const sector = cells.length >= 3 ? $(cells[2]).text().trim() : "";
-    if (symbol && name) stocks.push({ symbol, name, sector });
+    if (cells.length < 3) return;
+    const name   = $(cells[1]).text().trim();
+    const symbol = $(cells[2]).text().trim().replace(/\s+/g, "");
+    if (symbol && name) stocks.push({ symbol, name, sector: "" });
   });
   return stocks;
 }

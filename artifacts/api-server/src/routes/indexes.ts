@@ -246,36 +246,147 @@ async function scrapeSp500(): Promise<IndexStock[]> {
 router.get("/indexes/sp500", makeRoute(sp500Cache, scrapeSp500, "S&P 500"));
 
 // ─── Nasdaq-100 ───────────────────────────────────────────────────────────────
-// Source: https://www.slickcharts.com/nasdaq100
-// Table cols: #[0] | Company[1] | Symbol[2] | Weight[3] | Price[4] | …
+// Primary source: https://www.slickcharts.com/nasdaq100
+// Slickcharts requires curlGet (Node.js HTTP stacks are Cloudflare-fingerprinted).
+// In production the deployment IP range may also be blocked; the seed below is
+// the fallback so the server always has a constituent list.
 // Wikipedia's Nasdaq-100 article no longer carries an inline components table.
 // api.nasdaq.com times out via ETIMEDOUT from Replit's network.
-// Slickcharts requires full browser-like headers (User-Agent + Accept + Referer)
-// or it returns 403; these headers allow normal access.
+//
+// Seed last updated: 2026-08-12. Refresh quarterly when the index reconstitutes.
+const NASDAQ100_SEED: IndexStock[] = [
+  {"symbol":"NVDA","name":"Nvidia Corp","sector":""},
+  {"symbol":"AAPL","name":"Apple Inc.","sector":""},
+  {"symbol":"MSFT","name":"Microsoft Corp","sector":""},
+  {"symbol":"AMZN","name":"Amazon.Com Inc","sector":""},
+  {"symbol":"GOOGL","name":"Alphabet Inc. Class A Common Stock","sector":""},
+  {"symbol":"GOOG","name":"Alphabet Inc. Class C Capital Stock","sector":""},
+  {"symbol":"AVGO","name":"Broadcom Inc. Common Stock","sector":""},
+  {"symbol":"SPCX","name":"Space Exploration Technologies Corp. Class A Common Stock","sector":""},
+  {"symbol":"META","name":"Meta Platforms, Inc. Class A Common Stock","sector":""},
+  {"symbol":"TSLA","name":"Tesla, Inc. Common Stock","sector":""},
+  {"symbol":"MU","name":"Micron Technology, Inc.","sector":""},
+  {"symbol":"WMT","name":"Walmart Inc. Common Stock","sector":""},
+  {"symbol":"AMD","name":"Advanced Micro Devices","sector":""},
+  {"symbol":"ASML","name":"ASML Holding NV","sector":""},
+  {"symbol":"INTC","name":"Intel Corp","sector":""},
+  {"symbol":"CSCO","name":"Cisco Systems, Inc. Common Stock (DE)","sector":""},
+  {"symbol":"AMAT","name":"Applied Materials Inc","sector":""},
+  {"symbol":"COST","name":"Costco Wholesale Corp","sector":""},
+  {"symbol":"PLTR","name":"Palantir Technologies Inc. Class A Common Stock","sector":""},
+  {"symbol":"LRCX","name":"Lam Research Corp","sector":""},
+  {"symbol":"PANW","name":"Palo Alto Networks, Inc. Common Stock","sector":""},
+  {"symbol":"NFLX","name":"NetFlix Inc","sector":""},
+  {"symbol":"ARM","name":"Arm Holdings plc American Depositary Shares","sector":""},
+  {"symbol":"KLAC","name":"KLA Corporation Common Stock","sector":""},
+  {"symbol":"TXN","name":"Texas Instruments Incorporated","sector":""},
+  {"symbol":"CRWD","name":"CrowdStrike Holdings, Inc. Class A Common Stock","sector":""},
+  {"symbol":"LIN","name":"Linde plc Ordinary Share","sector":""},
+  {"symbol":"AMGN","name":"Amgen Inc","sector":""},
+  {"symbol":"MRVL","name":"Marvell Technology, Inc. Common Stock","sector":""},
+  {"symbol":"STX","name":"Seagate Technology Holdings PLC Ordinary Shares (Ireland)","sector":""},
+  {"symbol":"SHOP","name":"Shopify Inc. Class A subordinate voting shares","sector":""},
+  {"symbol":"SNDK","name":"Sandisk Corporation Common Stock","sector":""},
+  {"symbol":"ADI","name":"Analog Devices, Inc.","sector":""},
+  {"symbol":"TMUS","name":"T-Mobile US, Inc.","sector":""},
+  {"symbol":"PEP","name":"PepsiCo, Inc.","sector":""},
+  {"symbol":"QCOM","name":"Qualcomm Inc","sector":""},
+  {"symbol":"GILD","name":"Gilead Sciences Inc","sector":""},
+  {"symbol":"WDC","name":"Western Digital Corp.","sector":""},
+  {"symbol":"BKNG","name":"Booking Holdings Inc. Common Stock","sector":""},
+  {"symbol":"ISRG","name":"Intuitive Surgical Inc.","sector":""},
+  {"symbol":"VRTX","name":"Vertex Pharmaceuticals Inc","sector":""},
+  {"symbol":"PDD","name":"PDD Holdings Inc. American Depositary Shares","sector":""},
+  {"symbol":"SBUX","name":"Starbucks Corp","sector":""},
+  {"symbol":"FTNT","name":"Fortinet, Inc.","sector":""},
+  {"symbol":"ABNB","name":"Airbnb, Inc. Class A Common Stock","sector":""},
+  {"symbol":"ADP","name":"Automatic Data Processing","sector":""},
+  {"symbol":"APP","name":"Applovin Corporation Class A Common Stock","sector":""},
+  {"symbol":"ADBE","name":"Adobe Inc.","sector":""},
+  {"symbol":"CEG","name":"Constellation Energy Corporation Common Stock","sector":""},
+  {"symbol":"MELI","name":"Mercado Libre, Inc","sector":""},
+  {"symbol":"CSX","name":"CSX Corporation","sector":""},
+  {"symbol":"DASH","name":"DoorDash, Inc. Class A Common Stock","sector":""},
+  {"symbol":"MAR","name":"Marriott International Class A Common Stock","sector":""},
+  {"symbol":"INTU","name":"Intuit Inc","sector":""},
+  {"symbol":"DDOG","name":"Datadog, Inc. Class A Common Stock","sector":""},
+  {"symbol":"CDNS","name":"Cadence Design Systems","sector":""},
+  {"symbol":"CMCSA","name":"Comcast Corp","sector":""},
+  {"symbol":"MNST","name":"Monster Beverage Corporation","sector":""},
+  {"symbol":"CTAS","name":"Cintas Corp","sector":""},
+  {"symbol":"REGN","name":"Regeneron Pharmaceuticals Inc","sector":""},
+  {"symbol":"ROST","name":"Ross Stores Inc","sector":""},
+  {"symbol":"SNPS","name":"Synopsys Inc","sector":""},
+  {"symbol":"MDLZ","name":"Mondelez International, Inc. Class A","sector":""},
+  {"symbol":"ORLY","name":"O'Reilly Automotive, Inc.","sector":""},
+  {"symbol":"HON","name":"Honeywell International, Inc.","sector":""},
+  {"symbol":"MPWR","name":"Monolithic Power Systems, Inc.","sector":""},
+  {"symbol":"PCAR","name":"Paccar Inc","sector":""},
+  {"symbol":"WBD","name":"Warner Bros. Discovery, Inc. Series A Common Stock","sector":""},
+  {"symbol":"AEP","name":"American Electric Power Company, Inc.","sector":""},
+  {"symbol":"LITE","name":"Lumentum Holdings Inc. Common Stock","sector":""},
+  {"symbol":"BKR","name":"Baker Hughes Company","sector":""},
+  {"symbol":"TER","name":"Teradyne, Inc. Common Stock","sector":""},
+  {"symbol":"NXPI","name":"NXP Semiconductors N.V.","sector":""},
+  {"symbol":"FAST","name":"Fastenal Co","sector":""},
+  {"symbol":"CRWV","name":"CoreWeave, Inc. Class A Common Stock","sector":""},
+  {"symbol":"NBIS","name":"Nebius Group N.V. Class A Ordinary Shares","sector":""},
+  {"symbol":"FANG","name":"Diamondback Energy, Inc.","sector":""},
+  {"symbol":"ALAB","name":"Astera Labs, Inc. Common Stock","sector":""},
+  {"symbol":"HONA","name":"Honeywell Aerospace Inc. Common Stock","sector":""},
+  {"symbol":"ADSK","name":"Autodesk Inc","sector":""},
+  {"symbol":"AXON","name":"Axon Enterprise, Inc. Common Stock","sector":""},
+  {"symbol":"RKLB","name":"Rocket Lab Corporation Common Stock","sector":""},
+  {"symbol":"PYPL","name":"PayPal Holdings, Inc. Common Stock","sector":""},
+  {"symbol":"XEL","name":"Xcel Energy, Inc.","sector":""},
+  {"symbol":"FER","name":"Ferrovial N.V. Ordinary Shares","sector":""},
+  {"symbol":"CCEP","name":"Coca-Cola Europacific Partners plc Ordinary Shares","sector":""},
+  {"symbol":"EXC","name":"Exelon Corporation","sector":""},
+  {"symbol":"TTWO","name":"Take-Two Interactive Software Inc","sector":""},
+  {"symbol":"IDXX","name":"Idexx Laboratories Inc","sector":""},
+  {"symbol":"MCHP","name":"Microchip Technology Inc","sector":""},
+  {"symbol":"TRI","name":"Thomson Reuters Corporation Common Shares","sector":""},
+  {"symbol":"ODFL","name":"Old Dominion Freight Line","sector":""},
+  {"symbol":"WDAY","name":"Workday, Inc. Class A Common Stock","sector":""},
+  {"symbol":"PAYX","name":"Paychex Inc","sector":""},
+  {"symbol":"KDP","name":"Keurig Dr Pepper Inc.","sector":""},
+  {"symbol":"ROP","name":"Roper Technologies, Inc. Common Stock","sector":""},
+  {"symbol":"MSTR","name":"Strategy Inc Common Stock Class A","sector":""},
+  {"symbol":"DXCM","name":"DexCom, Inc.","sector":""},
+  {"symbol":"GEHC","name":"GE HealthCare Technologies Inc. Common Stock","sector":""},
+  {"symbol":"ALNY","name":"Alnylam Pharmaceuticals, Inc.","sector":""},
+  {"symbol":"KHC","name":"The Kraft Heinz Company Common Stock","sector":""},
+  {"symbol":"CPRT","name":"Copart Inc","sector":""},
+];
 
 const nasdaq100Cache: IndexCache = { data: null, revalidating: false };
 
 async function scrapeNasdaq100(): Promise<IndexStock[]> {
-  // Use curlGet — slickcharts blocks both Node.js fetch (undici) and the https module
-  // via TLS fingerprinting / IP-range rules; curl works from Replit (confirmed).
-  const html = await curlGet("https://www.slickcharts.com/nasdaq100");
-  const $ = cheerio.load(html);
-  const stocks: IndexStock[] = [];
-  // First table: #[0] | Company[1] | Symbol[2] | Weight[3] | …
-  $("table").first().find("tbody tr").each((_, row) => {
-    const cells = $(row).find("td");
-    if (cells.length < 3) return;
-    const name   = $(cells[1]).text().trim();
-    const symbol = $(cells[2]).text().trim().replace(/\s+/g, "");
-    if (symbol && name) stocks.push({ symbol, name, sector: "" });
-  });
-  // Guard against bot-challenge pages or structure changes returning too few rows
-  if (stocks.length < 50) {
-    throw new Error(
-      `Slickcharts returned only ${stocks.length} rows — likely a bot-challenge page or structure change`,
-    );
+  try {
+    // Use curlGet — slickcharts blocks both Node.js fetch (undici) and the https module
+    // via TLS fingerprinting / IP-range rules; curl works from Replit dev environment.
+    // Production IP ranges may also be blocked; the seed fallback below handles that.
+    const html = await curlGet("https://www.slickcharts.com/nasdaq100");
+    const $ = cheerio.load(html);
+    const stocks: IndexStock[] = [];
+    // First table: #[0] | Company[1] | Symbol[2] | Weight[3] | …
+    $("table").first().find("tbody tr").each((_, row) => {
+      const cells = $(row).find("td");
+      if (cells.length < 3) return;
+      const name   = $(cells[1]).text().trim();
+      const symbol = $(cells[2]).text().trim().replace(/\s+/g, "");
+      if (symbol && name) stocks.push({ symbol, name, sector: "" });
+    });
+    if (stocks.length >= 50) {
+      logger.info(`Nasdaq-100 scraped live from slickcharts (${stocks.length} stocks)`);
+      return stocks;
+    }
+    logger.warn(`Slickcharts returned ${stocks.length} rows — falling back to seed list`);
+  } catch (err) {
+    logger.warn({ err }, "Slickcharts scrape failed — falling back to seed list");
   }
-  return stocks;
+  // Seed fallback: always available, updated quarterly when the index reconstitutes
+  return NASDAQ100_SEED;
 }
 
 router.get("/indexes/nasdaq100", makeRoute(nasdaq100Cache, scrapeNasdaq100, "Nasdaq-100"));

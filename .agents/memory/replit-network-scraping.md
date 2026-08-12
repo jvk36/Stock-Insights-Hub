@@ -10,6 +10,10 @@ When an external site returns 403 or ETIMEDOUT from Node.js `fetch` (undici) but
 
 **How to apply:** Add a `curlGet(url, extraArgs?)` helper in any file that needs to scrape bot-protected pages. Pass browser-like headers (`-A`, `-H Accept`, `-H Referer`) as curl flags. This is already implemented in `artifacts/api-server/src/routes/indexes.ts` for the Nasdaq-100 scraper.
 
+## Autoscale has no persistent disk across cold starts
+
+Replit autoscale spins down to zero when idle and provisions a fresh container on the next request. That container starts with an empty filesystem — disk cache files written by a previous instance are gone. This means in-memory warm-up caches (metrics enrichment, scraped stock lists) must be re-run on every cold start (~90 s). For servers that use disk caching to survive restarts, the deployment target must be **vm** (always running), not autoscale. Change deployment type in the Publishing Settings UI — setting `deploymentTarget = "vm"` in `.replit` alone does NOT take effect without changing it in the UI as well.
+
 ## Production PATH quirk — resolve curl at startup
 
 `execFile("curl", ...)` silently fails with ENOENT in the production vm container because the Node process does not inherit the Nix store PATH (where curl lives in dev). Fix: resolve the binary once at module load using `execSync("which curl")` and pass the absolute path to `execFile`.

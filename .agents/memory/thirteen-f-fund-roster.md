@@ -8,7 +8,7 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 | Fund | CIK | Slug | Proprietor | Holdings/qtr |
 |---|---|---|---|---|
 | Berkshire Hathaway | 1067983 | berkshire-hathaway | Warren Buffett | ~40–50 |
-| Pershing Square Capital Mgmt | 1336528 | pershing-square | Bill Ackman | ~7–12 |
+| Pershing Square Capital Mgmt | 1336528 | pershing-square | Bill Ackman | ~7–14 | dual-CIK from Q2 2026: primary CIK 1336528 ("Pershing Square Capital Management") covers Q1 2016–Q1 2026; linkedCik 2026053 ("Pershing Square Inc.") covers Q2 2026 onwards. Both CIKs filed overlapping quarters; period-label deduplication in seedFundFilings prevents duplicates. |
 | Himalaya Capital Management | 1709323 | himalaya-capital | Li Lu | ~3–6 |
 | RV Capital AG | 1766596 | rv-capital | Robert Vinall | ~4–10 |
 | CAS Investment Partners | 1697591 | cas-investment-partners | Clifford Sosin | ~5–12 |

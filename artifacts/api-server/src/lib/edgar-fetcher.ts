@@ -1706,10 +1706,13 @@ export async function seedFundFilings(cik: string, linkedCiks: string[] = []): P
   }
 
   const existing = await db
-    .select({ accessionNumber: sec13fFilingsTable.accessionNumber })
+    .select({ accessionNumber: sec13fFilingsTable.accessionNumber, periodLabel: sec13fFilingsTable.periodLabel })
     .from(sec13fFilingsTable)
     .where(eq(sec13fFilingsTable.fundCik, cik));
   const existingSet = new Set(existing.map((r) => r.accessionNumber));
+  // Track which quarter periods are already covered so we don't import a duplicate
+  // quarter row from a linkedCik that filed the same period under a different entity.
+  const existingPeriods = new Set(existing.map((r) => r.periodLabel));
 
   // Gather stubs from the primary CIK
   let stubs;
@@ -1734,8 +1737,14 @@ export async function seedFundFilings(cik: string, linkedCiks: string[] = []): P
     }
   }
 
-  const toProcess = allStubs
-    .filter((s) => s.reportDate >= MIN_REPORT_DATE && !existingSet.has(s.accessionNumber));
+  const toProcess = allStubs.filter((s) => {
+    if (s.reportDate < MIN_REPORT_DATE) return false;
+    if (existingSet.has(s.accessionNumber)) return false;
+    // For linked-CIK stubs, skip quarters already covered by the primary CIK filing
+    // to prevent duplicate period rows when both entities filed the same quarter.
+    if (s.fetchCik !== cik && existingPeriods.has(reportDateToQuarter(s.reportDate))) return false;
+    return true;
+  });
 
   logger.info({ cik, total: allStubs.length, toProcess: toProcess.length }, "13F stubs found");
 
@@ -1958,7 +1967,11 @@ function isInFilingWindow(): boolean {
 // The startup sequence and the 12-hour scheduler iterate this list automatically.
 const TRACKED_FUNDS = [
   { cik: "1067983", name: "Berkshire Hathaway",           slug: "berkshire-hathaway",      proprietor: "Warren Buffett"  },
-  { cik: "1336528", name: "Pershing Square Capital Mgmt", slug: "pershing-square",         proprietor: "Bill Ackman"     },
+  // Pershing Square filed as "Pershing Square Capital Management" (CIK 1336528) through Q1 2026,
+  // then switched to "Pershing Square Inc." (CIK 2026053) from Q2 2026 onwards.
+  // Both CIKs filed in overlapping quarters; linkedCik fetches the new entity's filings while
+  // period-label deduplication in seedFundFilings prevents duplicate quarter rows.
+  { cik: "1336528", name: "Pershing Square Capital Mgmt", slug: "pershing-square",         proprietor: "Bill Ackman",    linkedCik: "2026053" },
   { cik: "1709323", name: "Himalaya Capital Management",  slug: "himalaya-capital",        proprietor: "Li Lu"           },
   { cik: "1766596", name: "RV Capital AG",                slug: "rv-capital",              proprietor: "Robert Vinall"   },
   { cik: "1697591", name: "CAS Investment Partners",      slug: "cas-investment-partners", proprietor: "Clifford Sosin"  },

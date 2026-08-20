@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useParams } from "wouter";
 import { Search, TrendingUp, ChevronLeft, ChevronRight, Building2, ArrowLeft, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -884,7 +884,13 @@ function FundHoldingsView({
 
 // ─── Fund list card ───────────────────────────────────────────────────────────
 
-function FundListCard({ onSelectFund }: { onSelectFund: (cik: string, name: string, proprietor?: string | null) => void }) {
+function FundListCard({
+  activeSlug,
+  onSelectFund,
+}: {
+  activeSlug?: string;
+  onSelectFund: (fund: HedgeFund) => void;
+}) {
   const { data, isLoading, isError } = useList13fFunds({
     query: {
       queryKey: getList13fFundsQueryKey(),
@@ -893,6 +899,12 @@ function FundListCard({ onSelectFund }: { onSelectFund: (cik: string, name: stri
   });
 
   const funds = data?.funds ?? [];
+
+  useEffect(() => {
+    if (!activeSlug || !data) return;
+    const matchedFund = data.funds.find((fund) => fund.slug === activeSlug);
+    if (matchedFund) onSelectFund(matchedFund);
+  }, [activeSlug, data, onSelectFund]);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -914,7 +926,7 @@ function FundListCard({ onSelectFund }: { onSelectFund: (cik: string, name: stri
           {funds.map((fund: HedgeFund) => (
             <button
               key={fund.cik}
-              onClick={() => onSelectFund(fund.cik, fund.name, fund.proprietor)}
+              onClick={() => onSelectFund(fund)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-border/60 bg-background hover:bg-muted hover:border-border transition-all text-left group"
             >
               <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -942,8 +954,24 @@ function FundListCard({ onSelectFund }: { onSelectFund: (cik: string, name: stri
 
 export default function ThirteenFInsights() {
   const [, setLocation] = useLocation();
+  const { slug } = useParams<{ slug?: string }>();
   const [searchInput, setSearchInput] = useState("");
-  const [selectedFund, setSelectedFund] = useState<{ cik: string; name: string; proprietor?: string | null } | null>(null);
+  const [selectedFund, setSelectedFund] = useState<HedgeFund | null>(null);
+
+  // Keep the displayed fund in sync when users navigate with browser back/forward
+  // or paste a different fund URL into the address bar.
+  useEffect(() => {
+    if (!slug) {
+      setSelectedFund(null);
+    } else if (selectedFund?.slug !== slug) {
+      setSelectedFund(null);
+    }
+  }, [slug, selectedFund?.slug]);
+
+  const handleSelectFund = (fund: HedgeFund) => {
+    setSelectedFund(fund);
+    setLocation(`/13f/${fund.slug}`);
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1031,11 +1059,15 @@ export default function ThirteenFInsights() {
                 <FundHoldingsView
                   cik={selectedFund.cik}
                   fundName={selectedFund.name}
-                  onBack={() => setSelectedFund(null)}
+                  onBack={() => {
+                    setSelectedFund(null);
+                    setLocation("/13f");
+                  }}
                 />
               ) : (
                 <FundListCard
-                  onSelectFund={(cik, name) => setSelectedFund({ cik, name })}
+                  activeSlug={slug}
+                  onSelectFund={handleSelectFund}
                 />
               )}
             </TabsContent>

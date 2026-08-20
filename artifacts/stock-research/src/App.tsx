@@ -33,6 +33,7 @@ function Router() {
       <Route path="/" component={HomeRedirect} />
       <Route path="/indexes" component={StockIndexes} />
       <Route path="/13f" component={ThirteenFInsights} />
+      <Route path="/13f/:slug" component={ThirteenFInsights} />
       <Route path="/stock/:symbol" component={StockDetail} />
       <Route path="/macro" component={MacroSummary} />
       <Route component={NotFound} />

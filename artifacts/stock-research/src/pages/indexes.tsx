@@ -600,7 +600,7 @@ export default function StockIndexes() {
               Stock Screens
             </span>
             <Link
-              href="/stock/AAPL"
+              href="/stock"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
             >
               Stock Insights

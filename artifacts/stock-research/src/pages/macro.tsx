@@ -66,7 +66,7 @@ export default function MacroSummary() {
               Stock Screens
             </Link>
             <button
-              onClick={() => setLocation("/stock/AAPL")}
+              onClick={() => setLocation("/stock")}
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors cursor-pointer"
             >
               Stock Insights

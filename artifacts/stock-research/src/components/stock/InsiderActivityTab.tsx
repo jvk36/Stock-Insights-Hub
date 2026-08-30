@@ -249,9 +249,8 @@ export default function InsiderActivityTab({ symbol }: { symbol: string }) {
                   : "Current filing window"}
               </p>
               <p className="mt-0.5">
-                {data.coverage.fetchedFilings} filing
-                {data.coverage.fetchedFilings === 1 ? "" : "s"} loaded in this
-                three-month window · {data.coverage.availableFilings} total available
+                All filings in this three-month window ·{" "}
+                {data.coverage.availableFilings} total available
                 {data.coverage.failedFilings > 0
                   ? ` · ${data.coverage.failedFilings} could not be loaded`
                   : ""}

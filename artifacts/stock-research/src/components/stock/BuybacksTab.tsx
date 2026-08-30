@@ -204,6 +204,15 @@ export default function BuybacksTab({ symbol }: { symbol: string }) {
       .filter((split): split is NonNullable<typeof split> => split !== null);
   }, [data?.stockSplits, chartData]);
 
+  const hasQuarterlyActivity = useMemo(
+    () =>
+      chartData.some(
+        (point) =>
+          point.repurchasedShares != null || point.issuedShares != null,
+      ),
+    [chartData],
+  );
+
   const isLoadingState = isLoading || isFetching;
 
   if (isLoadingState) {
@@ -305,20 +314,24 @@ export default function BuybacksTab({ symbol }: { symbol: string }) {
             />
             <span>Price (Right Axis)</span>
           </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground font-mono">
-            <div
-              className="w-3 h-3 rounded-[2px]"
-              style={{ backgroundColor: COLORS.repurchased }}
-            />
-            <span>Repurchased (Quarterly)</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground font-mono">
-            <div
-              className="w-3 h-3 rounded-[2px]"
-              style={{ backgroundColor: COLORS.issued }}
-            />
-            <span>Issued (Quarterly)</span>
-          </div>
+          {hasQuarterlyActivity && (
+            <>
+              <div className="flex items-center gap-1.5 text-muted-foreground font-mono">
+                <div
+                  className="w-3 h-3 rounded-[2px]"
+                  style={{ backgroundColor: COLORS.repurchased }}
+                />
+                <span>Repurchased (Quarterly)</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground font-mono">
+                <div
+                  className="w-3 h-3 rounded-[2px]"
+                  style={{ backgroundColor: COLORS.issued }}
+                />
+                <span>Issued (Quarterly)</span>
+              </div>
+            </>
+          )}
           {splitMarkers.length > 0 && (
             <div className="flex items-center gap-1.5 text-muted-foreground font-mono">
               <div
@@ -432,11 +445,12 @@ export default function BuybacksTab({ symbol }: { symbol: string }) {
           </div>
 
           {/* Bottom Chart: Quarterly Activity (Bars) */}
-          <div
-            className="h-[200px] w-full min-w-0 overflow-hidden"
-            role="img"
-            aria-label={`${symbol} shares issued and repurchased by quarter${splitMarkers.length > 0 ? `, with stock split periods identified` : ""}`}
-          >
+          {hasQuarterlyActivity ? (
+            <div
+              className="h-[200px] w-full min-w-0 overflow-hidden"
+              role="img"
+              aria-label={`${symbol} shares issued and repurchased by quarter${splitMarkers.length > 0 ? `, with stock split periods identified` : ""}`}
+            >
             <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={0}>
               <BarChart
                 data={chartData}
@@ -517,7 +531,22 @@ export default function BuybacksTab({ symbol }: { symbol: string }) {
                 />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+            </div>
+          ) : (
+            <div
+              className="flex h-[160px] w-full flex-col items-center justify-center rounded-md border border-dashed border-border bg-muted/20 px-6 text-center text-muted-foreground"
+              role="status"
+            >
+              <Info className="mb-3 h-6 w-6 opacity-60" />
+              <p className="text-sm font-medium">
+                Quarterly repurchase and issuance quantities are not available
+              </p>
+              <p className="mt-1 max-w-xl text-xs">
+                The shares outstanding and price history above still reflects
+                the available SEC filings for {symbol}.
+              </p>
+            </div>
+          )}
         </div>
 
         <details className="mt-6 rounded-md border border-border bg-muted/20">

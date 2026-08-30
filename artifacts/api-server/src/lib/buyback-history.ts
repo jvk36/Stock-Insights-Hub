@@ -53,14 +53,22 @@ interface SecCompanyFacts {
   >;
 }
 
+interface SecSubmissionRows {
+  form?: string[];
+  accessionNumber?: string[];
+  reportDate?: string[];
+  filingDate?: string[];
+  primaryDocument?: string[];
+}
+
 interface SecSubmissions {
   filings?: {
-    recent?: {
-      form?: string[];
-      accessionNumber?: string[];
-      reportDate?: string[];
-      primaryDocument?: string[];
-    };
+    recent?: SecSubmissionRows;
+    files?: Array<{
+      name: string;
+      filingFrom: string;
+      filingTo: string;
+    }>;
   };
 }
 
@@ -340,30 +348,28 @@ function xmlAttribute(attributes: string, name: string): string | null {
   return match?.[1] ?? null;
 }
 
-function parseBerkshireEquivalentShares(
+function parseFilingOutstandingShares(
   xml: string,
   symbol: string,
 ): number | null {
-  const shareClassByContext = new Map<string, "A" | "B">();
+  const shareClassByContext = new Map<string, string>();
   const contextRegex =
     /<(?:[\w.-]+:)?context\b([^>]*)>([\s\S]*?)<\/(?:[\w.-]+:)?context>/gi;
   let contextMatch: RegExpExecArray | null;
   while ((contextMatch = contextRegex.exec(xml)) !== null) {
     const id = xmlAttribute(contextMatch[1], "id");
     if (!id) continue;
-    if (/CommonClassAMember/i.test(contextMatch[2])) {
-      shareClassByContext.set(id, "A");
-    } else if (/CommonClassBMember/i.test(contextMatch[2])) {
-      shareClassByContext.set(id, "B");
+    const memberMatch = contextMatch[2].match(
+      /<(?:[\w.-]+:)?explicitMember\b[^>]*\bdimension=["'][^"']*StatementClassOfStockAxis["'][^>]*>([^<]+)<\/(?:[\w.-]+:)?explicitMember>/i,
+    );
+    if (memberMatch) {
+      shareClassByContext.set(id, memberMatch[1].trim());
     }
   }
 
-  const sharesByClass = new Map<"A" | "B", number>();
+  const sharesByContext = new Map<string, number>();
   const recordFact = (attributes: string, rawValue: string) => {
     const contextRef = xmlAttribute(attributes, "contextRef");
-    const shareClass = contextRef
-      ? shareClassByContext.get(contextRef)
-      : undefined;
     const numericText = rawValue
       .replace(/<[^>]+>/g, "")
       .replace(/&nbsp;|&#160;/gi, "")
@@ -376,8 +382,8 @@ function parseBerkshireEquivalentShares(
       Number.isFinite(parsed) && Number.isFinite(scale)
         ? parsed * 10 ** scale * sign
         : Number.NaN;
-    if (shareClass && Number.isFinite(value) && value >= 0) {
-      sharesByClass.set(shareClass, value);
+    if (contextRef && Number.isFinite(value) && value >= 0) {
+      sharesByContext.set(contextRef, value);
     }
   };
 
@@ -393,26 +399,46 @@ function parseBerkshireEquivalentShares(
     recordFact(factMatch[1], factMatch[2]);
   }
 
-  const classA = sharesByClass.get("A");
-  const classB = sharesByClass.get("B");
-  if (classA == null || classB == null) return null;
-  return symbol.replace(".", "-") === "BRK-A"
-    ? classA + classB / 1_500
-    : classA * 1_500 + classB;
-}
-
-async function fetchBerkshireOutstandingByPeriod(
-  symbol: string,
-  cik: string,
-  periodDates: Map<string, string>,
-): Promise<Map<string, PeriodValue>> {
-  if (
-    cik.replace(/^0+/, "") !== "1067983" ||
-    !["BRK-A", "BRK-B"].includes(symbol.replace(".", "-"))
-  ) {
-    return new Map();
+  const undimensionedValues = Array.from(sharesByContext)
+    .filter(([contextRef]) => !shareClassByContext.has(contextRef))
+    .map(([, value]) => value);
+  if (undimensionedValues.length > 0) {
+    return Math.max(...undimensionedValues);
   }
 
+  const sharesByClass = new Map<string, number>();
+  for (const [contextRef, value] of sharesByContext) {
+    const shareClass = shareClassByContext.get(contextRef);
+    if (shareClass) sharesByClass.set(shareClass, value);
+  }
+
+  if (cikNormalizedSymbol(symbol) === "BRK-A" || cikNormalizedSymbol(symbol) === "BRK-B") {
+    const classA = Array.from(sharesByClass)
+      .find(([member]) => /CommonClassAMember/i.test(member))?.[1];
+    const classB = Array.from(sharesByClass)
+      .find(([member]) => /CommonClassBMember/i.test(member))?.[1];
+    if (classA == null || classB == null) return null;
+    return cikNormalizedSymbol(symbol) === "BRK-A"
+      ? classA + classB / 1_500
+      : classA * 1_500 + classB;
+  }
+
+  const classValues = Array.from(sharesByClass.values());
+  return classValues.length > 0
+    ? classValues.reduce((sum, value) => sum + value, 0)
+    : null;
+}
+
+function cikNormalizedSymbol(symbol: string): string {
+  return symbol.toUpperCase().replace(".", "-");
+}
+
+async function fetchFilingOutstandingByPeriod(
+  symbol: string,
+  cik: string,
+  cutoff: string,
+  periodKeyByDate: Map<string, string>,
+): Promise<Map<string, PeriodValue>> {
   const response = await fetch(
     `https://data.sec.gov/submissions/CIK${cik.padStart(10, "0")}.json`,
     { headers: SEC_HEADERS, signal: AbortSignal.timeout(12_000) },
@@ -421,40 +447,65 @@ async function fetchBerkshireOutstandingByPeriod(
 
   const submissions = (await response.json()) as SecSubmissions;
   const recent = submissions.filings?.recent ?? {};
-  const forms = recent.form ?? [];
-  const accessions = recent.accessionNumber ?? [];
-  const reportDates = recent.reportDate ?? [];
-  const primaryDocuments = recent.primaryDocument ?? [];
-  const periodKeyByDate = new Map(
-    Array.from(periodDates.entries()).map(([key, date]) => [date, key]),
+  const archivedRows = await Promise.all(
+    (submissions.filings?.files ?? [])
+      .filter((file) => file.filingTo >= cutoff)
+      .map(async (file): Promise<SecSubmissionRows | null> => {
+        try {
+          const archiveResponse = await fetch(
+            `https://data.sec.gov/submissions/${file.name}`,
+            { headers: SEC_HEADERS, signal: AbortSignal.timeout(12_000) },
+          );
+          return archiveResponse.ok
+            ? ((await archiveResponse.json()) as SecSubmissionRows)
+            : null;
+        } catch {
+          return null;
+        }
+      }),
   );
+  const submissionRows = [
+    recent,
+    ...archivedRows.filter(
+      (rows): rows is SecSubmissionRows => rows !== null,
+    ),
+  ];
   const candidates: Array<{
     key: string;
     reportDate: string;
+    filingDate: string;
     accession: string;
     primaryDocument: string;
   }> = [];
   const selectedDates = new Set<string>();
 
-  for (let index = 0; index < forms.length; index++) {
-    if (!/^(10-Q|10-K)(\/A)?$/.test(forms[index] ?? "")) continue;
-    const reportDate = reportDates[index];
-    const key = periodKeyByDate.get(reportDate);
-    if (
-      !key ||
-      selectedDates.has(reportDate) ||
-      !accessions[index] ||
-      !primaryDocuments[index]
-    ) {
-      continue;
+  for (const rows of submissionRows) {
+    const forms = rows.form ?? [];
+    const accessions = rows.accessionNumber ?? [];
+    const reportDates = rows.reportDate ?? [];
+    const filingDates = rows.filingDate ?? [];
+    const primaryDocuments = rows.primaryDocument ?? [];
+    for (let index = 0; index < forms.length; index++) {
+      if (!/^(10-Q|10-K)(\/A)?$/.test(forms[index] ?? "")) continue;
+      const reportDate = reportDates[index];
+      if (
+        !reportDate ||
+        reportDate < cutoff ||
+        selectedDates.has(reportDate) ||
+        !accessions[index] ||
+        !primaryDocuments[index]
+      ) {
+        continue;
+      }
+      selectedDates.add(reportDate);
+      candidates.push({
+        key: periodKeyByDate.get(reportDate) ?? `filing-${reportDate}`,
+        reportDate,
+        filingDate: filingDates[index] ?? reportDate,
+        accession: accessions[index],
+        primaryDocument: primaryDocuments[index],
+      });
     }
-    selectedDates.add(reportDate);
-    candidates.push({
-      key,
-      reportDate,
-      accession: accessions[index],
-      primaryDocument: primaryDocuments[index],
-    });
   }
 
   const result = new Map<string, PeriodValue>();
@@ -464,24 +515,35 @@ async function fetchBerkshireOutstandingByPeriod(
     const values = await Promise.all(
       batch.map(async (candidate) => {
         const accessionPath = candidate.accession.replace(/-/g, "");
+        const filingUrl =
+          `https://www.sec.gov/Archives/edgar/data/${cik.replace(/^0+/, "")}/` +
+          `${accessionPath}/${candidate.primaryDocument}`;
         const archiveName = `${candidate.accession}-xbrl.zip`;
         const archiveUrl =
           `https://www.sec.gov/Archives/edgar/data/${cik.replace(/^0+/, "")}/` +
           `${accessionPath}/${archiveName}`;
         try {
-          const archiveResponse = await fetch(archiveUrl, {
+          const filingResponse = await fetch(filingUrl, {
             headers: SEC_HEADERS,
             signal: AbortSignal.timeout(12_000),
           });
-          if (!archiveResponse.ok) return null;
-          const archive = Buffer.from(await archiveResponse.arrayBuffer());
-          const xml = zipDocumentContainingFact(
-            archive,
-            "EntityCommonStockSharesOutstanding",
-          );
-          const value = xml
-            ? parseBerkshireEquivalentShares(xml, symbol)
+          let xml = filingResponse.ok ? await filingResponse.text() : null;
+          let value = xml
+            ? parseFilingOutstandingShares(xml, symbol)
             : null;
+          if (value == null) {
+            const archiveResponse = await fetch(archiveUrl, {
+              headers: SEC_HEADERS,
+              signal: AbortSignal.timeout(12_000),
+            });
+            if (!archiveResponse.ok) return null;
+            const archive = Buffer.from(await archiveResponse.arrayBuffer());
+            xml = zipDocumentContainingFact(
+              archive,
+              "EntityCommonStockSharesOutstanding",
+            );
+            value = xml ? parseFilingOutstandingShares(xml, symbol) : null;
+          }
           return value == null ? null : { candidate, value };
         } catch {
           return null;
@@ -494,6 +556,7 @@ async function fetchBerkshireOutstandingByPeriod(
         key: value.candidate.key,
         date: value.candidate.reportDate,
         value: value.value,
+        filed: value.candidate.filingDate,
       });
     }
   }
@@ -617,24 +680,38 @@ export async function getBuybackHistory(
       unit: "shares",
     },
   ]);
-  const periodDates = new Map<string, string>();
+  const periodKeyByDate = new Map<string, string>();
   for (const source of [
     reportedRepurchases,
     repurchaseCash,
     reportedIssuance,
   ]) {
     for (const [key, value] of source) {
-      if (!periodDates.has(key)) periodDates.set(key, value.date);
+      if (!periodKeyByDate.has(value.date)) {
+        periodKeyByDate.set(value.date, key);
+      }
     }
   }
-  const hasOutstandingForDisplayedPeriods = Array.from(
-    periodDates.keys(),
-  ).some((key) => outstanding.has(key));
-  if (!hasOutstandingForDisplayedPeriods) {
-    const dimensionalOutstanding = await fetchBerkshireOutstandingByPeriod(
+  const recentOutstanding = Array.from(outstanding.values()).filter(
+    (value) => value.date >= cutoff && value.value > 0,
+  );
+  const latestOutstandingDate = recentOutstanding
+    .map((value) => value.date)
+    .sort()
+    .at(-1);
+  const staleCutoff = new Date(Date.now() - 18 * 30.5 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  if (
+    recentOutstanding.length < 8 ||
+    !latestOutstandingDate ||
+    latestOutstandingDate < staleCutoff
+  ) {
+    const dimensionalOutstanding = await fetchFilingOutstandingByPeriod(
       symbol,
       cik,
-      periodDates,
+      cutoff,
+      periodKeyByDate,
     );
     if (dimensionalOutstanding.size > 0) {
       outstanding = dimensionalOutstanding;

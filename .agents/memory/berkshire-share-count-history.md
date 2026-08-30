@@ -1,10 +1,10 @@
 ---
-name: Berkshire share-count history
-description: How to recover Berkshire outstanding-share history when aggregate SEC Company Facts are stale.
+name: Multi-class share-count history
+description: How to recover outstanding-share history when aggregate SEC Company Facts omit class-dimensioned facts.
 ---
 
-Berkshire's recent outstanding-share counts are class-dimensioned filing facts, not reliable aggregate Company Facts. Read both Class A and Class B cover-page facts and convert them to the viewed share class using 1 Class A = 1,500 Class B.
+Some multi-class issuers have stale or nearly empty aggregate SEC Company Facts even though every filing reports current class-dimensioned cover-page counts. Read all `EntityCommonStockSharesOutstanding` class contexts from the filing itself. Sum economically equivalent classes by default; Berkshire remains special because the viewed classes require conversion using 1 Class A = 1,500 Class B.
 
-**Why:** The aggregate `EntityCommonStockSharesOutstanding` series ends years before the current chart, while filing-level XBRL continues to report both classes. SEC XBRL archives changed from traditional XML instances to inline-XBRL HTML over the history.
+**Why:** Berkshire's aggregate series ends years early, and CVNA's aggregate series contains only zero-share 2017 facts while filing-level Class A/B counts continue. For filing-heavy issuers, SEC's recent submissions list may only span a few years; older quarterly filings live in named archived submissions JSON files.
 
-**How to apply:** Use compact filing XBRL ZIPs and support both XML and inline HTML facts. Attach each cover-page count to its filing report period, then estimate issuance from adjacent equivalent-share movement plus repurchases when direct issuance facts are absent.
+**How to apply:** Prefer aggregate facts when they are sufficiently populated and recent. Otherwise read recent plus archived submission indexes, parse primary inline-XBRL documents with XBRL ZIP fallback, attach cover-page counts to report periods, and align them with activity facts by report date.

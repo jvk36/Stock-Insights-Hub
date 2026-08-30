@@ -613,163 +613,294 @@ const TX_CODE_MAP: Record<string, { type: string; signal: string }> = {
   Z: { type: "Deposit/Withdrawal", signal: "none" },
 };
 
-// Simple XML cache to avoid refetching the same Form 4 on repeated API calls
-const form4Cache = new Map<string, string | null>();
+const FORM4_SUCCESS_TTL_MS = 60 * 60 * 1000;
+const FORM4_FAILURE_TTL_MS = 2 * 60 * 1000;
+const SEC_REQUEST_SPACING_MS = 125;
+const form4Cache = new Map<
+  string,
+  { value: string | null; expiresAt: number }
+>();
+const form4Inflight = new Map<string, Promise<string | null>>();
+let secRequestQueue: Promise<void> = Promise.resolve();
+let lastSecRequestAt = 0;
 
-async function fetchForm4(cik: string, accession: string): Promise<string | null> {
-  const cacheKey = `${cik}:${accession}`;
-  if (form4Cache.has(cacheKey)) return form4Cache.get(cacheKey)!;
+function scheduleSecRequest<T>(request: () => Promise<T>): Promise<T> {
+  const run = secRequestQueue.then(async () => {
+    const waitMs = Math.max(
+      0,
+      SEC_REQUEST_SPACING_MS - (Date.now() - lastSecRequestAt),
+    );
+    if (waitMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+    try {
+      return await request();
+    } finally {
+      lastSecRequestAt = Date.now();
+    }
+  });
+  secRequestQueue = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
 
-  const accFormatted = accession.replace(/-/g, "");
-  const url = `https://www.sec.gov/Archives/edgar/data/${cik}/${accFormatted}/form4.xml`;
-
-  const doFetch = async (): Promise<Response> =>
+function fetchSec(url: string): Promise<Response> {
+  return scheduleSecRequest(() =>
     fetch(url, {
       headers: { "User-Agent": "research-tool admin@example.com" },
       signal: AbortSignal.timeout(8000),
-    });
+    }),
+  );
+}
 
-  try {
-    let resp = await doFetch();
-    // Retry once on rate-limit after a brief pause
-    if (resp.status === 429) {
-      await new Promise((r) => setTimeout(r, 1500));
-      resp = await doFetch();
-    }
-    if (!resp.ok) {
-      form4Cache.set(cacheKey, null);
+async function fetchForm4(
+  cik: string,
+  accession: string,
+  primaryDocument?: string,
+): Promise<string | null> {
+  const cacheKey = `${cik}:${accession}`;
+  const cached = form4Cache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+  if (cached) form4Cache.delete(cacheKey);
+  const inflight = form4Inflight.get(cacheKey);
+  if (inflight) return inflight;
+
+  const pending = (async () => {
+    const accFormatted = accession.replace(/-/g, "");
+    const documentPath = encodeURIComponent(
+      primaryDocument?.split("/").at(-1) || "form4.xml",
+    );
+    const url = `https://www.sec.gov/Archives/edgar/data/${cik}/${accFormatted}/${documentPath}`;
+
+    try {
+      let resp = await fetchSec(url);
+      if (resp.status === 429) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        resp = await fetchSec(url);
+      }
+      if (!resp.ok) {
+        form4Cache.set(cacheKey, {
+          value: null,
+          expiresAt: Date.now() + FORM4_FAILURE_TTL_MS,
+        });
+        return null;
+      }
+      const text = await resp.text();
+      const value = text.includes("<ownershipDocument>") ? text : null;
+      form4Cache.set(cacheKey, {
+        value,
+        expiresAt:
+          Date.now() +
+          (value ? FORM4_SUCCESS_TTL_MS : FORM4_FAILURE_TTL_MS),
+      });
+      return value;
+    } catch {
+      form4Cache.set(cacheKey, {
+        value: null,
+        expiresAt: Date.now() + FORM4_FAILURE_TTL_MS,
+      });
       return null;
+    } finally {
+      form4Inflight.delete(cacheKey);
     }
-    const text = await resp.text();
-    if (!text.includes("<ownershipDocument>")) {
-      form4Cache.set(cacheKey, null);
-      return null;
-    }
-    form4Cache.set(cacheKey, text);
-    return text;
-  } catch {
-    form4Cache.set(cacheKey, null);
-    return null;
+  })();
+  form4Inflight.set(cacheKey, pending);
+  return pending;
+}
+
+function parseFootnotes(xml: string): Map<string, string> {
+  const footnotes = new Map<string, string>();
+  const regex = /<footnote\b[^>]*\bid=["']([^"']+)["'][^>]*>([\s\S]*?)<\/footnote>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(xml)) !== null) {
+    footnotes.set(match[1], match[2].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
   }
+  return footnotes;
+}
+
+function transactionFootnoteText(
+  block: string,
+  footnotes: Map<string, string>,
+): string {
+  const ids = [...block.matchAll(/<footnoteId\b[^>]*\bid=["']([^"']+)["'][^>]*\/?>/gi)];
+  return ids.map((match) => footnotes.get(match[1]) ?? "").filter(Boolean).join(" ");
+}
+
+function parseNumericTag(block: string, tag: string): number | null {
+  const taggedBlock =
+    block.match(new RegExp(`<${tag}[^>]*>[\\s\\S]*?<\\/${tag}>`, "i"))?.[0] ??
+    block;
+  const value = xmlTagValue(taggedBlock, "value") ?? xmlTagValue(taggedBlock, tag);
+  if (!value) return null;
+  const parsed = Number(value.replace(/,/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseForm4Transaction(
+  block: string,
+  index: number,
+  kind: "nd" | "d",
+  owner: {
+    insiderName: string;
+    isDirector: boolean;
+    isOfficer: boolean;
+    isTenPercentOwner: boolean;
+    officerTitle: string | null;
+  },
+  footnotes: Map<string, string>,
+  accession: string,
+  formUrl: string,
+  documentPlan: boolean,
+) {
+  const dateBlock = block.match(/<transactionDate>[^]*?<\/transactionDate>/i)?.[0] ?? "";
+  const date = xmlTagValue(dateBlock, "value") ?? "";
+  const codeBlock = block.match(/<transactionCoding>[^]*?<\/transactionCoding>/i)?.[0] ?? "";
+  const transactionCode = xmlTagValue(codeBlock, "transactionCode") || "?";
+  const amountsBlock = block.match(/<transactionAmounts>[^]*?<\/transactionAmounts>/i)?.[0] ?? "";
+  const shares = parseNumericTag(amountsBlock, "transactionShares");
+  const pricePerShare = parseNumericTag(amountsBlock, "transactionPricePerShare");
+  const acquiredDisposedBlock =
+    amountsBlock.match(/<transactionAcquiredDisposedCode>[^]*?<\/transactionAcquiredDisposedCode>/i)?.[0] ?? "";
+  const acquiredDisposedCode = xmlTagValue(acquiredDisposedBlock, "value");
+  const postAmountsBlock =
+    block.match(/<postTransactionAmounts>[^]*?<\/postTransactionAmounts>/i)?.[0] ?? "";
+  const holdingSharesAfter = parseNumericTag(
+    postAmountsBlock,
+    "sharesOwnedFollowingTransaction",
+  );
+  const ownershipBlock = block.match(/<ownershipNature>[^]*?<\/ownershipNature>/i)?.[0] ?? "";
+  const ownershipTypeBlock =
+    ownershipBlock.match(/<directOrIndirectOwnership>[^]*?<\/directOrIndirectOwnership>/i)?.[0] ?? "";
+  const ownership = xmlTagValue(ownershipTypeBlock, "value") ?? "D";
+  const natureBlock =
+    ownershipBlock.match(/<natureOfOwnership>[^]*?<\/natureOfOwnership>/i)?.[0] ?? "";
+  const natureOfOwnership = xmlTagValue(natureBlock, "value") || null;
+  const footnoteText = transactionFootnoteText(block, footnotes);
+  const contextText = `${natureOfOwnership ?? ""} ${footnoteText}`;
+  const is10b51Plan =
+    xmlTagValue(codeBlock, "aff10b5One") === "true" ||
+    xmlTagValue(codeBlock, "aff10b5One") === "1" ||
+    documentPlan;
+  const hasCompensationContext =
+    /\b(?:equity award|stock award|restricted stock units?|rsus?|vested|vesting|compensation|tax withholding|withheld for taxes|sell[- ]to[- ]cover)\b/i.test(
+      contextText,
+    );
+  const isCompensationRelated =
+    ["A", "M", "F"].includes(transactionCode) ||
+    (["S", "D"].includes(transactionCode) && hasCompensationContext);
+  const compensationReason = isCompensationRelated
+    ? transactionCode === "A"
+      ? "Grant or award"
+      : transactionCode === "M"
+        ? "Option or derivative exercise"
+        : transactionCode === "F"
+          ? "Tax withholding"
+          : transactionCode === "D"
+            ? "Compensation-linked disposition to issuer"
+            : "Compensation-linked sale"
+    : null;
+  const contextFlags = [
+    ownership === "I" ? "Indirect / trust ownership" : null,
+    is10b51Plan ? "10b5-1 automated plan" : null,
+    isCompensationRelated ? compensationReason : null,
+  ].filter((flag): flag is string => Boolean(flag));
+  const priorHolding =
+    holdingSharesAfter != null && shares != null
+      ? acquiredDisposedCode === "A"
+        ? holdingSharesAfter - shares
+        : acquiredDisposedCode === "D"
+          ? holdingSharesAfter + shares
+          : null
+      : null;
+  const activityPctOfHoldings =
+    shares != null && priorHolding != null && priorHolding > 0
+      ? (Math.abs(shares) / priorHolding) * 100
+      : null;
+  const info = TX_CODE_MAP[transactionCode] ?? {
+    type: `Code ${transactionCode}`,
+    signal: "none",
+  };
+
+  return {
+    id: `${accession}-${kind}-${index}`,
+    date,
+    insiderName: owner.insiderName,
+    beneficialOwner: owner.insiderName,
+    title: owner.officerTitle,
+    isDirector: owner.isDirector,
+    isOfficer: owner.isOfficer,
+    isTenPercentOwner: owner.isTenPercentOwner,
+    transactionCode,
+    transactionType: info.type,
+    signalLevel: info.signal,
+    shares,
+    pricePerShare,
+    totalValue: shares != null && pricePerShare != null ? shares * pricePerShare : null,
+    ownership,
+    natureOfOwnership,
+    ownershipRelationship:
+      ownership === "I"
+        ? natureOfOwnership || "Indirect / trust ownership"
+        : "Direct ownership",
+    holdingSharesAfter,
+    activityPctOfHoldings,
+    is10b51Plan,
+    isCompensationRelated,
+    compensationReason,
+    contextFlags,
+    accessionNumber: accession,
+    formUrl,
+  };
 }
 
 function parseForm4(xml: string, accession: string, cik: string) {
   const accFormatted = accession.replace(/-/g, "");
   const formUrl = `https://www.sec.gov/Archives/edgar/data/${cik}/${accFormatted}/`;
-
-  // Reporting owner details
   const insiderName = xmlTagValue(xml, "rptOwnerName") ?? "Unknown";
-  const isDirector = xmlTagValue(xml, "isDirector") === "true" || xmlTagValue(xml, "isDirector") === "1";
-  const isOfficer = xmlTagValue(xml, "isOfficer") === "true" || xmlTagValue(xml, "isOfficer") === "1";
-  const isTenPercentOwner = xmlTagValue(xml, "isTenPercentOwner") === "true" || xmlTagValue(xml, "isTenPercentOwner") === "1";
-  const officerTitle = xmlTagValue(xml, "officerTitle") || null;
-  const is10b51Plan = xmlTagValue(xml, "aff10b5One") === "true" || xmlTagValue(xml, "aff10b5One") === "1";
-
-  // Skip if pure 10% owner with no officer/director role (passive institutional)
-  if (isTenPercentOwner && !isDirector && !isOfficer) return [];
-
-  const transactions: object[] = [];
-
-  // Parse nonDerivativeTransaction blocks
-  const nonDerivBlocks = xmlBlocks(xml, "nonDerivativeTransaction");
-  for (const [idx, block] of nonDerivBlocks.entries()) {
-    // Get date from <transactionDate><value>
-    const dateBlock = block.match(/<transactionDate>[^]*?<\/transactionDate>/i)?.[0] ?? "";
-    const date = xmlTagValue(dateBlock, "value") ?? xmlTagValue(xml, "periodOfReport") ?? "";
-
-    const codeBlock = block.match(/<transactionCoding>[^]*?<\/transactionCoding>/i)?.[0] ?? "";
-    const transactionCode = xmlTagValue(codeBlock, "transactionCode") ?? "";
-
-    const amountsBlock = block.match(/<transactionAmounts>[^]*?<\/transactionAmounts>/i)?.[0] ?? "";
-    const sharesBlock = amountsBlock.match(/<transactionShares>[^]*?<\/transactionShares>/i)?.[0] ?? "";
-    const sharesVal = xmlTagValue(sharesBlock, "value");
-    const shares = sharesVal ? parseFloat(sharesVal) : null;
-
-    const priceBlock = amountsBlock.match(/<transactionPricePerShare>[^]*?<\/transactionPricePerShare>/i)?.[0] ?? "";
-    const priceVal = xmlTagValue(priceBlock, "value");
-    const pricePerShare = priceVal ? parseFloat(priceVal) : null;
-
-    const ownershipBlock = block.match(/<ownershipNature>[^]*?<\/ownershipNature>/i)?.[0] ?? "";
-    const ownershipTypeBlock = ownershipBlock.match(/<directOrIndirectOwnership>[^]*?<\/directOrIndirectOwnership>/i)?.[0] ?? "";
-    const ownership = xmlTagValue(ownershipTypeBlock, "value") ?? "D";
-    const natureBlock = ownershipBlock.match(/<natureOfOwnership>[^]*?<\/natureOfOwnership>/i)?.[0] ?? "";
-    const natureOfOwnership = xmlTagValue(natureBlock, "value") || null;
-
-    const totalValue = shares && pricePerShare ? shares * pricePerShare : null;
-    const info = TX_CODE_MAP[transactionCode] ?? { type: `Code ${transactionCode}`, signal: "none" };
-
-    transactions.push({
-      id: `${accession}-nd-${idx}`,
-      date,
-      insiderName,
-      title: officerTitle,
-      isDirector,
-      isOfficer,
-      isTenPercentOwner,
-      transactionCode,
-      transactionType: info.type,
-      signalLevel: info.signal,
-      shares,
-      pricePerShare,
-      totalValue,
-      ownership,
-      natureOfOwnership,
-      is10b51Plan,
-      accessionNumber: accession,
-      formUrl,
-    });
-  }
-
-  // Parse derivativeTransaction blocks (options/RSUs)
-  const derivBlocks = xmlBlocks(xml, "derivativeTransaction");
-  for (const [idx, block] of derivBlocks.entries()) {
-    const dateBlock = block.match(/<transactionDate>[^]*?<\/transactionDate>/i)?.[0] ?? "";
-    const date = xmlTagValue(dateBlock, "value") ?? xmlTagValue(xml, "periodOfReport") ?? "";
-
-    const codeBlock = block.match(/<transactionCoding>[^]*?<\/transactionCoding>/i)?.[0] ?? "";
-    const transactionCode = xmlTagValue(codeBlock, "transactionCode") ?? "";
-
-    const amountsBlock = block.match(/<transactionAmounts>[^]*?<\/transactionAmounts>/i)?.[0] ?? "";
-    const sharesBlock = amountsBlock.match(/<transactionShares>[^]*?<\/transactionShares>/i)?.[0] ?? "";
-    const sharesVal = xmlTagValue(sharesBlock, "value");
-    const shares = sharesVal ? parseFloat(sharesVal) : null;
-
-    const priceBlock = amountsBlock.match(/<transactionPricePerShare>[^]*?<\/transactionPricePerShare>/i)?.[0] ?? "";
-    const priceVal = xmlTagValue(priceBlock, "value");
-    const pricePerShare = priceVal ? parseFloat(priceVal) : null;
-
-    const ownershipBlock = block.match(/<ownershipNature>[^]*?<\/ownershipNature>/i)?.[0] ?? "";
-    const ownershipTypeBlock = ownershipBlock.match(/<directOrIndirectOwnership>[^]*?<\/directOrIndirectOwnership>/i)?.[0] ?? "";
-    const ownership = xmlTagValue(ownershipTypeBlock, "value") ?? "D";
-    const natureBlock = ownershipBlock.match(/<natureOfOwnership>[^]*?<\/natureOfOwnership>/i)?.[0] ?? "";
-    const natureOfOwnership = xmlTagValue(natureBlock, "value") || null;
-
-    const totalValue = shares && pricePerShare ? shares * pricePerShare : null;
-    const info = TX_CODE_MAP[transactionCode] ?? { type: `Code ${transactionCode}`, signal: "none" };
-
-    transactions.push({
-      id: `${accession}-d-${idx}`,
-      date,
-      insiderName,
-      title: officerTitle,
-      isDirector,
-      isOfficer,
-      isTenPercentOwner,
-      transactionCode: transactionCode || "?",
-      transactionType: info.type,
-      signalLevel: info.signal,
-      shares,
-      pricePerShare,
-      totalValue,
-      ownership,
-      natureOfOwnership,
-      is10b51Plan,
-      accessionNumber: accession,
-      formUrl,
-    });
-  }
-
-  return transactions;
+  const owner = {
+    insiderName,
+    isDirector: xmlTagValue(xml, "isDirector") === "true" || xmlTagValue(xml, "isDirector") === "1",
+    isOfficer: xmlTagValue(xml, "isOfficer") === "true" || xmlTagValue(xml, "isOfficer") === "1",
+    isTenPercentOwner:
+      xmlTagValue(xml, "isTenPercentOwner") === "true" ||
+      xmlTagValue(xml, "isTenPercentOwner") === "1",
+    officerTitle: xmlTagValue(xml, "officerTitle") || null,
+  };
+  const footnotes = parseFootnotes(xml);
+  const filingPlan =
+    xmlTagValue(xml, "aff10b5One") === "true" || xmlTagValue(xml, "aff10b5One") === "1";
+  const nonDerivativeBlocks = xmlBlocks(xml, "nonDerivativeTransaction");
+  const derivativeBlocks = xmlBlocks(xml, "derivativeTransaction");
+  const unambiguousFilingPlan =
+    filingPlan && nonDerivativeBlocks.length + derivativeBlocks.length === 1;
+  return [
+    ...nonDerivativeBlocks.map((block, index) =>
+      parseForm4Transaction(
+        block,
+        index,
+        "nd",
+        owner,
+        footnotes,
+        accession,
+        formUrl,
+        unambiguousFilingPlan,
+      ),
+    ),
+    ...derivativeBlocks.map((block, index) =>
+      parseForm4Transaction(
+        block,
+        index,
+        "d",
+        owner,
+        footnotes,
+        accession,
+        formUrl,
+        unambiguousFilingPlan,
+      ),
+    ),
+  ];
 }
 
 // ─── Yahoo Finance → transaction code inference ──────────────────────────────
@@ -807,10 +938,15 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
 
   try {
     // ── Step 1: Yahoo Finance insiderTransactions (primary source, no rate limits) ──
-    const [yfResult, cik] = await Promise.all([
-      yahooFinance.quoteSummary(symbol, { modules: ["insiderTransactions"] }).catch(() => null),
-      lookupCik(symbol),
-    ]);
+    const cik = await lookupCik(symbol);
+    // SEC Form 4 XML is the authoritative source for ownership, holdings,
+    // plan-affiliation, and compensation context. Yahoo is only a degraded
+    // fallback for symbols without an SEC registrant mapping.
+    const yfResult = cik
+      ? null
+      : await yahooFinance
+          .quoteSummary(symbol, { modules: ["insiderTransactions"] })
+          .catch(() => null);
 
     const yfTxs = yfResult?.insiderTransactions?.transactions ?? [];
 
@@ -825,9 +961,6 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
           const txText = String(tx.transactionText ?? "");
           const relation = String(tx.filerRelation ?? "");
           const { isDirector, isOfficer, isTenPercentOwner } = parseRelation(relation);
-
-          // Filter: exclude pure 10% passive owners
-          if (isTenPercentOwner && !isDirector && !isOfficer) return null;
 
           const transactionCode = inferTxCode(txText);
           const info = TX_CODE_MAP[transactionCode] ?? { type: txText || "Unknown", signal: "none" };
@@ -859,6 +992,7 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
             id: `yf-${idx}-${date}`,
             date,
             insiderName: String(tx.filerName ?? "Unknown"),
+             beneficialOwner: String(tx.filerName ?? "Unknown"),
             title,
             isDirector,
             isOfficer,
@@ -871,30 +1005,64 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
             totalValue,
             ownership: "D",
             natureOfOwnership: null,
+             ownershipRelationship: "Direct ownership (Yahoo fallback)",
+             holdingSharesAfter: null,
+             activityPctOfHoldings: null,
             is10b51Plan: false,
+             isCompensationRelated: ["A", "M", "F", "D"].includes(transactionCode),
+             compensationReason: ["A", "M", "F", "D"].includes(transactionCode)
+               ? (TX_CODE_MAP[transactionCode]?.type ?? "Compensation-related activity")
+               : null,
+             contextFlags: [],
             accessionNumber: "",
             formUrl,
           };
         })
         .filter(Boolean);
 
-      res.json({ symbol, cik, transactions });
+      res.json({
+        symbol,
+        cik,
+        transactions,
+        coverage: {
+          source: "yahoo",
+          availableFilings: 0,
+          requestedFilings: 0,
+          fetchedFilings: 0,
+          failedFilings: 0,
+          isPartial: true,
+          truncated: false,
+        },
+      });
       return;
     }
 
     // ── Step 3: Fallback – attempt SEC EDGAR Form 4 XML parsing ──────────────
     if (!cik) {
-      res.json({ symbol, cik: null, transactions: [] });
+      res.json({
+        symbol,
+        cik: null,
+        transactions: [],
+        coverage: {
+          source: "yahoo",
+          availableFilings: 0,
+          requestedFilings: 0,
+          fetchedFilings: 0,
+          failedFilings: 0,
+          isPartial: true,
+          truncated: false,
+        },
+      });
       return;
     }
 
     const submissionsUrl = `https://data.sec.gov/submissions/CIK${cik.padStart(10, "0")}.json`;
-    const submResp = await fetch(submissionsUrl, {
-      headers: { "User-Agent": "research-tool admin@example.com" },
-      signal: AbortSignal.timeout(8000),
-    });
+    const submResp = await fetchSec(submissionsUrl);
     if (!submResp.ok) {
-      res.json({ symbol, cik, transactions: [] });
+      res.status(502).json({
+        error: "upstream_error",
+        message: "SEC submissions data is temporarily unavailable",
+      });
       return;
     }
 
@@ -904,6 +1072,7 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
           form?: string[];
           accessionNumber?: string[];
           filingDate?: string[];
+           primaryDocument?: string[];
         };
       };
     };
@@ -912,33 +1081,84 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
     const forms = recent.form ?? [];
     const accessions = recent.accessionNumber ?? [];
     const filingDates = recent.filingDate ?? [];
+    const primaryDocuments = recent.primaryDocument ?? [];
 
-    const form4Entries: Array<{ accession: string; date: string }> = [];
+    const allForm4Entries: Array<{
+      accession: string;
+      date: string;
+      primaryDocument?: string;
+      form: "4" | "4/A";
+    }> = [];
     for (let i = 0; i < forms.length; i++) {
-      if (forms[i] === "4" && accessions[i]) {
-        form4Entries.push({ accession: accessions[i], date: filingDates[i] ?? "" });
-        if (form4Entries.length >= 20) break;
+      if ((forms[i] === "4" || forms[i] === "4/A") && accessions[i]) {
+        allForm4Entries.push({
+          accession: accessions[i],
+          date: filingDates[i] ?? "",
+          primaryDocument: primaryDocuments[i] || undefined,
+          form: forms[i] as "4" | "4/A",
+        });
       }
     }
+    const form4Entries = allForm4Entries.slice(0, 20);
 
     const CONCURRENCY = 3;
-    const allTransactions: object[] = [];
+    const parsedFilings: Array<{
+      form: "4" | "4/A";
+      key: string;
+      transactions: ReturnType<typeof parseForm4>;
+    }> = [];
+    let fetchedFilings = 0;
     for (let i = 0; i < form4Entries.length; i += CONCURRENCY) {
-      if (i > 0) await new Promise((r) => setTimeout(r, 400));
       const batch = form4Entries.slice(i, i + CONCURRENCY);
-      const xmls = await Promise.all(batch.map((e) => fetchForm4(cik, e.accession)));
+      const xmls = await Promise.all(
+        batch.map((entry) =>
+          fetchForm4(cik, entry.accession, entry.primaryDocument),
+        ),
+      );
       for (let j = 0; j < batch.length; j++) {
         const xml = xmls[j];
         if (!xml) continue;
-        allTransactions.push(...parseForm4(xml, batch[j].accession, cik));
+        fetchedFilings += 1;
+        const ownerName = xmlTagValue(xml, "rptOwnerName") ?? "unknown";
+        const period = xmlTagValue(xml, "periodOfReport") ?? batch[j].date;
+        parsedFilings.push({
+          form: batch[j].form,
+          key: `${period}|${ownerName.toLowerCase()}`,
+          transactions: parseForm4(xml, batch[j].accession, cik),
+        });
       }
     }
 
+    const amendedKeys = new Set(
+      parsedFilings
+        .filter((filing) => filing.form === "4/A")
+        .map((filing) => filing.key),
+    );
+    const allTransactions = parsedFilings.flatMap((filing) =>
+      filing.form === "4" && amendedKeys.has(filing.key)
+        ? []
+        : filing.transactions,
+    );
     allTransactions.sort((a, b) =>
-      (b as { date: string }).date.localeCompare((a as { date: string }).date)
+      b.date.localeCompare(a.date)
     );
 
-    res.json({ symbol, cik, transactions: allTransactions.slice(0, 150) });
+    const failedFilings = form4Entries.length - fetchedFilings;
+    const truncated = allForm4Entries.length > form4Entries.length;
+    res.json({
+      symbol,
+      cik,
+      transactions: allTransactions.slice(0, 150),
+      coverage: {
+        source: "sec",
+        availableFilings: allForm4Entries.length,
+        requestedFilings: form4Entries.length,
+        fetchedFilings,
+        failedFilings,
+        isPartial: failedFilings > 0 || truncated,
+        truncated,
+      },
+    });
   } catch (err: unknown) {
     req.log.error({ err, symbol }, "Failed to fetch insider transactions");
     res.status(500).json({ error: "server_error", message: "Failed to fetch insider transactions" });

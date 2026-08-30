@@ -6,9 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { InsiderTransaction } from "./insiderTransaction";
+import type { InsiderTransactionsCoverage } from "./insiderTransactionsCoverage";
 
 export interface InsiderTransactionsResponse {
   symbol: string;
   cik?: string | null;
   transactions: InsiderTransaction[];
+  coverage: InsiderTransactionsCoverage;
 }

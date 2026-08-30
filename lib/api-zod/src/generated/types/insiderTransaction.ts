@@ -10,6 +10,7 @@ export interface InsiderTransaction {
   id: string;
   date: string;
   insiderName: string;
+  beneficialOwner: string;
   title?: string | null;
   isDirector: boolean;
   isOfficer: boolean;
@@ -22,7 +23,13 @@ export interface InsiderTransaction {
   totalValue?: number | null;
   ownership: string;
   natureOfOwnership?: string | null;
+  ownershipRelationship?: string | null;
+  holdingSharesAfter?: number | null;
+  activityPctOfHoldings?: number | null;
   is10b51Plan: boolean;
+  isCompensationRelated: boolean;
+  compensationReason?: string | null;
+  contextFlags: string[];
   accessionNumber: string;
   formUrl: string;
 }

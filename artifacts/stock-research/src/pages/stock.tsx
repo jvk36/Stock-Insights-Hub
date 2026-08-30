@@ -12,7 +12,7 @@ import NewsSection from "@/components/stock/NewsSection";
 import CompanyProfile from "@/components/stock/CompanyProfile";
 import SecFilings from "@/components/stock/SecFilings";
 import Financials from "@/components/stock/Financials";
-import InsiderTransactions from "@/components/stock/InsiderTransactions";
+import InsiderActivityTab from "@/components/stock/InsiderActivityTab";
 import FundamentalSummary from "@/components/stock/FundamentalSummary";
 import ScreenerRatings from "@/components/stock/ScreenerRatings";
 import BuybacksTab from "@/components/stock/BuybacksTab";
@@ -234,6 +234,7 @@ export default function StockDetail() {
             <TabsTrigger value="indicators" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Indicators</TabsTrigger>
             <TabsTrigger value="screener" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Ratings</TabsTrigger>
             <TabsTrigger value="buybacks" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Buybacks</TabsTrigger>
+            <TabsTrigger value="insider-activity" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Insider Activity</TabsTrigger>
             <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Analysis</TabsTrigger>
             <TabsTrigger value="models" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Models</TabsTrigger>
           </TabsList>
@@ -262,8 +263,6 @@ export default function StockDetail() {
               <SectionDivider>SEC Filings</SectionDivider>
               <SecFilings symbol={symbol!} />
 
-              <SectionDivider>Insider Transactions</SectionDivider>
-              <InsiderTransactions symbol={symbol!} />
             </TabsContent>
 
             <TabsContent value="indicators" className="mt-0">
@@ -276,6 +275,10 @@ export default function StockDetail() {
 
             <TabsContent value="buybacks" className="mt-0">
               <BuybacksTab symbol={symbol!} />
+            </TabsContent>
+
+            <TabsContent value="insider-activity" className="mt-0">
+              <InsiderActivityTab symbol={symbol!} />
             </TabsContent>
 
             <TabsContent value="analysis" className="mt-0">

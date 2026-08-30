@@ -54,6 +54,8 @@ export * from "./indexMetricsResponse";
 export * from "./indexMetricsResponseMetrics";
 export * from "./indexStock";
 export * from "./insiderTransaction";
+export * from "./insiderTransactionsCoverage";
+export * from "./insiderTransactionsCoverageSource";
 export * from "./insiderTransactionsResponse";
 export * from "./katsenelsonData";
 export * from "./macroIndicator";

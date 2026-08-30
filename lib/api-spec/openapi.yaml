@@ -1126,6 +1126,8 @@ components:
           type: string
         insiderName:
           type: string
+        beneficialOwner:
+          type: string
         title:
           type: string
           nullable: true
@@ -1155,8 +1157,26 @@ components:
         natureOfOwnership:
           type: string
           nullable: true
+        ownershipRelationship:
+          type: string
+          nullable: true
+        holdingSharesAfter:
+          type: number
+          nullable: true
+        activityPctOfHoldings:
+          type: number
+          nullable: true
         is10b51Plan:
           type: boolean
+        isCompensationRelated:
+          type: boolean
+        compensationReason:
+          type: string
+          nullable: true
+        contextFlags:
+          type: array
+          items:
+            type: string
         accessionNumber:
           type: string
         formUrl:
@@ -1165,6 +1185,7 @@ components:
         - id
         - date
         - insiderName
+        - beneficialOwner
         - isDirector
         - isOfficer
         - isTenPercentOwner
@@ -1172,9 +1193,38 @@ components:
         - transactionType
         - signalLevel
         - ownership
+        - isCompensationRelated
+        - contextFlags
         - is10b51Plan
         - accessionNumber
         - formUrl
+
+    InsiderTransactionsCoverage:
+      type: object
+      properties:
+        source:
+          type: string
+          enum: [sec, yahoo]
+        availableFilings:
+          type: integer
+        requestedFilings:
+          type: integer
+        fetchedFilings:
+          type: integer
+        failedFilings:
+          type: integer
+        isPartial:
+          type: boolean
+        truncated:
+          type: boolean
+      required:
+        - source
+        - availableFilings
+        - requestedFilings
+        - fetchedFilings
+        - failedFilings
+        - isPartial
+        - truncated
 
     InsiderTransactionsResponse:
       type: object
@@ -1188,9 +1238,12 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/InsiderTransaction"
+        coverage:
+          $ref: "#/components/schemas/InsiderTransactionsCoverage"
       required:
         - symbol
         - transactions
+        - coverage
 
     FundamentalMetric:
       type: object

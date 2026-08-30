@@ -187,6 +187,7 @@ export interface InsiderTransaction {
   id: string;
   date: string;
   insiderName: string;
+  beneficialOwner: string;
   title?: string | null;
   isDirector: boolean;
   isOfficer: boolean;
@@ -199,15 +200,40 @@ export interface InsiderTransaction {
   totalValue?: number | null;
   ownership: string;
   natureOfOwnership?: string | null;
+  ownershipRelationship?: string | null;
+  holdingSharesAfter?: number | null;
+  activityPctOfHoldings?: number | null;
   is10b51Plan: boolean;
+  isCompensationRelated: boolean;
+  compensationReason?: string | null;
+  contextFlags: string[];
   accessionNumber: string;
   formUrl: string;
+}
+
+export type InsiderTransactionsCoverageSource =
+  (typeof InsiderTransactionsCoverageSource)[keyof typeof InsiderTransactionsCoverageSource];
+
+export const InsiderTransactionsCoverageSource = {
+  sec: "sec",
+  yahoo: "yahoo",
+} as const;
+
+export interface InsiderTransactionsCoverage {
+  source: InsiderTransactionsCoverageSource;
+  availableFilings: number;
+  requestedFilings: number;
+  fetchedFilings: number;
+  failedFilings: number;
+  isPartial: boolean;
+  truncated: boolean;
 }
 
 export interface InsiderTransactionsResponse {
   symbol: string;
   cik?: string | null;
   transactions: InsiderTransaction[];
+  coverage: InsiderTransactionsCoverage;
 }
 
 export interface FundamentalMetric {

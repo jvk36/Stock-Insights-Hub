@@ -20,3 +20,9 @@ Apply a filing-level `aff10b5One` indicator to a transaction only when the filin
 **Why:** A filing-wide indicator cannot safely identify which row was plan-based in a multi-transaction filing.
 
 **How to apply:** Keep ambiguous multi-row filings from being automatically excluded from discretionary buy/sell views.
+
+A registrant's SEC submissions feed can include Forms 4 it filed as a reporting owner of a different issuer. Filter out entries with another issuer's Exchange Act file number, then verify the ownership XML `issuerCik` matches the stock being viewed.
+
+**Why:** Without both checks, corporate holders such as Berkshire Hathaway can appear to sell their own shares when the transaction actually concerns a portfolio company.
+
+**How to apply:** Use the submissions metadata filter before pagination and retain the XML issuer check as defense in depth.

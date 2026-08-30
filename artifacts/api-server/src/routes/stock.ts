@@ -591,6 +591,14 @@ function xmlBlocks(xml: string, tag: string): string[] {
   return blocks;
 }
 
+function isForm4ForIssuer(xml: string, issuerCik: string): boolean {
+  const issuerBlock = xml.match(/<issuer>[\s\S]*?<\/issuer>/i)?.[0] ?? "";
+  const documentIssuerCik = xmlTagValue(issuerBlock, "issuerCik");
+  if (!documentIssuerCik) return false;
+
+  return documentIssuerCik.replace(/^0+/, "") === issuerCik.replace(/^0+/, "");
+}
+
 const TX_CODE_MAP: Record<string, { type: string; signal: string }> = {
   P: { type: "Open Market Purchase", signal: "high" },
   S: { type: "Open Market Sale", signal: "moderate" },
@@ -954,7 +962,7 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
   };
 
   try {
-    // ── Step 1: Yahoo Finance insiderTransactions (primary source, no rate limits) ──
+    // ── Step 1: Resolve the SEC registrant; Yahoo is a degraded fallback only ──
     const cik = await lookupCik(symbol);
     // SEC Form 4 XML is the authoritative source for ownership, holdings,
     // plan-affiliation, and compensation context. Yahoo is only a degraded
@@ -967,7 +975,7 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
 
     const yfTxs = yfResult?.insiderTransactions?.transactions ?? [];
 
-    // ── Step 2: If YF returns data, transform it ─────────────────────────────
+    // ── Step 2: If Yahoo returns fallback data, transform it ─────────────────
     if (yfTxs.length > 0) {
       const edgarSearchBase = cik
         ? `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&type=4&dateb=&owner=include&count=40`
@@ -1059,7 +1067,7 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
       return;
     }
 
-    // ── Step 3: Fallback – attempt SEC EDGAR Form 4 XML parsing ──────────────
+    // ── Step 3: Fetch and parse SEC EDGAR Form 4 XML ─────────────────────────
     if (!cik) {
       res.json({
         symbol,
@@ -1100,6 +1108,7 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
           accessionNumber?: string[];
           filingDate?: string[];
            primaryDocument?: string[];
+           fileNumber?: string[];
         };
       };
     };
@@ -1109,6 +1118,7 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
     const accessions = recent.accessionNumber ?? [];
     const filingDates = recent.filingDate ?? [];
     const primaryDocuments = recent.primaryDocument ?? [];
+    const fileNumbers = recent.fileNumber ?? [];
 
     const allForm4Entries: Array<{
       accession: string;
@@ -1117,7 +1127,15 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
       form: "4" | "4/A";
     }> = [];
     for (let i = 0; i < forms.length; i++) {
-      if ((forms[i] === "4" || forms[i] === "4/A") && accessions[i]) {
+      // A registrant's submissions feed can also contain Forms 4 it filed as a
+      // reporting owner of another issuer. Those entries carry the other
+      // issuer's Exchange Act file number; issuer-side insider filings do not.
+      const isIssuerSideFiling = !fileNumbers[i]?.trim();
+      if (
+        (forms[i] === "4" || forms[i] === "4/A") &&
+        accessions[i] &&
+        isIssuerSideFiling
+      ) {
         allForm4Entries.push({
           accession: accessions[i],
           date: filingDates[i] ?? "",
@@ -1154,6 +1172,9 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
       for (let j = 0; j < batch.length; j++) {
         const xml = xmls[j];
         if (!xml) continue;
+        // Defense in depth: never display a transaction unless the ownership
+        // document identifies the stock being viewed as the issuer.
+        if (!isForm4ForIssuer(xml, cik)) continue;
         fetchedFilings += 1;
         const ownerName = xmlTagValue(xml, "rptOwnerName") ?? "unknown";
         const period = xmlTagValue(xml, "periodOfReport") ?? batch[j].date;

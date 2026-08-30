@@ -225,6 +225,20 @@ export const GetBuybackHistoryResponse = zod.object({
       issuanceQuality: zod.enum(["reported", "estimated", "unavailable"]),
     }),
   ),
+  stockSplits: zod.array(
+    zod.object({
+      date: zod.string().describe("Effective date of the stock split"),
+      numerator: zod
+        .number()
+        .describe("New shares received in the split ratio"),
+      denominator: zod
+        .number()
+        .describe("Existing shares represented in the split ratio"),
+      label: zod
+        .string()
+        .describe("Human-readable split ratio, such as 20:1 split"),
+    }),
+  ),
   coverage: zod.object({
     startDate: zod.string().nullable(),
     endDate: zod.string().nullable(),

@@ -12,6 +12,7 @@ export * from "./buybackHistoryItem";
 export * from "./buybackHistoryItemIssuanceQuality";
 export * from "./buybackHistoryItemRepurchaseQuality";
 export * from "./buybackHistoryResponse";
+export * from "./buybackStockSplitEvent";
 export * from "./chartData";
 export * from "./chartDataPoint";
 export * from "./companyProfile";

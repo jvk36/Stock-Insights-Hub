@@ -64,12 +64,22 @@ const COLORS = {
   price: "hsl(var(--chart-3))",
   repurchased: "hsl(var(--success))",
   issued: "hsl(var(--destructive))",
+  split: "hsl(38 92% 50%)",
 };
 
-const BuybacksTooltip = ({ active, label, data, currency }: any) => {
+const BuybacksTooltip = ({
+  active,
+  label,
+  data,
+  currency,
+  splitMarkers,
+}: any) => {
   if (!active || !label) return null;
   const pt = data.find((d: any) => d.date === label);
   if (!pt) return null;
+  const splits = splitMarkers.filter(
+    (split: any) => split.chartDate === label,
+  );
 
   return (
     <div className="bg-popover border border-border text-popover-foreground rounded-md shadow-md p-3 text-xs font-mono min-w-[200px]">
@@ -77,6 +87,17 @@ const BuybacksTooltip = ({ active, label, data, currency }: any) => {
         {format(parseLocalDate(label), "MMM d, yyyy")}
       </div>
       <div className="space-y-2">
+        {splits.map((split: any) => (
+          <div
+            key={`${split.date}-${split.label}`}
+            className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-amber-700 dark:text-amber-300"
+          >
+            <div className="font-semibold">{split.label}</div>
+            <div className="text-[10px]">
+              Effective {format(parseLocalDate(split.date), "MMM d, yyyy")}
+            </div>
+          </div>
+        ))}
         <div className="flex justify-between gap-4">
           <span className="text-muted-foreground flex items-center gap-1.5">
             <div
@@ -171,6 +192,18 @@ export default function BuybacksTab({ symbol }: { symbol: string }) {
       }));
   }, [data]);
 
+  const splitMarkers = useMemo(() => {
+    if (!data?.stockSplits || chartData.length === 0) return [];
+    return data.stockSplits
+      .map((split) => {
+        const chartDate =
+          chartData.find((point) => point.date >= split.date)?.date ??
+          chartData.at(-1)?.date;
+        return chartDate ? { ...split, chartDate } : null;
+      })
+      .filter((split): split is NonNullable<typeof split> => split !== null);
+  }, [data?.stockSplits, chartData]);
+
   const isLoadingState = isLoading || isFetching;
 
   if (isLoadingState) {
@@ -226,6 +259,12 @@ export default function BuybacksTab({ symbol }: { symbol: string }) {
               {data.coverage.note}
             </span>
           )}
+          {splitMarkers.length > 0 && (
+            <span className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-300 px-2 py-1 rounded inline-flex w-fit items-center gap-1.5 border border-amber-500/30">
+              <Info className="w-3.5 h-3.5" />
+              Split markers show when historical share counts were rebased.
+            </span>
+          )}
         </div>
       </CardHeader>
       <CardContent className="min-w-0 px-3 sm:px-6">
@@ -241,6 +280,11 @@ export default function BuybacksTab({ symbol }: { symbol: string }) {
           {data.coverage.estimatedQuarterCount > 0 && (
             <span className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-700 dark:text-amber-300">
               {data.coverage.estimatedQuarterCount} quarters include estimates
+            </span>
+          )}
+          {splitMarkers.length > 0 && (
+            <span className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-700 dark:text-amber-300">
+              {splitMarkers.length} stock {splitMarkers.length === 1 ? "split" : "splits"}
             </span>
           )}
         </div>
@@ -275,6 +319,15 @@ export default function BuybacksTab({ symbol }: { symbol: string }) {
             />
             <span>Issued (Quarterly)</span>
           </div>
+          {splitMarkers.length > 0 && (
+            <div className="flex items-center gap-1.5 text-muted-foreground font-mono">
+              <div
+                className="h-4 border-l border-dashed"
+                style={{ borderColor: COLORS.split }}
+              />
+              <span>Stock Split</span>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-4">
@@ -282,7 +335,7 @@ export default function BuybacksTab({ symbol }: { symbol: string }) {
           <div
             className="h-[280px] w-full min-w-0 overflow-hidden"
             role="img"
-            aria-label={`${symbol} shares outstanding and price per share by quarter`}
+            aria-label={`${symbol} shares outstanding and price per share by quarter${splitMarkers.length > 0 ? `, with ${splitMarkers.length} stock split marker${splitMarkers.length === 1 ? "" : "s"}` : ""}`}
           >
             <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={0}>
               <ComposedChart
@@ -327,10 +380,32 @@ export default function BuybacksTab({ symbol }: { symbol: string }) {
                   tickMargin={8}
                 />
                 <Tooltip
-                  content={<BuybacksTooltip data={chartData} currency={data.currency ?? "USD"} />}
+                  content={
+                    <BuybacksTooltip
+                      data={chartData}
+                      currency={data.currency ?? "USD"}
+                      splitMarkers={splitMarkers}
+                    />
+                  }
                   isAnimationActive={false}
                   cursor={{ fill: "rgba(0,0,0,0.05)" }}
                 />
+                {splitMarkers.map((split) => (
+                  <ReferenceLine
+                    key={`${split.date}-outstanding`}
+                    yAxisId="left"
+                    x={split.chartDate}
+                    stroke={COLORS.split}
+                    strokeDasharray="4 3"
+                    strokeWidth={1.5}
+                    label={{
+                      value: split.label,
+                      position: "insideTopRight",
+                      fill: COLORS.split,
+                      fontSize: 10,
+                    }}
+                  />
+                ))}
                 <Area
                   yAxisId="left"
                   type="monotone"
@@ -360,7 +435,7 @@ export default function BuybacksTab({ symbol }: { symbol: string }) {
           <div
             className="h-[200px] w-full min-w-0 overflow-hidden"
             role="img"
-            aria-label={`${symbol} shares issued and repurchased by quarter`}
+            aria-label={`${symbol} shares issued and repurchased by quarter${splitMarkers.length > 0 ? `, with stock split periods identified` : ""}`}
           >
             <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={0}>
               <BarChart
@@ -403,11 +478,27 @@ export default function BuybacksTab({ symbol }: { symbol: string }) {
                   axisLine={false}
                 />
                 <Tooltip
-                  content={<BuybacksTooltip data={chartData} currency={data.currency ?? "USD"} />}
+                  content={
+                    <BuybacksTooltip
+                      data={chartData}
+                      currency={data.currency ?? "USD"}
+                      splitMarkers={splitMarkers}
+                    />
+                  }
                   isAnimationActive={false}
                   cursor={{ fill: "rgba(0,0,0,0.05)" }}
                 />
                 <ReferenceLine yAxisId="left" y={0} stroke="hsl(var(--border))" />
+                {splitMarkers.map((split) => (
+                  <ReferenceLine
+                    key={`${split.date}-activity`}
+                    yAxisId="left"
+                    x={split.chartDate}
+                    stroke={COLORS.split}
+                    strokeDasharray="4 3"
+                    strokeWidth={1.5}
+                  />
+                ))}
                 <Bar
                   yAxisId="left"
                   dataKey="issuedShares"
@@ -434,9 +525,9 @@ export default function BuybacksTab({ symbol }: { symbol: string }) {
             View accessible quarterly data table
           </summary>
           <div className="max-h-[420px] overflow-auto border-t border-border">
-            <table className="w-full min-w-[720px] text-left text-xs">
+            <table className="w-full min-w-[820px] text-left text-xs">
               <caption className="sr-only">
-                Quarterly shares outstanding, price, repurchases, and issuance for {symbol}
+                Quarterly shares outstanding, price, repurchases, issuance, and stock split events for {symbol}
               </caption>
               <thead className="sticky top-0 bg-card text-muted-foreground">
                 <tr>
@@ -447,10 +538,15 @@ export default function BuybacksTab({ symbol }: { symbol: string }) {
                   <th scope="col" className="px-3 py-2 font-medium">Repurchase source</th>
                   <th scope="col" className="px-3 py-2 text-right font-medium">Issued</th>
                   <th scope="col" className="px-3 py-2 font-medium">Issuance source</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Stock split</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {[...chartData].reverse().map((point) => (
+                {[...chartData].reverse().map((point) => {
+                  const rowSplits = splitMarkers.filter(
+                    (split) => split.chartDate === point.date,
+                  );
+                  return (
                   <tr key={point.date}>
                     <th scope="row" className="whitespace-nowrap px-3 py-2 font-medium">
                       {format(parseLocalDate(point.date), "MMM d, yyyy")}
@@ -461,8 +557,19 @@ export default function BuybacksTab({ symbol }: { symbol: string }) {
                     <td className="px-3 py-2 capitalize">{point.repurchaseQuality}</td>
                     <td className="px-3 py-2 text-right font-mono">{formatShares(point.issuedShares)}</td>
                     <td className="px-3 py-2 capitalize">{point.issuanceQuality}</td>
+                    <td className="whitespace-nowrap px-3 py-2">
+                      {rowSplits.length > 0
+                        ? rowSplits
+                            .map(
+                              (split) =>
+                                `${split.label} (${format(parseLocalDate(split.date), "MMM d, yyyy")})`,
+                            )
+                            .join(", ")
+                        : "--"}
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

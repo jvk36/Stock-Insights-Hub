@@ -7,11 +7,13 @@
  */
 import type { BuybackHistoryCoverage } from "./buybackHistoryCoverage";
 import type { BuybackHistoryItem } from "./buybackHistoryItem";
+import type { BuybackStockSplitEvent } from "./buybackStockSplitEvent";
 
 export interface BuybackHistoryResponse {
   symbol: string;
   /** @nullable */
   currency: string | null;
   history: BuybackHistoryItem[];
+  stockSplits: BuybackStockSplitEvent[];
   coverage: BuybackHistoryCoverage;
 }

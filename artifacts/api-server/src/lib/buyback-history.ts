@@ -13,10 +13,18 @@ export interface BuybackHistoryPoint {
   issuanceQuality: Quality;
 }
 
+export interface BuybackStockSplitEvent {
+  date: string;
+  numerator: number;
+  denominator: number;
+  label: string;
+}
+
 export interface BuybackHistoryResult {
   symbol: string;
   currency: string | null;
   history: BuybackHistoryPoint[];
+  stockSplits: BuybackStockSplitEvent[];
   coverage: {
     startDate: string | null;
     endDate: string | null;
@@ -60,6 +68,7 @@ interface PeriodValue {
   key: string;
   date: string;
   value: number;
+  filed?: string;
 }
 
 const SEC_HEADERS = {
@@ -179,7 +188,7 @@ function quarterizeDurationFacts(facts: SecFact[]): Map<string, PeriodValue> {
       }
     }
     if (value != null && Number.isFinite(value) && value >= 0) {
-      result.set(key, { key, date: fact.end, value });
+      result.set(key, { key, date: fact.end, value, filed: fact.filed });
     }
   }
 
@@ -191,7 +200,7 @@ function instantFacts(facts: SecFact[]): Map<string, PeriodValue> {
   return new Map(
     Array.from(selected.entries()).map(([key, fact]) => [
       key,
-      { key, date: fact.end, value: fact.val },
+      { key, date: fact.end, value: fact.val, filed: fact.filed },
     ]),
   );
 }
@@ -225,6 +234,25 @@ function splitAdjustmentForDate(
     const denominator = split.denominator ?? 1;
     return denominator !== 0 ? factor * (numerator / denominator) : factor;
   }, 1);
+}
+
+function splitRatioLabel(numerator: number, denominator: number): string {
+  const formatPart = (value: number) =>
+    Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, "");
+  return `${formatPart(numerator)}:${formatPart(denominator)} split`;
+}
+
+function hasSplitBetween(
+  previousDate: string,
+  currentDate: string,
+  splits: Array<{ date: Date }>,
+): boolean {
+  const start = Date.parse(previousDate);
+  const end = Date.parse(currentDate);
+  return splits.some((split) => {
+    const splitTime = split.date.getTime();
+    return splitTime > start && splitTime <= end;
+  });
 }
 
 function isAdjacentFiscalQuarter(previousKey: string, currentKey: string): boolean {
@@ -488,10 +516,23 @@ export async function getBuybackHistory(
 
   if (!cik) {
     const chart = await chartPromise;
+    const stockSplits = (chart.events?.splits ?? [])
+      .map((split) => {
+        const numerator = split.numerator ?? 1;
+        const denominator = split.denominator ?? 1;
+        return {
+          date: split.date.toISOString().slice(0, 10),
+          numerator,
+          denominator,
+          label: splitRatioLabel(numerator, denominator),
+        };
+      })
+      .filter((split) => split.date >= period1.toISOString().slice(0, 10));
     return {
       symbol,
       currency: chart.meta.currency ?? null,
       history: [],
+      stockSplits,
       coverage: {
         startDate: null,
         endDate: null,
@@ -636,7 +677,22 @@ export async function getBuybackHistory(
         rawOutstanding?.date;
       if (!date || date < cutoff) return null;
 
-      const adjustment = splitAdjustmentForDate(date, splits);
+      // SEC filings submitted after a split commonly restate even pre-split
+      // quarter-end share facts onto the new basis. Use each fact's filing date
+      // to avoid applying the split twice (GOOGL's June 2022 filing is one such
+      // case), while older filings still receive the cumulative adjustment.
+      const outstandingAdjustment = splitAdjustmentForDate(
+        rawOutstanding?.filed ?? date,
+        splits,
+      );
+      const repurchaseAdjustment = splitAdjustmentForDate(
+        reportedBuyback?.filed ?? date,
+        splits,
+      );
+      const issuanceAdjustment = splitAdjustmentForDate(
+        rawIssuance?.filed ?? date,
+        splits,
+      );
       const periodEndTime = Date.parse(date);
       const rawPrice =
         sortedPrices.reduce<(typeof sortedPrices)[number] | null>(
@@ -656,7 +712,7 @@ export async function getBuybackHistory(
       let repurchasedShares: number | null = null;
       let repurchaseQuality: Quality = "unavailable";
       if (reportedBuyback) {
-        repurchasedShares = reportedBuyback.value * adjustment;
+        repurchasedShares = reportedBuyback.value * repurchaseAdjustment;
         repurchaseQuality = "reported";
       } else if (cashBuyback && price && price > 0) {
         repurchasedShares = cashBuyback.value / price;
@@ -667,10 +723,12 @@ export async function getBuybackHistory(
         key,
         date,
         sharesOutstanding: rawOutstanding
-          ? rawOutstanding.value * adjustment
+          ? rawOutstanding.value * outstandingAdjustment
           : null,
         repurchasedShares,
-        issuedShares: rawIssuance ? rawIssuance.value * adjustment : null,
+        issuedShares: rawIssuance
+          ? rawIssuance.value * issuanceAdjustment
+          : null,
         pricePerShare: price,
         repurchaseQuality,
         issuanceQuality: rawIssuance
@@ -683,35 +741,76 @@ export async function getBuybackHistory(
     .slice(-40);
 
   const history: BuybackHistoryPoint[] = prelim.map((point, index) => {
-    if (point.issuedShares != null) return point;
     const previous = prelim[index - 1];
+    const splitInQuarter = previous
+      ? hasSplitBetween(previous.date, point.date, splits)
+      : false;
+    const normalizedPoint =
+      splitInQuarter && point.issuanceQuality === "reported"
+        ? {
+            ...point,
+            issuedShares: null,
+            issuanceQuality: "unavailable" as const,
+          }
+        : point;
+    if (normalizedPoint.issuedShares != null) return normalizedPoint;
     if (
       !previous ||
-      !isAdjacentFiscalQuarter(previous.key, point.key) ||
+      !isAdjacentFiscalQuarter(previous.key, normalizedPoint.key) ||
       previous?.sharesOutstanding == null ||
-      point.sharesOutstanding == null ||
-      point.repurchasedShares == null
+      normalizedPoint.sharesOutstanding == null ||
+      normalizedPoint.repurchasedShares == null
     ) {
-      return point;
+      return normalizedPoint;
     }
     // Outstanding change = issuance - retirements. This captures dilution from
     // compensation and acquisition consideration when a standalone issuance
     // share fact is not available.
     const estimated =
-      point.sharesOutstanding -
+      normalizedPoint.sharesOutstanding -
       previous.sharesOutstanding +
-      point.repurchasedShares;
+      normalizedPoint.repurchasedShares;
+    const outstandingRatio =
+      normalizedPoint.sharesOutstanding / previous.sharesOutstanding;
+    if (
+      splitInQuarter &&
+      (!Number.isFinite(outstandingRatio) ||
+        outstandingRatio < 0.5 ||
+        outstandingRatio > 2)
+    ) {
+      return normalizedPoint;
+    }
     return {
-      ...point,
+      ...normalizedPoint,
       issuedShares: Math.max(0, estimated),
       issuanceQuality: "estimated" as const,
     };
   });
 
+  const stockSplits: BuybackStockSplitEvent[] = splits
+    .map((split) => {
+      const numerator = split.numerator ?? 1;
+      const denominator = split.denominator ?? 1;
+      return {
+        date: split.date.toISOString().slice(0, 10),
+        numerator,
+        denominator,
+        label: splitRatioLabel(numerator, denominator),
+      };
+    })
+    .filter(
+      (split) =>
+        split.denominator > 0 &&
+        split.numerator > 0 &&
+        (history[0]?.date == null || split.date >= history[0].date) &&
+        (history.at(-1)?.date == null || split.date <= history.at(-1)!.date),
+    );
+
   const result: BuybackHistoryResult = {
     symbol,
     currency: chart.meta.currency ?? null,
     history,
+    stockSplits,
     coverage: {
       startDate: history[0]?.date ?? null,
       endDate: history.at(-1)?.date ?? null,

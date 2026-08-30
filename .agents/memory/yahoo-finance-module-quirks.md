@@ -17,6 +17,7 @@ description: Field name gotchas, unit conventions, and data availability for yah
 - `earnings` module via quoteSummary: `earningsChart.yearly` and `financialsChart.yearly` are often null/unavailable for specific stocks. Use as best-effort only; handle null gracefully.
 - For RSI(14): fetch 60-day daily chart with `period1: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)`. Need 15+ closes. Store as `calculateRSI14(closes)`.
 - For 3M/1M returns: use a 380-day daily chart, then index from end (idx1m = length-22, idx3m = length-64, idx52w = length-253).
+- Daily chart `close` is already split-adjusted but not dividend-adjusted; `adjclose` also includes dividends. Use `close` for historical cash-to-share conversions, without applying split factors again.
 
 ## Module `as any` cast
 When passing a custom modules array to `quoteSummary`, use `modules: [...] as any` to avoid TypeScript errors about the modules union type. Non-standard modules (like `incomeStatementHistory`, `earnings`) must be cast `as unknown as { ... }` on the result to access their fields.
@@ -63,8 +64,11 @@ SEC 13F names use abbreviations that break Yahoo Finance search. Always normalis
 - Hardcoded CUSIP overrides for truly unfixable names: `060505104` → `BAC` (missing "of"), `H1467J104` → `CB` (foreign listings rank above US for "CHUBB LTD").
 
 ## API codegen barrel
-After every codegen run, `lib/api-zod/src/index.ts` must be manually reset to: `export * from "./generated/api";`
-The codegen tool overwrites it with a multi-line barrel that causes duplicate export errors.
+Never resolve generated schema/model export collisions by dropping previously public model exports.
+
+**Why:** A local typecheck can pass while downstream consumers lose their established model imports.
+
+**How to apply:** After code generation, preserve the prior import surface and run a clean library typecheck.
 
 ## api-client-react declarations rebuild after codegen
 `lib/api-client-react` uses TypeScript project references (`composite: true`, `outDir: dist`). After every codegen run that adds new hooks, run `npx tsc -p lib/api-client-react/tsconfig.json` to rebuild declarations, or consuming packages will get "no exported member" errors.

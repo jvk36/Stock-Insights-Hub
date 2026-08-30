@@ -15,6 +15,7 @@ import type {
 
 import type {
   ApiError,
+  BuybackHistoryResponse,
   ChartData,
   CompanyProfile,
   EarningsHistoryResponse,
@@ -702,6 +703,94 @@ export function useGetEarningsHistory<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetEarningsHistoryQueryOptions(symbol, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get quarterly share count, buyback, issuance, and price history
+ */
+export const getGetBuybackHistoryUrl = (symbol: string) => {
+  return `/api/stock/${symbol}/buyback-history`;
+};
+
+export const getBuybackHistory = async (
+  symbol: string,
+  options?: RequestInit,
+): Promise<BuybackHistoryResponse> => {
+  return customFetch<BuybackHistoryResponse>(getGetBuybackHistoryUrl(symbol), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetBuybackHistoryQueryKey = (symbol: string) => {
+  return [`/api/stock/${symbol}/buyback-history`] as const;
+};
+
+export const getGetBuybackHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBuybackHistory>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBuybackHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetBuybackHistoryQueryKey(symbol);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getBuybackHistory>>
+  > = ({ signal }) => getBuybackHistory(symbol, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!symbol,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBuybackHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBuybackHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBuybackHistory>>
+>;
+export type GetBuybackHistoryQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get quarterly share count, buyback, issuance, and price history
+ */
+
+export function useGetBuybackHistory<
+  TData = Awaited<ReturnType<typeof getBuybackHistory>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBuybackHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBuybackHistoryQueryOptions(symbol, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

@@ -15,6 +15,7 @@ import Financials from "@/components/stock/Financials";
 import InsiderTransactions from "@/components/stock/InsiderTransactions";
 import FundamentalSummary from "@/components/stock/FundamentalSummary";
 import ScreenerRatings from "@/components/stock/ScreenerRatings";
+import BuybacksTab from "@/components/stock/BuybacksTab";
 import AnalysisTab from "@/components/stock/AnalysisTab";
 import ModelsTab from "@/components/stock/ModelsTab";
 
@@ -53,13 +54,13 @@ export default function StockDetail() {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         <header className="border-b border-border bg-card sticky top-0 z-10">
-          <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-6">
+          <div className="max-w-7xl mx-auto px-4 min-h-14 py-2 flex flex-wrap items-center gap-2 md:gap-6">
             <div className="flex items-center gap-2 shrink-0">
               <TrendingUp className="w-5 h-5 text-primary" />
               <span className="font-bold text-foreground tracking-tight">Terminal</span>
             </div>
 
-            <nav className="flex items-center gap-1">
+            <nav className="order-3 flex w-full items-center gap-1 overflow-x-auto md:order-none md:w-auto">
               <Link
                 href="/13f"
                 className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
@@ -145,7 +146,7 @@ export default function StockDetail() {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Ribbon */}
       <header className="border-b border-border bg-card sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-6">
+        <div className="max-w-7xl mx-auto px-4 min-h-14 py-2 flex flex-wrap items-center gap-2 md:flex-nowrap md:gap-6">
           {/* Logo */}
           <div className="flex items-center gap-2 shrink-0">
             <TrendingUp className="w-5 h-5 text-primary" />
@@ -153,7 +154,7 @@ export default function StockDetail() {
           </div>
 
           {/* Nav menu */}
-          <nav className="flex items-center gap-1">
+          <nav className="order-3 flex w-full items-center gap-1 overflow-x-auto md:order-none md:w-auto">
             <Link
               href="/13f"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
@@ -177,10 +178,10 @@ export default function StockDetail() {
             </Link>
           </nav>
 
-          <div className="flex-1" />
+          <div className="hidden flex-1 md:block" />
 
           {/* Symbol search */}
-          <form onSubmit={handleSearch} className="relative w-44">
+          <form onSubmit={handleSearch} className="relative ml-auto w-36 md:w-44">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
               value={searchInput}
@@ -232,6 +233,7 @@ export default function StockDetail() {
             <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
             <TabsTrigger value="indicators" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Indicators</TabsTrigger>
             <TabsTrigger value="screener" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Ratings</TabsTrigger>
+            <TabsTrigger value="buybacks" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Buybacks</TabsTrigger>
             <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Analysis</TabsTrigger>
             <TabsTrigger value="models" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Models</TabsTrigger>
           </TabsList>
@@ -270,6 +272,10 @@ export default function StockDetail() {
 
             <TabsContent value="screener" className="mt-0">
               <ScreenerRatings symbol={symbol!} />
+            </TabsContent>
+
+            <TabsContent value="buybacks" className="mt-0">
+              <BuybacksTab symbol={symbol!} />
             </TabsContent>
 
             <TabsContent value="analysis" className="mt-0">

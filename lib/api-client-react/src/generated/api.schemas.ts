@@ -121,6 +121,68 @@ export interface EarningsHistoryResponse {
   history: EarningsHistoryItem[];
 }
 
+export type BuybackHistoryItemRepurchaseQuality =
+  (typeof BuybackHistoryItemRepurchaseQuality)[keyof typeof BuybackHistoryItemRepurchaseQuality];
+
+export const BuybackHistoryItemRepurchaseQuality = {
+  reported: "reported",
+  estimated: "estimated",
+  unavailable: "unavailable",
+} as const;
+
+export type BuybackHistoryItemIssuanceQuality =
+  (typeof BuybackHistoryItemIssuanceQuality)[keyof typeof BuybackHistoryItemIssuanceQuality];
+
+export const BuybackHistoryItemIssuanceQuality = {
+  reported: "reported",
+  estimated: "estimated",
+  unavailable: "unavailable",
+} as const;
+
+export interface BuybackHistoryItem {
+  date: string;
+  /**
+   * Reported common shares outstanding near the quarter end
+   * @nullable
+   */
+  sharesOutstanding: number | null;
+  /**
+   * Shares repurchased during the quarter, reported where possible and otherwise estimated from cash paid and quarter price
+   * @nullable
+   */
+  repurchasedShares: number | null;
+  /**
+   * Shares issued during the quarter, reported where possible and otherwise estimated from issuance proceeds or share-count movement
+   * @nullable
+   */
+  issuedShares: number | null;
+  /**
+   * Adjusted market close nearest the filing quarter end
+   * @nullable
+   */
+  pricePerShare: number | null;
+  repurchaseQuality: BuybackHistoryItemRepurchaseQuality;
+  issuanceQuality: BuybackHistoryItemIssuanceQuality;
+}
+
+export interface BuybackHistoryCoverage {
+  /** @nullable */
+  startDate: string | null;
+  /** @nullable */
+  endDate: string | null;
+  quarterCount: number;
+  estimatedQuarterCount: number;
+  note: string;
+}
+
+export interface BuybackHistoryResponse {
+  symbol: string;
+  /** @nullable */
+  currency: string | null;
+  history: BuybackHistoryItem[];
+  coverage: BuybackHistoryCoverage;
+}
+
 export interface InsiderTransaction {
   id: string;
   date: string;

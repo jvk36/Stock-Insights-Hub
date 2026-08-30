@@ -8,6 +8,8 @@ import {
   GetStockProfileParams,
   GetStockFinancialsParams,
   GetStockFinancialsQueryParams,
+  GetBuybackHistoryParams,
+  GetBuybackHistoryResponse,
   GetSecFilingsParams,
   GetEarningsHistoryParams,
   GetInsiderTransactionsParams,
@@ -17,30 +19,58 @@ import {
   GetStockIndicatorsParams,
   GetStockScreenerRatingsParams,
 } from "@workspace/api-zod";
+import { getBuybackHistory } from "../lib/buyback-history";
 
 const router: IRouter = Router();
 const yahooFinance = new YahooFinance();
 
 // Simple in-process CIK cache (symbol → CIK string) to avoid repeat EDGAR lookups
 const cikCache = new Map<string, string>();
+let tickerCikMapPromise: Promise<Map<string, string>> | null = null;
+
+async function getTickerCikMap(): Promise<Map<string, string>> {
+  if (!tickerCikMapPromise) {
+    tickerCikMapPromise = fetch("https://www.sec.gov/files/company_tickers.json", {
+      headers: {
+        "User-Agent": "Stock Research Platform research@example.com",
+        Accept: "application/json",
+      },
+      signal: AbortSignal.timeout(8000),
+    }).then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`SEC ticker map returned ${response.status}`);
+      }
+      const rows = (await response.json()) as Record<
+        string,
+        { cik_str: number; ticker: string }
+      >;
+      return new Map(
+        Object.values(rows).map((row) => [
+          row.ticker.toUpperCase().replace(".", "-"),
+          String(row.cik_str),
+        ]),
+      );
+    });
+  }
+  return tickerCikMapPromise;
+}
 
 async function lookupCik(symbol: string): Promise<string | null> {
   if (cikCache.has(symbol)) return cikCache.get(symbol)!;
   try {
-    const resp = await fetch(
-      `https://efts.sec.gov/LATEST/search-index?q=%22${encodeURIComponent(symbol)}%22&forms=10-K&dateRange=custom&startdt=2023-01-01`,
-      { signal: AbortSignal.timeout(6000) }
+    const exactCik = (await getTickerCikMap()).get(
+      symbol.toUpperCase().replace(".", "-"),
     );
-    if (!resp.ok) return null;
-    const data = await resp.json() as { hits?: { hits?: Array<{ _source?: { ciks?: string[]; entity_id?: string } }> } };
-    const rawCik = data?.hits?.hits?.[0]?._source?.ciks?.[0]
-      ?? data?.hits?.hits?.[0]?._source?.entity_id;
-    const cik = rawCik ? rawCik.replace(/^0+/, "") : null;
-    if (cik) cikCache.set(symbol, cik);
-    return cik;
+    if (exactCik) {
+      cikCache.set(symbol, exactCik);
+      return exactCik;
+    }
   } catch {
-    return null;
+    tickerCikMapPromise = null;
   }
+  // Never guess from free-text EDGAR search results: returning no match is
+  // safer than attaching another registrant's filings to this ticker.
+  return null;
 }
 
 function getSymbol(param: string | string[]): string {
@@ -414,6 +444,34 @@ router.get("/stock/:symbol/financials", async (req, res): Promise<void> => {
   } catch (err: unknown) {
     req.log.error({ err, symbol }, "Failed to fetch financials");
     res.status(500).json({ error: "server_error", message: "Failed to fetch financials" });
+  }
+});
+
+router.get("/stock/:symbol/buyback-history", async (req, res): Promise<void> => {
+  const params = GetBuybackHistoryParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "bad_request", message: params.error.message });
+    return;
+  }
+
+  const symbol = getSymbol(params.data.symbol);
+  try {
+    const cik = await lookupCik(symbol);
+    if (!cik) {
+      res.status(404).json({
+        error: "not_found",
+        message: `Quarterly SEC filing data is not available for ${symbol}`,
+      });
+      return;
+    }
+    const history = await getBuybackHistory(symbol, cik);
+    res.json(GetBuybackHistoryResponse.parse(history));
+  } catch (err: unknown) {
+    req.log.error({ err, symbol }, "Failed to fetch buyback history");
+    res.status(500).json({
+      error: "server_error",
+      message: "Failed to fetch buyback history",
+    });
   }
 });
 

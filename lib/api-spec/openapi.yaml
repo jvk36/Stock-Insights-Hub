@@ -195,6 +195,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /stock/{symbol}/buyback-history:
+    get:
+      operationId: getBuybackHistory
+      tags: [stock]
+      summary: Get quarterly share count, buyback, issuance, and price history
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Approximately ten years of quarterly capital activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuybackHistoryResponse"
+        "404":
+          description: Symbol or SEC registrant not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Failed to fetch buyback history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /stock/{symbol}/insider-transactions:
     get:
       operationId: getInsiderTransactions
@@ -1014,6 +1045,77 @@ components:
         - symbol
         - peMultiple
         - history
+
+    BuybackHistoryItem:
+      type: object
+      properties:
+        date:
+          type: string
+        sharesOutstanding:
+          type: ["number", "null"]
+          description: Reported common shares outstanding near the quarter end
+        repurchasedShares:
+          type: ["number", "null"]
+          description: Shares repurchased during the quarter, reported where possible and otherwise estimated from cash paid and quarter price
+        issuedShares:
+          type: ["number", "null"]
+          description: Shares issued during the quarter, reported where possible and otherwise estimated from issuance proceeds or share-count movement
+        pricePerShare:
+          type: ["number", "null"]
+          description: Adjusted market close nearest the filing quarter end
+        repurchaseQuality:
+          type: string
+          enum: [reported, estimated, unavailable]
+        issuanceQuality:
+          type: string
+          enum: [reported, estimated, unavailable]
+      required:
+        - date
+        - sharesOutstanding
+        - repurchasedShares
+        - issuedShares
+        - pricePerShare
+        - repurchaseQuality
+        - issuanceQuality
+
+    BuybackHistoryCoverage:
+      type: object
+      properties:
+        startDate:
+          type: ["string", "null"]
+        endDate:
+          type: ["string", "null"]
+        quarterCount:
+          type: integer
+        estimatedQuarterCount:
+          type: integer
+        note:
+          type: string
+      required:
+        - startDate
+        - endDate
+        - quarterCount
+        - estimatedQuarterCount
+        - note
+
+    BuybackHistoryResponse:
+      type: object
+      properties:
+        symbol:
+          type: string
+        currency:
+          type: ["string", "null"]
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/BuybackHistoryItem"
+        coverage:
+          $ref: "#/components/schemas/BuybackHistoryCoverage"
+      required:
+        - symbol
+        - currency
+        - history
+        - coverage
 
     InsiderTransaction:
       type: object

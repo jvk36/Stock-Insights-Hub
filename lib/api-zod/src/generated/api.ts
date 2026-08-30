@@ -189,6 +189,52 @@ export const GetEarningsHistoryResponse = zod.object({
 });
 
 /**
+ * @summary Get quarterly share count, buyback, issuance, and price history
+ */
+export const GetBuybackHistoryParams = zod.object({
+  symbol: zod.coerce.string(),
+});
+
+export const GetBuybackHistoryResponse = zod.object({
+  symbol: zod.string(),
+  currency: zod.string().nullable(),
+  history: zod.array(
+    zod.object({
+      date: zod.string(),
+      sharesOutstanding: zod
+        .number()
+        .nullable()
+        .describe("Reported common shares outstanding near the quarter end"),
+      repurchasedShares: zod
+        .number()
+        .nullable()
+        .describe(
+          "Shares repurchased during the quarter, reported where possible and otherwise estimated from cash paid and quarter price",
+        ),
+      issuedShares: zod
+        .number()
+        .nullable()
+        .describe(
+          "Shares issued during the quarter, reported where possible and otherwise estimated from issuance proceeds or share-count movement",
+        ),
+      pricePerShare: zod
+        .number()
+        .nullable()
+        .describe("Adjusted market close nearest the filing quarter end"),
+      repurchaseQuality: zod.enum(["reported", "estimated", "unavailable"]),
+      issuanceQuality: zod.enum(["reported", "estimated", "unavailable"]),
+    }),
+  ),
+  coverage: zod.object({
+    startDate: zod.string().nullable(),
+    endDate: zod.string().nullable(),
+    quarterCount: zod.number(),
+    estimatedQuarterCount: zod.number(),
+    note: zod.string(),
+  }),
+});
+
+/**
  * @summary Get insider transactions (Form 4) for a company
  */
 export const GetInsiderTransactionsParams = zod.object({

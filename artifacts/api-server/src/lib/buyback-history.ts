@@ -1,4 +1,5 @@
 import YahooFinance from "yahoo-finance2";
+import { inflateRawSync } from "node:zlib";
 
 type Quality = "reported" | "estimated" | "unavailable";
 
@@ -42,6 +43,17 @@ interface SecCompanyFacts {
     string,
     Record<string, { units?: Record<string, SecFact[]> }>
   >;
+}
+
+interface SecSubmissions {
+  filings?: {
+    recent?: {
+      form?: string[];
+      accessionNumber?: string[];
+      reportDate?: string[];
+      primaryDocument?: string[];
+    };
+  };
 }
 
 interface PeriodValue {
@@ -235,6 +247,231 @@ function isAdjacentFiscalQuarter(previousKey: string, currentKey: string): boole
   );
 }
 
+function zipDocumentContainingFact(
+  archive: Buffer,
+  factName: string,
+): string | null {
+  const minimumEocdOffset = Math.max(0, archive.length - 65_557);
+  let eocdOffset = -1;
+  for (let offset = archive.length - 22; offset >= minimumEocdOffset; offset--) {
+    if (archive.readUInt32LE(offset) === 0x06054b50) {
+      eocdOffset = offset;
+      break;
+    }
+  }
+  if (eocdOffset < 0) return null;
+
+  const entryCount = archive.readUInt16LE(eocdOffset + 10);
+  let offset = archive.readUInt32LE(eocdOffset + 16);
+  for (let index = 0; index < entryCount; index++) {
+    if (archive.readUInt32LE(offset) !== 0x02014b50) return null;
+    const compressionMethod = archive.readUInt16LE(offset + 10);
+    const compressedSize = archive.readUInt32LE(offset + 20);
+    const fileNameLength = archive.readUInt16LE(offset + 28);
+    const extraLength = archive.readUInt16LE(offset + 30);
+    const commentLength = archive.readUInt16LE(offset + 32);
+    const localHeaderOffset = archive.readUInt32LE(offset + 42);
+    const fileName = archive
+      .subarray(offset + 46, offset + 46 + fileNameLength)
+      .toString("utf8");
+
+    if (
+      /\.(?:xml|html?)$/i.test(fileName) &&
+      !/_(?:cal|def|lab|pre)\.xml$/i.test(fileName) &&
+      archive.readUInt32LE(localHeaderOffset) === 0x04034b50
+    ) {
+      const localFileNameLength = archive.readUInt16LE(localHeaderOffset + 26);
+      const localExtraLength = archive.readUInt16LE(localHeaderOffset + 28);
+      const dataOffset =
+        localHeaderOffset + 30 + localFileNameLength + localExtraLength;
+      const compressed = archive.subarray(
+        dataOffset,
+        dataOffset + compressedSize,
+      );
+      const contents =
+        compressionMethod === 0
+          ? compressed
+          : compressionMethod === 8
+            ? inflateRawSync(compressed)
+            : null;
+      if (contents) {
+        const xml = contents.toString("utf8");
+        if (xml.includes(factName)) return xml;
+      }
+    }
+
+    offset += 46 + fileNameLength + extraLength + commentLength;
+  }
+  return null;
+}
+
+function xmlAttribute(attributes: string, name: string): string | null {
+  const match = attributes.match(
+    new RegExp(`\\b${name}\\s*=\\s*["']([^"']+)["']`, "i"),
+  );
+  return match?.[1] ?? null;
+}
+
+function parseBerkshireEquivalentShares(
+  xml: string,
+  symbol: string,
+): number | null {
+  const shareClassByContext = new Map<string, "A" | "B">();
+  const contextRegex =
+    /<(?:[\w.-]+:)?context\b([^>]*)>([\s\S]*?)<\/(?:[\w.-]+:)?context>/gi;
+  let contextMatch: RegExpExecArray | null;
+  while ((contextMatch = contextRegex.exec(xml)) !== null) {
+    const id = xmlAttribute(contextMatch[1], "id");
+    if (!id) continue;
+    if (/CommonClassAMember/i.test(contextMatch[2])) {
+      shareClassByContext.set(id, "A");
+    } else if (/CommonClassBMember/i.test(contextMatch[2])) {
+      shareClassByContext.set(id, "B");
+    }
+  }
+
+  const sharesByClass = new Map<"A" | "B", number>();
+  const recordFact = (attributes: string, rawValue: string) => {
+    const contextRef = xmlAttribute(attributes, "contextRef");
+    const shareClass = contextRef
+      ? shareClassByContext.get(contextRef)
+      : undefined;
+    const numericText = rawValue
+      .replace(/<[^>]+>/g, "")
+      .replace(/&nbsp;|&#160;/gi, "")
+      .replace(/,/g, "")
+      .trim();
+    const parsed = Number(numericText);
+    const scale = Number(xmlAttribute(attributes, "scale") ?? "0");
+    const sign = xmlAttribute(attributes, "sign") === "-" ? -1 : 1;
+    const value =
+      Number.isFinite(parsed) && Number.isFinite(scale)
+        ? parsed * 10 ** scale * sign
+        : Number.NaN;
+    if (shareClass && Number.isFinite(value) && value >= 0) {
+      sharesByClass.set(shareClass, value);
+    }
+  };
+
+  const factRegex =
+    /<dei:EntityCommonStockSharesOutstanding\b([^>]*)>([^<]+)<\/dei:EntityCommonStockSharesOutstanding>/gi;
+  let factMatch: RegExpExecArray | null;
+  while ((factMatch = factRegex.exec(xml)) !== null) {
+    recordFact(factMatch[1], factMatch[2]);
+  }
+  const inlineFactRegex =
+    /<ix:nonfraction\b([^>]*\bname=["']dei:EntityCommonStockSharesOutstanding["'][^>]*)>([\s\S]*?)<\/ix:nonfraction>/gi;
+  while ((factMatch = inlineFactRegex.exec(xml)) !== null) {
+    recordFact(factMatch[1], factMatch[2]);
+  }
+
+  const classA = sharesByClass.get("A");
+  const classB = sharesByClass.get("B");
+  if (classA == null || classB == null) return null;
+  return symbol.replace(".", "-") === "BRK-A"
+    ? classA + classB / 1_500
+    : classA * 1_500 + classB;
+}
+
+async function fetchBerkshireOutstandingByPeriod(
+  symbol: string,
+  cik: string,
+  periodDates: Map<string, string>,
+): Promise<Map<string, PeriodValue>> {
+  if (
+    cik.replace(/^0+/, "") !== "1067983" ||
+    !["BRK-A", "BRK-B"].includes(symbol.replace(".", "-"))
+  ) {
+    return new Map();
+  }
+
+  const response = await fetch(
+    `https://data.sec.gov/submissions/CIK${cik.padStart(10, "0")}.json`,
+    { headers: SEC_HEADERS, signal: AbortSignal.timeout(12_000) },
+  );
+  if (!response.ok) return new Map();
+
+  const submissions = (await response.json()) as SecSubmissions;
+  const recent = submissions.filings?.recent ?? {};
+  const forms = recent.form ?? [];
+  const accessions = recent.accessionNumber ?? [];
+  const reportDates = recent.reportDate ?? [];
+  const primaryDocuments = recent.primaryDocument ?? [];
+  const periodKeyByDate = new Map(
+    Array.from(periodDates.entries()).map(([key, date]) => [date, key]),
+  );
+  const candidates: Array<{
+    key: string;
+    reportDate: string;
+    accession: string;
+    primaryDocument: string;
+  }> = [];
+  const selectedDates = new Set<string>();
+
+  for (let index = 0; index < forms.length; index++) {
+    if (!/^(10-Q|10-K)(\/A)?$/.test(forms[index] ?? "")) continue;
+    const reportDate = reportDates[index];
+    const key = periodKeyByDate.get(reportDate);
+    if (
+      !key ||
+      selectedDates.has(reportDate) ||
+      !accessions[index] ||
+      !primaryDocuments[index]
+    ) {
+      continue;
+    }
+    selectedDates.add(reportDate);
+    candidates.push({
+      key,
+      reportDate,
+      accession: accessions[index],
+      primaryDocument: primaryDocuments[index],
+    });
+  }
+
+  const result = new Map<string, PeriodValue>();
+  const concurrency = 3;
+  for (let index = 0; index < candidates.length; index += concurrency) {
+    const batch = candidates.slice(index, index + concurrency);
+    const values = await Promise.all(
+      batch.map(async (candidate) => {
+        const accessionPath = candidate.accession.replace(/-/g, "");
+        const archiveName = `${candidate.accession}-xbrl.zip`;
+        const archiveUrl =
+          `https://www.sec.gov/Archives/edgar/data/${cik.replace(/^0+/, "")}/` +
+          `${accessionPath}/${archiveName}`;
+        try {
+          const archiveResponse = await fetch(archiveUrl, {
+            headers: SEC_HEADERS,
+            signal: AbortSignal.timeout(12_000),
+          });
+          if (!archiveResponse.ok) return null;
+          const archive = Buffer.from(await archiveResponse.arrayBuffer());
+          const xml = zipDocumentContainingFact(
+            archive,
+            "EntityCommonStockSharesOutstanding",
+          );
+          const value = xml
+            ? parseBerkshireEquivalentShares(xml, symbol)
+            : null;
+          return value == null ? null : { candidate, value };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    for (const value of values) {
+      if (!value) continue;
+      result.set(value.candidate.key, {
+        key: value.candidate.key,
+        date: value.candidate.reportDate,
+        value: value.value,
+      });
+    }
+  }
+  return result;
+}
+
 export async function getBuybackHistory(
   symbol: string,
   cik: string | null,
@@ -283,7 +520,7 @@ export async function getBuybackHistory(
     denominator: split.denominator,
   }));
 
-  const outstanding = (() => {
+  let outstanding = (() => {
     const dei = instantFacts(
       factsForConcept(
         facts,
@@ -339,6 +576,29 @@ export async function getBuybackHistory(
       unit: "shares",
     },
   ]);
+  const periodDates = new Map<string, string>();
+  for (const source of [
+    reportedRepurchases,
+    repurchaseCash,
+    reportedIssuance,
+  ]) {
+    for (const [key, value] of source) {
+      if (!periodDates.has(key)) periodDates.set(key, value.date);
+    }
+  }
+  const hasOutstandingForDisplayedPeriods = Array.from(
+    periodDates.keys(),
+  ).some((key) => outstanding.has(key));
+  if (!hasOutstandingForDisplayedPeriods) {
+    const dimensionalOutstanding = await fetchBerkshireOutstandingByPeriod(
+      symbol,
+      cik,
+      periodDates,
+    );
+    if (dimensionalOutstanding.size > 0) {
+      outstanding = dimensionalOutstanding;
+    }
+  }
 
   const sortedPrices = (chart.quotes ?? [])
     .map((quote) => ({

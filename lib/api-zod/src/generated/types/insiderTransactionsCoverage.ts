@@ -15,4 +15,9 @@ export interface InsiderTransactionsCoverage {
   failedFilings: number;
   isPartial: boolean;
   truncated: boolean;
+  page: number;
+  windowStart: string | null;
+  windowEnd: string | null;
+  hasOlder: boolean;
+  hasNewer: boolean;
 }

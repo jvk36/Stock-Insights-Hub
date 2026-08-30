@@ -66,10 +66,10 @@ function SignalBadge({ level, code }: { level: string; code: string }) {
 export default function InsiderTransactions({ symbol }: { symbol: string }) {
   const [filter, setFilter] = useState<FilterMode>("open-market");
 
-  const { data, isLoading } = useGetInsiderTransactions(symbol, {
+  const { data, isLoading } = useGetInsiderTransactions(symbol, undefined, {
     query: {
       enabled: !!symbol,
-      queryKey: getGetInsiderTransactionsQueryKey(symbol),
+      queryKey: getGetInsiderTransactionsQueryKey(symbol, undefined),
     },
   });
 

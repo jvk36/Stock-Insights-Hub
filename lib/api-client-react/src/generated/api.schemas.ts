@@ -227,6 +227,11 @@ export interface InsiderTransactionsCoverage {
   failedFilings: number;
   isPartial: boolean;
   truncated: boolean;
+  page: number;
+  windowStart: string | null;
+  windowEnd: string | null;
+  hasOlder: boolean;
+  hasNewer: boolean;
 }
 
 export interface InsiderTransactionsResponse {
@@ -717,6 +722,14 @@ export const GetStockFinancialsPeriod = {
   quarterly: "quarterly",
   annual: "annual",
 } as const;
+
+export type GetInsiderTransactionsParams = {
+  /**
+   * Zero-based three-month filing window, with page 0 being the newest window
+   * @minimum 0
+   */
+  page?: number;
+};
 
 export type GetMacroSeriesObservationsParams = {
   units?: GetMacroSeriesObservationsUnits;

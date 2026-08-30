@@ -24,6 +24,7 @@ import type {
   FundamentalSummary,
   Get13fFundHoldingsParams,
   Get13fPriceInfoParams,
+  GetInsiderTransactionsParams,
   GetMacroSeriesObservationsParams,
   GetStockChartParams,
   GetStockFinancialsParams,
@@ -802,16 +803,32 @@ export function useGetBuybackHistory<
 /**
  * @summary Get insider transactions (Form 4) for a company
  */
-export const getGetInsiderTransactionsUrl = (symbol: string) => {
-  return `/api/stock/${symbol}/insider-transactions`;
+export const getGetInsiderTransactionsUrl = (
+  symbol: string,
+  params?: GetInsiderTransactionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/stock/${symbol}/insider-transactions?${stringifiedParams}`
+    : `/api/stock/${symbol}/insider-transactions`;
 };
 
 export const getInsiderTransactions = async (
   symbol: string,
+  params?: GetInsiderTransactionsParams,
   options?: RequestInit,
 ): Promise<InsiderTransactionsResponse> => {
   return customFetch<InsiderTransactionsResponse>(
-    getGetInsiderTransactionsUrl(symbol),
+    getGetInsiderTransactionsUrl(symbol, params),
     {
       ...options,
       method: "GET",
@@ -819,8 +836,14 @@ export const getInsiderTransactions = async (
   );
 };
 
-export const getGetInsiderTransactionsQueryKey = (symbol: string) => {
-  return [`/api/stock/${symbol}/insider-transactions`] as const;
+export const getGetInsiderTransactionsQueryKey = (
+  symbol: string,
+  params?: GetInsiderTransactionsParams,
+) => {
+  return [
+    `/api/stock/${symbol}/insider-transactions`,
+    ...(params ? [params] : []),
+  ] as const;
 };
 
 export const getGetInsiderTransactionsQueryOptions = <
@@ -828,6 +851,7 @@ export const getGetInsiderTransactionsQueryOptions = <
   TError = ErrorType<ApiError>,
 >(
   symbol: string,
+  params?: GetInsiderTransactionsParams,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getInsiderTransactions>>,
@@ -840,12 +864,12 @@ export const getGetInsiderTransactionsQueryOptions = <
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getGetInsiderTransactionsQueryKey(symbol);
+    queryOptions?.queryKey ?? getGetInsiderTransactionsQueryKey(symbol, params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getInsiderTransactions>>
   > = ({ signal }) =>
-    getInsiderTransactions(symbol, { signal, ...requestOptions });
+    getInsiderTransactions(symbol, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -873,6 +897,7 @@ export function useGetInsiderTransactions<
   TError = ErrorType<ApiError>,
 >(
   symbol: string,
+  params?: GetInsiderTransactionsParams,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getInsiderTransactions>>,
@@ -882,7 +907,11 @@ export function useGetInsiderTransactions<
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetInsiderTransactionsQueryOptions(symbol, options);
+  const queryOptions = getGetInsiderTransactionsQueryOptions(
+    symbol,
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

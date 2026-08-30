@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   useGetInsiderTransactions,
   getGetInsiderTransactionsQueryKey,
@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertCircle, ExternalLink, Filter, Search, Info, Landmark, Settings, ShieldAlert } from "lucide-react";
+import { AlertCircle, ExternalLink, Filter, Search, Info, Landmark, Settings, ShieldAlert, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatDate } from "@/lib/format";
 
 type FilterMode = "relevant" | "all" | "open-market-buys" | "open-market-sells" | "10b51" | "compensation";
@@ -60,11 +60,18 @@ function titleCaseName(name: string): string {
 export default function InsiderActivityTab({ symbol }: { symbol: string }) {
   const [filter, setFilter] = useState<FilterMode>("relevant");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const queryParams = useMemo(() => ({ page }), [page]);
 
-  const { data, isLoading, isError } = useGetInsiderTransactions(symbol, {
+  useEffect(() => {
+    setPage(0);
+  }, [symbol]);
+
+  const { data, isLoading, isFetching, isError } = useGetInsiderTransactions(symbol, queryParams, {
     query: {
       enabled: !!symbol,
-      queryKey: getGetInsiderTransactionsQueryKey(symbol),
+      queryKey: getGetInsiderTransactionsQueryKey(symbol, queryParams),
+      placeholderData: (previousData) => previousData,
     },
   });
 
@@ -229,25 +236,60 @@ export default function InsiderActivityTab({ symbol }: { symbol: string }) {
             percentages reflect the beneficial owner's position reported in that filing.
           </p>
         </div>
-        {data?.coverage.isPartial && (
+        {data?.coverage.source === "sec" && (
+          <div
+            className="mt-2 flex flex-col gap-3 rounded-md border border-border bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
+            role="status"
+            data-testid="status-insider-window"
+          >
+            <div>
+              <p className="font-medium text-foreground" data-testid="text-insider-window-range">
+                {data.coverage.windowStart && data.coverage.windowEnd
+                  ? `${formatDate(data.coverage.windowStart)}–${formatDate(data.coverage.windowEnd)}`
+                  : "Current filing window"}
+              </p>
+              <p className="mt-0.5">
+                {data.coverage.fetchedFilings} filing
+                {data.coverage.fetchedFilings === 1 ? "" : "s"} loaded in this
+                three-month window · {data.coverage.availableFilings} total available
+                {data.coverage.failedFilings > 0
+                  ? ` · ${data.coverage.failedFilings} could not be loaded`
+                  : ""}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => setPage((current) => Math.max(0, current - 1))}
+                disabled={!data.coverage.hasNewer || isFetching}
+                data-testid="button-insider-newer-window"
+              >
+                <ChevronLeft className="mr-1 h-3.5 w-3.5" />
+                Newer 3 months
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => setPage((current) => current + 1)}
+                disabled={!data.coverage.hasOlder || isFetching}
+                data-testid="button-insider-older-window"
+              >
+                Older 3 months
+                <ChevronRight className="ml-1 h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
+        {data?.coverage.source === "yahoo" && (
           <div
             className="mt-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
             role="status"
             data-testid="status-insider-partial-coverage"
           >
-            {data.coverage.source === "sec" ? (
-              <>
-                Showing {data.coverage.fetchedFilings} of{" "}
-                {data.coverage.availableFilings} available recent filing records.
-                {data.coverage.failedFilings > 0
-                  ? ` ${data.coverage.failedFilings} requested filing${
-                      data.coverage.failedFilings === 1 ? "" : "s"
-                    } could not be loaded.`
-                  : " Older filings are outside this view."}
-              </>
-            ) : (
-              <>Limited fallback data is shown because SEC ownership records were unavailable.</>
-            )}
+            Limited fallback data is shown because SEC ownership records were unavailable.
           </div>
         )}
       </CardHeader>

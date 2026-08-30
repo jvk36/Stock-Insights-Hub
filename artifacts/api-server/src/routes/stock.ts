@@ -935,6 +935,23 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
   }
 
   const symbol = getSymbol(params.data.symbol);
+  const requestedPage = Number(req.query.page ?? 0);
+  const page =
+    Number.isInteger(requestedPage) && requestedPage >= 0
+      ? Math.min(requestedPage, 40)
+      : 0;
+
+  const shiftMonths = (dateValue: string, months: number): string => {
+    const date = new Date(`${dateValue}T00:00:00Z`);
+    const targetDay = date.getUTCDate();
+    date.setUTCDate(1);
+    date.setUTCMonth(date.getUTCMonth() + months);
+    const lastDayOfTargetMonth = new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0),
+    ).getUTCDate();
+    date.setUTCDate(Math.min(targetDay, lastDayOfTargetMonth));
+    return date.toISOString().slice(0, 10);
+  };
 
   try {
     // ── Step 1: Yahoo Finance insiderTransactions (primary source, no rate limits) ──
@@ -1032,6 +1049,11 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
           failedFilings: 0,
           isPartial: true,
           truncated: false,
+          page,
+          windowStart: null,
+          windowEnd: null,
+          hasOlder: false,
+          hasNewer: false,
         },
       });
       return;
@@ -1051,6 +1073,11 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
           failedFilings: 0,
           isPartial: true,
           truncated: false,
+          page,
+          windowStart: null,
+          windowEnd: null,
+          hasOlder: false,
+          hasNewer: false,
         },
       });
       return;
@@ -1099,7 +1126,16 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
         });
       }
     }
-    const form4Entries = allForm4Entries.slice(0, 20);
+    const latestFilingDate =
+      allForm4Entries[0]?.date || new Date().toISOString().slice(0, 10);
+    const windowEnd = shiftMonths(latestFilingDate, -page * 3);
+    const windowStart = shiftMonths(latestFilingDate, -(page + 1) * 3);
+    const form4Entries = allForm4Entries.filter(
+      (entry) => entry.date <= windowEnd && entry.date > windowStart,
+    );
+    const hasOlder = allForm4Entries.some((entry) => entry.date <= windowStart);
+    const hasNewer =
+      page > 0 && allForm4Entries.some((entry) => entry.date > windowEnd);
 
     const CONCURRENCY = 3;
     const parsedFilings: Array<{
@@ -1144,19 +1180,23 @@ router.get("/stock/:symbol/insider-transactions", async (req, res): Promise<void
     );
 
     const failedFilings = form4Entries.length - fetchedFilings;
-    const truncated = allForm4Entries.length > form4Entries.length;
     res.json({
       symbol,
       cik,
-      transactions: allTransactions.slice(0, 150),
+      transactions: allTransactions,
       coverage: {
         source: "sec",
         availableFilings: allForm4Entries.length,
         requestedFilings: form4Entries.length,
         fetchedFilings,
         failedFilings,
-        isPartial: failedFilings > 0 || truncated,
-        truncated,
+        isPartial: failedFilings > 0,
+        truncated: false,
+        page,
+        windowStart,
+        windowEnd,
+        hasOlder,
+        hasNewer,
       },
     });
   } catch (err: unknown) {

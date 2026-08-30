@@ -241,6 +241,19 @@ export const GetInsiderTransactionsParams = zod.object({
   symbol: zod.coerce.string(),
 });
 
+export const getInsiderTransactionsQueryPageDefault = 0;
+export const getInsiderTransactionsQueryPageMin = 0;
+
+export const GetInsiderTransactionsQueryParams = zod.object({
+  page: zod.coerce
+    .number()
+    .min(getInsiderTransactionsQueryPageMin)
+    .default(getInsiderTransactionsQueryPageDefault)
+    .describe(
+      "Zero-based three-month filing window, with page 0 being the newest window",
+    ),
+});
+
 export const GetInsiderTransactionsResponse = zod.object({
   symbol: zod.string(),
   cik: zod.string().nullish(),
@@ -281,6 +294,11 @@ export const GetInsiderTransactionsResponse = zod.object({
     failedFilings: zod.number(),
     isPartial: zod.boolean(),
     truncated: zod.boolean(),
+    page: zod.number(),
+    windowStart: zod.string().nullable(),
+    windowEnd: zod.string().nullable(),
+    hasOlder: zod.boolean(),
+    hasNewer: zod.boolean(),
   }),
 });
 

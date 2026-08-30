@@ -82,6 +82,20 @@ export const GetStockChartResponse = zod.object({
       volume: zod.number().nullish(),
     }),
   ),
+  stockSplits: zod.array(
+    zod.object({
+      date: zod.string().describe("Effective date of the stock split"),
+      numerator: zod
+        .number()
+        .describe("New shares received in the split ratio"),
+      denominator: zod
+        .number()
+        .describe("Existing shares represented in the split ratio"),
+      label: zod
+        .string()
+        .describe("Human-readable split ratio, such as 20:1 split"),
+    }),
+  ),
 });
 
 /**
@@ -181,9 +195,19 @@ export const GetEarningsHistoryResponse = zod.object({
   history: zod.array(
     zod.object({
       date: zod.string(),
-      epsActual: zod.number().nullish(),
+      epsActual: zod
+        .number()
+        .nullish()
+        .describe(
+          "Quarterly EPS normalized to the current split-adjusted share basis",
+        ),
       epsEstimate: zod.number().nullish(),
-      ttmEps: zod.number().nullish(),
+      ttmEps: zod
+        .number()
+        .nullish()
+        .describe(
+          "Trailing-twelve-month EPS normalized to the current split-adjusted share basis",
+        ),
     }),
   ),
 });

@@ -8,7 +8,9 @@
 
 export interface EarningsHistoryItem {
   date: string;
+  /** Quarterly EPS normalized to the current split-adjusted share basis */
   epsActual?: number | null;
   epsEstimate?: number | null;
+  /** Trailing-twelve-month EPS normalized to the current split-adjusted share basis */
   ttmEps?: number | null;
 }

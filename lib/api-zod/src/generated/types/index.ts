@@ -15,6 +15,7 @@ export * from "./buybackHistoryResponse";
 export * from "./buybackStockSplitEvent";
 export * from "./chartData";
 export * from "./chartDataPoint";
+export * from "./chartStockSplitEvent";
 export * from "./companyProfile";
 export * from "./dcfInputs";
 export * from "./ddmData";

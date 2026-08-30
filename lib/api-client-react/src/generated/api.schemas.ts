@@ -55,10 +55,22 @@ export interface ChartDataPoint {
   volume?: number | null;
 }
 
+export interface ChartStockSplitEvent {
+  /** Effective date of the stock split */
+  date: string;
+  /** New shares received in the split ratio */
+  numerator: number;
+  /** Existing shares represented in the split ratio */
+  denominator: number;
+  /** Human-readable split ratio, such as 20:1 split */
+  label: string;
+}
+
 export interface ChartData {
   symbol: string;
   range: string;
   data: ChartDataPoint[];
+  stockSplits: ChartStockSplitEvent[];
 }
 
 export interface NewsItem {
@@ -110,8 +122,10 @@ export interface FinancialStatements {
 
 export interface EarningsHistoryItem {
   date: string;
+  /** Quarterly EPS normalized to the current split-adjusted share basis */
   epsActual?: number | null;
   epsEstimate?: number | null;
+  /** Trailing-twelve-month EPS normalized to the current split-adjusted share basis */
   ttmEps?: number | null;
 }
 

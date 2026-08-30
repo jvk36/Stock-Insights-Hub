@@ -338,7 +338,7 @@ export default function PriceChart({ symbol }: { symbol: string }) {
 
         {showEarnings && hasFairValueData && (
           <p className="text-xs text-muted-foreground font-mono mt-2 pl-1">
-            Amber line = TTM EPS × {peMultiple}x P/E fair value. Price above line = potentially overvalued; below = potentially undervalued.
+            Amber line = split-adjusted TTM EPS × {peMultiple}x P/E fair value. Price above line = potentially overvalued; below = potentially undervalued.
           </p>
         )}
         {showEarnings && !hasFairValueData && !isLoading && (

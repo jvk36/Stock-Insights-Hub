@@ -6,9 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ChartDataPoint } from "./chartDataPoint";
+import type { ChartStockSplitEvent } from "./chartStockSplitEvent";
 
 export interface ChartData {
   symbol: string;
   range: string;
   data: ChartDataPoint[];
+  stockSplits: ChartStockSplitEvent[];
 }

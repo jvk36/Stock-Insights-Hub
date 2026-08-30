@@ -5,3 +5,4 @@
 - [13F tracker fund roster](thirteen-f-fund-roster.md) — all 10 seeded funds, CIKs, slugs, proprietors, and ticker-fix patterns by fund
 - [SEC Form 4 parsing](sec-form4-parsing.md) — raw-document paths, conservative 10b5-1 scope, and holdings-percentage rules
 - [Multi-class share-count history](berkshire-share-count-history.md) — aggregate Company Facts may omit class-dimensioned counts; recover filing-level classes and archived submissions
+- [Split-adjusted EPS basis](split-adjusted-eps-basis.md) — normalize quarterly EPS before TTM; use filing dates to avoid re-adjusting restated comparatives

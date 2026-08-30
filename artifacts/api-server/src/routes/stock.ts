@@ -4,6 +4,7 @@ import {
   GetStockQuoteParams,
   GetStockChartParams,
   GetStockChartQueryParams,
+  GetStockChartResponse,
   GetStockNewsParams,
   GetStockProfileParams,
   GetStockFinancialsParams,
@@ -75,6 +76,51 @@ async function lookupCik(symbol: string): Promise<string | null> {
 
 function getSymbol(param: string | string[]): string {
   return (Array.isArray(param) ? param[0] : param).toUpperCase();
+}
+
+type StockSplitSourceEvent = {
+  date: Date;
+  numerator?: number;
+  denominator?: number;
+};
+
+function formatSplitRatioPart(value: number): string {
+  return Number.isInteger(value)
+    ? String(value)
+    : value.toFixed(2).replace(/\.?0+$/, "");
+}
+
+function mapStockSplitEvents(splits: StockSplitSourceEvent[]) {
+  return splits
+    .map((split) => {
+      const numerator = split.numerator ?? 1;
+      const denominator = split.denominator ?? 1;
+      return {
+        date: split.date.toISOString().slice(0, 10),
+        numerator,
+        denominator,
+        label: `${formatSplitRatioPart(numerator)}:${formatSplitRatioPart(denominator)} split`,
+      };
+    })
+    .filter((split) => split.numerator > 0 && split.denominator > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function epsSplitAdjustmentForDate(
+  date: string,
+  splits: StockSplitSourceEvent[],
+): number {
+  const pointDate = Date.parse(date);
+  if (!Number.isFinite(pointDate)) return 1;
+
+  return splits.reduce((factor, split) => {
+    if (split.date.getTime() <= pointDate) return factor;
+    const numerator = split.numerator ?? 1;
+    const denominator = split.denominator ?? 1;
+    return numerator > 0 && denominator > 0
+      ? factor * (denominator / numerator)
+      : factor;
+  }, 1);
 }
 
 function calculateRSI14(closes: number[]): number | null {
@@ -204,6 +250,7 @@ router.get("/stock/:symbol/chart", async (req, res): Promise<void> => {
     const result = await yahooFinance.chart(symbol, {
       period1: getRangeStart(range),
       interval: interval as "1m" | "2m" | "5m" | "15m" | "30m" | "60m" | "90m" | "1h" | "1d" | "5d" | "1wk" | "1mo" | "3mo",
+      events: "splits",
     });
 
     // For intraday ranges (1d/5d) preserve the full timestamp so the frontend
@@ -220,7 +267,8 @@ router.get("/stock/:symbol/chart", async (req, res): Promise<void> => {
       volume: q.volume ?? null,
     }));
 
-    res.json({ symbol, range, data });
+    const stockSplits = mapStockSplitEvents(result.events?.splits ?? []);
+    res.json(GetStockChartResponse.parse({ symbol, range, data, stockSplits }));
   } catch (err: unknown) {
     req.log.error({ err, symbol }, "Failed to fetch chart data");
     res.status(500).json({ error: "server_error", message: "Failed to fetch chart data" });
@@ -487,9 +535,17 @@ router.get("/stock/:symbol/earnings-history", async (req, res): Promise<void> =>
 
   try {
     // 1. Fetch recent quarterly EPS from yahoo-finance earningsHistory (last ~4 quarters)
-    const result = await yahooFinance.quoteSummary(symbol, {
-      modules: ["earningsHistory", "price"],
-    });
+    const [result, splitChart] = await Promise.all([
+      yahooFinance.quoteSummary(symbol, {
+        modules: ["earningsHistory", "price"],
+      }),
+      yahooFinance.chart(symbol, {
+        period1: new Date("1970-01-01"),
+        interval: "1mo",
+        events: "splits",
+      }),
+    ]);
+    const splitEvents = splitChart.events?.splits ?? [];
 
     const earningsHistoryRaw = result.earningsHistory?.history ?? [];
     // Note: fields are epsActual/epsEstimate on earningsHistory (not actual/estimate)
@@ -520,6 +576,7 @@ router.get("/stock/:symbol/earnings-history", async (req, res): Promise<void> =>
                 form: string;
                 frame?: string;
                 accn: string;
+               filed?: string;
               }>;
             };
           };
@@ -527,11 +584,19 @@ router.get("/stock/:symbol/earnings-history", async (req, res): Promise<void> =>
           // Only take entries with a quarterly frame tag (CY2024Q1, CY2023Q3, etc.)
           const quarterly = sharesData
             .filter((e) => (e.form === "10-Q" || e.form === "10-K") && e.frame && /^CY\d{4}Q\d$/.test(e.frame))
-            .map((e) => ({
-              date: e.end,
-              epsActual: e.val,
-              epsEstimate: null as null,
-            }));
+            .map((e) => {
+              // SEC comparative facts filed after a split are generally already
+              // restated. Using the filing date prevents adjusting those twice.
+              const adjustment = epsSplitAdjustmentForDate(
+                e.filed ?? e.end,
+                splitEvents,
+              );
+              return {
+                date: e.end,
+                epsActual: parseFloat((e.val * adjustment).toFixed(6)),
+                epsEstimate: null as null,
+              };
+            });
 
           const qMap = new Map<string, { date: string; epsActual: number; epsEstimate: null }>();
           for (const q of quarterly) {

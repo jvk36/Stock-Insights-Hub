@@ -64,27 +64,44 @@ export default function PriceChart({ symbol }: { symbol: string }) {
     if (!chartData?.data) return [];
 
     const earnings = earningsData?.history ?? [];
-    // Sort earnings by date ascending
-    const sortedEarnings = [...earnings].sort((a, b) => a.date.localeCompare(b.date));
+    const sortedEarnings = [...earnings]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((earning) => ({
+        time: Date.parse(earning.date),
+        fairValue:
+          earning.ttmEps != null && earning.ttmEps > 0
+            ? parseFloat((earning.ttmEps * peMultiple).toFixed(2))
+            : null,
+      }))
+      .filter((earning) => Number.isFinite(earning.time));
+
+    const fairValueAt = (date: string): number | null => {
+      const time = Date.parse(date);
+      if (!Number.isFinite(time) || sortedEarnings.length === 0) return null;
+
+      const nextIndex = sortedEarnings.findIndex((earning) => earning.time >= time);
+      if (nextIndex === 0) {
+        return sortedEarnings[0].time === time
+          ? sortedEarnings[0].fairValue
+          : null;
+      }
+
+      if (nextIndex === -1) {
+        return sortedEarnings.at(-1)?.fairValue ?? null;
+      }
+
+      const previous = sortedEarnings[nextIndex - 1];
+      const next = sortedEarnings[nextIndex];
+      if (previous.fairValue == null || next.fairValue == null) return null;
+
+      const progress = (time - previous.time) / (next.time - previous.time);
+      return parseFloat(
+        (previous.fairValue + (next.fairValue - previous.fairValue) * progress).toFixed(2),
+      );
+    };
 
     return chartData.data.map((point) => {
-      let fairValue: number | null = null;
-
-      if (showEarnings && sortedEarnings.length > 0) {
-        // Step-interpolate: find the most recent earnings quarter whose date <= point.date
-        let latestTtmEps: number | null = null;
-        for (const e of sortedEarnings) {
-          if (e.date <= point.date) {
-            latestTtmEps = e.ttmEps ?? null;
-          } else {
-            break;
-          }
-        }
-        // Only show fair value if TTM EPS is positive (negative EPS doesn't map to fair value meaningfully)
-        if (latestTtmEps != null && latestTtmEps > 0) {
-          fairValue = parseFloat((latestTtmEps * peMultiple).toFixed(2));
-        }
-      }
+      const fairValue = showEarnings ? fairValueAt(point.date) : null;
 
       return {
         ...point,
@@ -304,7 +321,7 @@ export default function PriceChart({ symbol }: { symbol: string }) {
 
                 {showEarnings && (
                   <Line
-                    type="stepAfter"
+                    type="monotone"
                     dataKey="fairValue"
                     stroke={earningsLineColor}
                     strokeWidth={2.5}

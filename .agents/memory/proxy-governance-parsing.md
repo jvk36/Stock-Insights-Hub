@@ -21,6 +21,18 @@ Accept both “Name of Beneficial Owner” and “Name and Address of Beneficial
 
 **How to apply:** Remove trailing street addresses from owner names. For profile cards, support either Age→Director Since or Director Since→Age order, including month-qualified years, and only assign board roles when the role explicitly names the issuer.
 
+Board-roster parsing must not require a successful ownership match. Treat ownership as enrichment, not as proof that a director exists.
+
+**Why:** Some proxies omit zero-share directors from numeric ownership parsing, combine Name/Occupation or Name/Director Since into one cell, remove spaces between rendered labels, or nest the real header inside wrapper rows.
+
+**How to apply:** Inspect direct row cells for headers, support compressed labels such as NameAge and DirectorSince, retain zero-share ownership names as match anchors, strip numeric footnotes, and parse valid nominee cards even when ownership is unavailable.
+
+Serialize SEC requests below the SEC request ceiling and do not cache a failed proxy fetch for the normal multi-hour TTL.
+
+**Why:** Form 4 enrichment can fan out to many documents. Concurrent bursts can trigger archive-host HTTP 429 responses, making every board look empty if the incomplete response is cached.
+
+**How to apply:** Queue SEC traffic with spacing, use curl only as a transport fallback rather than to bypass 429, and cache incomplete proxy responses briefly so they recover after throttling clears.
+
 Classify DFAN14A and contested-solicitation forms as activist campaign signals, but do not treat PX14A6G filings as activist campaigns by default.
 
 **Why:** PX14A6G commonly contains exempt-solicitation advocacy for an individual shareholder proposal. Labeling every such filing as a campaign against the company creates misleading activist alerts.

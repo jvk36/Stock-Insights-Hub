@@ -1,11 +1,39 @@
 import * as cheerio from "cheerio";
 import YahooFinance from "yahoo-finance2";
+import { execFile, execSync } from "node:child_process";
 
 const yahooFinance = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 const SEC_USER_AGENT = "Stock Research Platform research@example.com";
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const INCOMPLETE_CACHE_TTL_MS = 60 * 1000;
 const ACTIVIST_LOOKBACK_YEARS = 4;
 const responseCache = new Map<string, { expiresAt: number; value: BoardLeadershipData }>();
+let secRequestQueue: Promise<void> = Promise.resolve();
+let lastSecRequestAt = 0;
+const SEC_REQUEST_INTERVAL_MS = 175;
+const CURL_BIN = (() => {
+  try {
+    return execSync("which curl", { encoding: "utf8" }).trim();
+  } catch {
+    return "curl";
+  }
+})();
+
+async function scheduleSecRequest<T>(request: () => Promise<T>): Promise<T> {
+  const scheduled = secRequestQueue.then(async () => {
+    const waitMs = Math.max(
+      0,
+      SEC_REQUEST_INTERVAL_MS - (Date.now() - lastSecRequestAt),
+    );
+    if (waitMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+    lastSecRequestAt = Date.now();
+    return await request();
+  });
+  secRequestQueue = scheduled.then(() => undefined, () => undefined);
+  return await scheduled;
+}
 
 type NullableNumber = number | null;
 
@@ -152,13 +180,70 @@ function documentUrl(cik: string, filing: ProxyFiling): string {
 }
 
 async function fetchSec(url: string): Promise<Response> {
-  return fetch(url, {
-    headers: {
-      "User-Agent": SEC_USER_AGENT,
-      Accept: "application/json, text/html;q=0.9, */*;q=0.8",
-    },
-    signal: AbortSignal.timeout(12_000),
-  });
+  let lastResponse: Response | null = null;
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await scheduleSecRequest(async () =>
+        await fetch(url, {
+          headers: {
+            "User-Agent": SEC_USER_AGENT,
+            Accept: "application/json, text/html;q=0.9, */*;q=0.8",
+          },
+          signal: AbortSignal.timeout(12_000),
+        })
+      );
+      lastResponse = response;
+      if (response.ok || ![403, 429, 500, 502, 503, 504].includes(response.status)) {
+        return response;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt === 0) {
+      const retryDelay = lastResponse?.status === 429 ? 2_000 : 750;
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+    }
+  }
+
+  if (lastResponse?.status === 429) return lastResponse;
+  try {
+    return await scheduleSecRequest(async () =>
+      await new Promise<Response>((resolve, reject) => {
+        execFile(
+          CURL_BIN,
+          [
+            "-sS",
+            "-L",
+            "--max-time",
+            "30",
+            "-A",
+            SEC_USER_AGENT,
+            "-H",
+            "Accept: application/json, text/html;q=0.9, */*;q=0.8",
+            "-w",
+            "\n%{http_code}",
+            url,
+          ],
+          { maxBuffer: 25 * 1024 * 1024 },
+          (error, stdout, stderr) => {
+            if (error) {
+              reject(new Error(`SEC curl fallback failed: ${error.message} — ${stderr}`));
+              return;
+            }
+            const marker = stdout.lastIndexOf("\n");
+            const body = marker >= 0 ? stdout.slice(0, marker) : stdout;
+            const status = marker >= 0 ? Number(stdout.slice(marker + 1)) : 200;
+            resolve(new Response(body, { status: Number.isFinite(status) ? status : 200 }));
+          },
+        );
+      })
+    );
+  } catch {
+    if (lastResponse) return lastResponse;
+    if (lastError instanceof Error) throw lastError;
+    throw new Error(`SEC request failed for ${url}`);
+  }
 }
 
 function submissionFilings(data: SecSubmissions): ProxyFiling[] {
@@ -195,10 +280,14 @@ function parseOwnershipTable($: cheerio.CheerioAPI): OwnershipRecord[] {
   $("table").each((_index, table) => {
     const tableText = normalizeSpace($(table).text());
     if (
-      !/Name(?: and Address)? of Beneficial Owner/i.test(tableText) ||
+      !(
+        /Name(?: and Address)?(?: of Beneficial Owner)?/i.test(tableText) ||
+        /Beneficial ownership.{0,80}\bName\b/i.test(tableText)
+      ) ||
       !(
         /(Shares|Securities).{0,50}Beneficially Owned/i.test(tableText) ||
-        /Amount and\s*Nature of\s*Beneficial\s*Ownership/i.test(tableText)
+        /Amount and\s*Nature of\s*Beneficial\s*Ownership/i.test(tableText) ||
+        /Beneficial ownership.{0,100}Common\s*stock/i.test(tableText)
       )
     ) {
       return;
@@ -211,9 +300,11 @@ function parseOwnershipTable($: cheerio.CheerioAPI): OwnershipRecord[] {
         .get()
         .filter(Boolean);
       const name = cells[0];
-      const shares = parseNumber(
+      const parsedShares = parseNumber(
         cells.find((cell, index) => index > 0 && /[\d,]{2,}/.test(cell) && !/%/.test(cell)),
       );
+      const shares = parsedShares ??
+        (cells.slice(1).some((cell) => /^(?:—|-|\*)$/.test(cell)) ? 0 : null);
       if (
         !name ||
         shares == null ||
@@ -225,7 +316,11 @@ function parseOwnershipTable($: cheerio.CheerioAPI): OwnershipRecord[] {
         /\s+\d{1,6}\s+[A-Za-z][\s\S]*$/,
         "",
       );
-      records.push({ name: cleanPersonName(nameWithoutAddress), shares, date: null });
+      records.push({
+        name: cleanPersonName(nameWithoutAddress.replace(/\(\d+\)/g, "")),
+        shares,
+        date: null,
+      });
     });
   });
 
@@ -441,17 +536,88 @@ function parseBoardMembers(
 ) {
   const members: BoardLeadershipData["boardMembers"] = [];
   const electionTerm = electionTermFromText(proxyText);
+  const addMember = ({
+    name: rawName,
+    role = null,
+    occupation = null,
+    age = null,
+    directorSince,
+    independent = null,
+  }: {
+    name: string;
+    role?: string | null;
+    occupation?: string | null;
+    age?: number | null;
+    directorSince: number;
+    independent?: boolean | null;
+  }) => {
+    const name = cleanPersonName(rawName.replace(/\*+$/, ""));
+    if (!name || directorSince < 1900 || members.some((member) => samePerson(member.name, name))) {
+      return;
+    }
+    const ownershipRecord = findOwnership(ownership, name);
+    const isCompanyExecutive = executiveNames.some((executiveName) => samePerson(executiveName, name));
+    members.push({
+      name,
+      role,
+      occupation,
+      age,
+      directorSince,
+      tenureYears: Math.max(0, electionYear - directorSince),
+      isIndependent: independent ?? (isCompanyExecutive ? false : null),
+      isFounder: /\b(co-?founder|founder)\b/i.test(`${role ?? ""} ${occupation ?? ""}`),
+      sharesOwned: ownershipRecord?.shares ?? null,
+      upForElection: true,
+      electionYear,
+      electionTerm,
+    });
+  };
+  const ownershipNameAtStart = (value: string): string | null => {
+    const normalizedValue = normalizeSpace(value).toLowerCase();
+    const directMatch = ownership
+      .filter((record) => normalizedValue.startsWith(normalizeSpace(record.name).toLowerCase()))
+      .sort((left, right) => right.name.length - left.name.length)[0];
+    if (directMatch) return directMatch.name;
+    const textTokens = personTokens(value);
+    const match = ownership.find((record) => {
+      const tokens = personTokens(record.name);
+      if (tokens.length < 2 || textTokens.length < 2) return false;
+      const lastIndex = textTokens.indexOf(tokens.at(-1)!);
+      return textTokens[0] === tokens[0] && lastIndex > 0 && lastIndex <= 4;
+    });
+    return match?.name ?? null;
+  };
+  const inferredSummaryName = (value: string): string | null => {
+    const withoutParentheticalRole = value.replace(
+      /\s*\((?:Board Chair|Chair|Lead Director|Lead Independent Director)\)\s*/gi,
+      " ",
+    );
+    const fromOwnership = ownershipNameAtStart(withoutParentheticalRole);
+    if (fromOwnership) return fromOwnership;
+    const beforeLabels = withoutParentheticalRole.split(
+      /\b(?:Age|Director(?: and Chairperson)? since)\s*:/i,
+    )[0];
+    const beforeRole = beforeLabels.split(
+      /\s+(?=Lead Independent Director\b|Independent Director\b|Chairman of the Board\b|Partner\b|Former\b|Retired\b|Founder\b|Co-Founder\b|Chair(?:man)?\b|President\b|Senior\b|Executive\b|Chief\b|CEO\b|CFO\b|Group CEO\b|Managing\b|Professor\b)/i,
+    )[0];
+    return cleanPersonName(beforeRole.replace(/\([^)]*\)/g, "").trim()) || null;
+  };
 
   $("table").each((_index, table) => {
     const rows = $(table).find("tr").toArray();
     const headerRow = rows.find((row) => {
-      const text = normalizeSpace($(row).text());
-      return /\bName\b/i.test(text) && /\bOccupation\b/i.test(text) && /Director Since/i.test(text);
+      const headers = $(row)
+        .children("th,td")
+        .map((_cellIndex, cell) => normalizeSpace($(cell).text()))
+        .get();
+      return headers.some((header) => /\bName\b/i.test(header)) &&
+        headers.some((header) => /\bOccupation\b/i.test(header)) &&
+        headers.some((header) => /Director Since/i.test(header));
     });
     if (!headerRow) return;
 
     const headers = $(headerRow)
-      .find("th,td")
+      .children("th,td")
       .map((_cellIndex, cell) => normalizeSpace($(cell).text()))
       .get();
     const nameIndex = findHeaderIndex(headers, /^Name$/i);
@@ -463,7 +629,7 @@ function parseBoardMembers(
 
     for (const row of rows.slice(rows.indexOf(headerRow) + 1)) {
       const cells = $(row)
-        .find("th,td")
+        .children("th,td")
         .map((_cellIndex, cell) => normalizeSpace($(cell).text()))
         .get();
       const directorSince = parseNumber(cells[sinceIndex]);
@@ -476,9 +642,14 @@ function parseBoardMembers(
         continue;
       }
 
-      const roleMatch = rawName.match(/\b(Board Chair|Lead Independent Director|Chair(?:man|woman)?)\b/i);
+      const roleMatch = rawName.match(
+        /\b(Board Chair|Lead Independent Director|Lead Director|Chair(?:man|woman)?)\b/i,
+      );
       const name = cleanPersonName(
-        rawName.replace(/\b(Board Chair|Lead Independent Director|Chair(?:man|woman)?)\b.*$/i, ""),
+        rawName.replace(
+          /\s*\(?(Board Chair|Lead Independent Director|Lead Director|Chair(?:man|woman)?)\)?.*$/i,
+          "",
+        ),
       );
       if (!name || members.some((member) => samePerson(member.name, name))) continue;
       const occupation = occupationIndex >= 0 ? cells[occupationIndex] || null : null;
@@ -509,48 +680,188 @@ function parseBoardMembers(
 
   if (members.length === 0) {
     $("table").each((_index, table) => {
+      const rows = $(table).find("tr").toArray();
+      const headerRow = rows.find((row) => {
+        const headers = $(row)
+          .children("th,td")
+          .map((_cellIndex, cell) => normalizeSpace($(cell).text()))
+          .get();
+        return findHeaderIndex(headers, /^Name$/i) >= 0 &&
+          findHeaderIndex(headers, /Director Since/i) >= 0 &&
+          findHeaderIndex(headers, /Primary (?:Employment|Occupation)/i) >= 0;
+      });
+      if (!headerRow) return;
+      const headers = $(headerRow)
+        .children("th,td")
+        .map((_cellIndex, cell) => normalizeSpace($(cell).text()))
+        .get();
+      const nameIndex = findHeaderIndex(headers, /^Name$/i);
+      const sinceIndex = findHeaderIndex(headers, /Director Since/i);
+      const occupationIndex = findHeaderIndex(headers, /Primary (?:Employment|Occupation)/i);
+      const independentIndex = findHeaderIndex(headers, /Independent/i);
+      for (const row of rows.slice(rows.indexOf(headerRow) + 1)) {
+        const cells = $(row)
+          .children("th,td")
+          .map((_cellIndex, cell) => normalizeSpace($(cell).text()))
+          .get();
+        const directorSince = parseNumber(cells[sinceIndex]);
+        if (directorSince == null || directorSince < 1900 || !cells[nameIndex]) continue;
+        addMember({
+          name: cells[nameIndex],
+          occupation: cells[occupationIndex] || null,
+          directorSince,
+          independent: independentIndex >= 0 &&
+              /^(?:yes|ü|✓|x)$/i.test(cells[independentIndex] ?? "")
+            ? true
+            : null,
+        });
+      }
+    });
+  }
+
+  if (members.length === 0) {
+    $("table").each((_index, table) => {
+      const tableText = normalizeSpace($(table).text());
+      if (!/Director\s*Since/i.test(tableText) || !/Age/i.test(tableText)) return;
+
+      $(table).find("tr").each((_rowIndex, row) => {
+        const cells = $(row)
+          .children("th,td")
+          .map((_cellIndex, cell) => normalizeSpace($(cell).text()))
+          .get()
+          .filter(Boolean);
+        if (cells.length === 0) return;
+
+        if (/^\d{2,3}$/.test(cells[1] ?? "") && /^(?:\d{4}|New\s*Nominee)$/i.test(cells[2] ?? "")) {
+          const name = inferredSummaryName(cells[0]);
+          if (!name) return;
+          const occupation = normalizeSpace(cells[0].slice(
+            Math.min(cells[0].length, cells[0].toLowerCase().indexOf(name.toLowerCase()) + name.length),
+          )) || (cells[3] && !/^(?:yes|no|ü|✓|x)$/i.test(cells[3]) ? cells[3] : null);
+          const roleMatch = cells[0].match(/\b(Lead Independent Director|Board Chair|Chairman of the Board)\b/i);
+          addMember({
+            name,
+            role: roleMatch
+              ? /lead/i.test(roleMatch[1])
+                ? "Lead Independent Director"
+                : "Board Chair"
+              : null,
+            occupation,
+            age: Number(cells[1]),
+            directorSince: /^\d{4}$/.test(cells[2]) ? Number(cells[2]) : electionYear,
+            independent: cells.some((cell) => /^(?:yes|ü|✓)$/i.test(cell))
+              ? true
+              : cells.some((cell) => /^no$/i.test(cell))
+                ? false
+                : null,
+          });
+          return;
+        }
+
+        const firstCellMatch = cells[0].match(
+          /^([\s\S]+?)Director since\s*:?\s*(\d{4})$/i,
+        );
+        if (firstCellMatch && /^\d{2,3}$/.test(cells[1] ?? "")) {
+          const role = /Lead Independent Director/i.test(cells[0])
+            ? "Lead Independent Director"
+            : null;
+          addMember({
+            name: inferredSummaryName(firstCellMatch[1]) ?? firstCellMatch[1],
+            role,
+            occupation: cells[2] ?? null,
+            age: Number(cells[1]),
+            directorSince: Number(firstCellMatch[2]),
+          });
+        }
+
+        for (const cell of cells) {
+          const cardMatch = cell.match(
+            /^(.{2,100}?)\s+Age:\s*(\d{2,3})\s+Director Since:\s*(\d{4})\b/i,
+          );
+          if (!cardMatch) continue;
+          addMember({
+            name: inferredSummaryName(cardMatch[1]) ?? cardMatch[1],
+            age: Number(cardMatch[2]),
+            directorSince: Number(cardMatch[3]),
+          });
+        }
+      });
+    });
+  }
+
+  if (members.length === 0) {
+    $("table").each((_index, table) => {
       const text = normalizeSpace($(table).text());
       const ageMatch = text.match(/\bAge:\s*(\d{2,3})\b/i);
-      const sinceMatch = text.match(/\bDirector since:\s*(?:[A-Za-z]+\s+)?(\d{4})\b/i);
+      const sinceMatch = text.match(
+        /\bDirector(?: and Chairperson)? since:\s*(?:[A-Za-z]+\s+)?(\d{4})\b/i,
+      );
       if (!ageMatch || !sinceMatch) return;
 
-      const ownershipRecord = ownership
-        .filter((record) => {
-          const normalizedName = normalizeSpace(record.name);
-          return normalizedName.length >= 5 &&
-            text.toLowerCase().startsWith(normalizedName.toLowerCase());
-        })
-        .sort((left, right) => right.name.length - left.name.length)[0];
-      if (!ownershipRecord) return;
+      const headingMatch = text.match(
+        /^(.{2,100}?)\s+(LEAD INDEPENDENT DIRECTOR|INDEPENDENT DIRECTOR|CHAIRMAN OF THE BOARD|BOARD CHAIR|CO-CHIEF EXECUTIVE OFFICER[\s\S]{0,80}?AND DIRECTOR)\b/i,
+      );
+      const headingName = headingMatch
+        ? cleanPersonName(headingMatch[1].replace(/\*+$/, ""))
+        : null;
+      const profileNameMatch = headingName
+        ? null
+        : text.match(
+          /^(.{2,100}?)\s+(?=Founder and Executive Chair\b|President and CEO\b|Co-Founder\b|Lead Independent Director\b|Senior Counsel\b|Dean\b|Managing General Partner\b|Managing Partner\b|Former\b|Chairman\b|President\b)/i,
+        );
+      const inferredName = headingName ??
+        (profileNameMatch ? cleanPersonName(profileNameMatch[1]) : null);
+      const ownershipRecord = inferredName
+        ? findOwnership(ownership, inferredName)
+        : ownership
+          .filter((record) => {
+            const normalizedName = normalizeSpace(record.name);
+            return normalizedName.length >= 5 &&
+              text.toLowerCase().startsWith(normalizedName.toLowerCase());
+          })
+          .sort((left, right) => right.name.length - left.name.length)[0];
 
-      const name = cleanPersonName(ownershipRecord.name);
+      const name = inferredName ??
+        (ownershipRecord ? cleanPersonName(ownershipRecord.name) : null);
+      if (!name) return;
       if (members.some((member) => samePerson(member.name, name))) return;
       const directorSince = Number(sinceMatch[1]);
-      const profileLead = normalizeSpace(
-        text.slice(
-          name.length,
-          Math.min(
-            ...[
-              text.search(/\bAdditional Skills:/i),
-              text.search(/\bExpertise Provided to the Board\b/i),
-              text.search(/\bNotable Experience\b/i),
-              text.search(/\bBackground\b/i),
-              ageMatch.index ?? text.length,
-            ].filter((index) => index >= 0),
+      const profileLead = headingMatch
+        ? normalizeSpace(headingMatch[2])
+        : normalizeSpace(
+          text.slice(
+            name.length,
+            Math.min(
+              ...[
+                text.search(/\bAdditional Skills:/i),
+                text.search(/\bExpertise Provided to the Board\b/i),
+                text.search(/\bNotable Experience\b/i),
+                text.search(/\bBackground\b/i),
+                ageMatch.index ?? text.length,
+              ].filter((index) => index >= 0),
+            ),
           ),
-        ),
-      );
-      const roleMatch = profileLead.match(
-        /\b(Lead Independent Director|Executive Chair|Board Chair|Chair(?:man|woman)?)\b(?:\s+of)?\s+Amazon\b/i,
-      );
+        );
+      const role = /\bLead Independent Director\b/i.test(profileLead)
+        ? "Lead Independent Director"
+        : /\b(?:Chairman of the Board|Board Chair)\b/i.test(profileLead)
+          ? "Board Chair"
+          : /\bExecutive Chair(?:man)?\b/i.test(profileLead) &&
+              !/\bFormer Executive Chair(?:man)?\b/i.test(profileLead)
+            ? "Executive Chair"
+            : null;
       const isCompanyExecutive = executiveNames.some((executiveName) =>
         samePerson(executiveName, name)
       );
+      const occupation = /^(?:Lead )?Independent Director$|^Chairman of the Board$|^Board Chair$/i
+        .test(profileLead)
+        ? null
+        : profileLead.replace(/\s+AND DIRECTOR$/i, "") || null;
 
       members.push({
         name,
-        role: roleMatch ? normalizeSpace(roleMatch[1]) : null,
-        occupation: profileLead || null,
+        role,
+        occupation,
         age: Number(ageMatch[1]),
         directorSince,
         tenureYears: Math.max(0, electionYear - directorSince),
@@ -560,7 +871,7 @@ function parseBoardMembers(
             ? false
             : null,
         isFounder: /\b(co-?founder|founder)\b/i.test(profileLead),
-        sharesOwned: ownershipRecord.shares,
+        sharesOwned: ownershipRecord?.shares ?? null,
         upForElection: true,
         electionYear,
         electionTerm,
@@ -932,6 +1243,7 @@ export async function getBoardLeadership(
     },
   };
 
-  responseCache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, value });
+  const cacheTtl = proxyFiling && proxy$ == null ? INCOMPLETE_CACHE_TTL_MS : CACHE_TTL_MS;
+  responseCache.set(cacheKey, { expiresAt: Date.now() + cacheTtl, value });
   return value;
 }

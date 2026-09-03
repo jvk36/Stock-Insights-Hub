@@ -15,6 +15,12 @@ Strip zero-width layout characters before interpreting proxy ownership rows, and
 
 **How to apply:** Date proxy ownership to the proxy filing, then prefer a newer matched Form 4 final direct post-transaction balance. Match both natural and SEC last-name-first name order, and do not let an empty or zero-valued fallback override a positive SEC position.
 
+Accept both “Name of Beneficial Owner” and “Name and Address of Beneficial Owner,” plus either shares/securities or “Amount and Nature of Beneficial Ownership” value headers.
+
+**Why:** Amazon-style proxies use the address/amount wording and append mailing addresses to selected owner names. Rejecting that ownership table also prevents director-profile cards from being linked to nominees.
+
+**How to apply:** Remove trailing street addresses from owner names. For profile cards, support either Age→Director Since or Director Since→Age order, including month-qualified years, and only assign board roles when the role explicitly names the issuer.
+
 Classify DFAN14A and contested-solicitation forms as activist campaign signals, but do not treat PX14A6G filings as activist campaigns by default.
 
 **Why:** PX14A6G commonly contains exempt-solicitation advocacy for an individual shareholder proposal. Labeling every such filing as a campaign against the company creates misleading activist alerts.

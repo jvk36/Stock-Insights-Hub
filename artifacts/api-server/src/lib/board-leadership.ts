@@ -195,8 +195,11 @@ function parseOwnershipTable($: cheerio.CheerioAPI): OwnershipRecord[] {
   $("table").each((_index, table) => {
     const tableText = normalizeSpace($(table).text());
     if (
-      !/Name of Beneficial Owner/i.test(tableText) ||
-      !/(Shares|Securities).{0,50}Beneficially Owned/i.test(tableText)
+      !/Name(?: and Address)? of Beneficial Owner/i.test(tableText) ||
+      !(
+        /(Shares|Securities).{0,50}Beneficially Owned/i.test(tableText) ||
+        /Amount and\s*Nature of\s*Beneficial\s*Ownership/i.test(tableText)
+      )
     ) {
       return;
     }
@@ -214,11 +217,15 @@ function parseOwnershipTable($: cheerio.CheerioAPI): OwnershipRecord[] {
       if (
         !name ||
         shares == null ||
-        /Name of Beneficial Owner|All current directors|All directors and executive/i.test(name)
+        /Name(?: and Address)? of Beneficial Owner|All current directors|All directors and executive/i.test(name)
       ) {
         return;
       }
-      records.push({ name: cleanPersonName(name), shares, date: null });
+      const nameWithoutAddress = name.replace(
+        /\s+\d{1,6}\s+[A-Za-z][\s\S]*$/,
+        "",
+      );
+      records.push({ name: cleanPersonName(nameWithoutAddress), shares, date: null });
     });
   });
 
@@ -415,6 +422,12 @@ function electionTermFromText(text: string): string | null {
   if (/elected annually for (?:a\s+)?(?:one[- ]year|1[- ]year) term/i.test(text)) {
     return "Annual, one-year term";
   }
+  if (
+    /all (?:of )?(?:our )?directors are elected annually/i.test(text) ||
+    /declassified board.{0,120}elected annually/i.test(text)
+  ) {
+    return "Annual election";
+  }
   const classifiedMatch = text.match(/(?:classified|staggered) board.{0,120}?(\w+)-year terms?/i);
   return classifiedMatch ? `${classifiedMatch[1]}-year staggered term` : null;
 }
@@ -493,6 +506,67 @@ function parseBoardMembers(
       });
     }
   });
+
+  if (members.length === 0) {
+    $("table").each((_index, table) => {
+      const text = normalizeSpace($(table).text());
+      const ageMatch = text.match(/\bAge:\s*(\d{2,3})\b/i);
+      const sinceMatch = text.match(/\bDirector since:\s*(?:[A-Za-z]+\s+)?(\d{4})\b/i);
+      if (!ageMatch || !sinceMatch) return;
+
+      const ownershipRecord = ownership
+        .filter((record) => {
+          const normalizedName = normalizeSpace(record.name);
+          return normalizedName.length >= 5 &&
+            text.toLowerCase().startsWith(normalizedName.toLowerCase());
+        })
+        .sort((left, right) => right.name.length - left.name.length)[0];
+      if (!ownershipRecord) return;
+
+      const name = cleanPersonName(ownershipRecord.name);
+      if (members.some((member) => samePerson(member.name, name))) return;
+      const directorSince = Number(sinceMatch[1]);
+      const profileLead = normalizeSpace(
+        text.slice(
+          name.length,
+          Math.min(
+            ...[
+              text.search(/\bAdditional Skills:/i),
+              text.search(/\bExpertise Provided to the Board\b/i),
+              text.search(/\bNotable Experience\b/i),
+              text.search(/\bBackground\b/i),
+              ageMatch.index ?? text.length,
+            ].filter((index) => index >= 0),
+          ),
+        ),
+      );
+      const roleMatch = profileLead.match(
+        /\b(Lead Independent Director|Executive Chair|Board Chair|Chair(?:man|woman)?)\b(?:\s+of)?\s+Amazon\b/i,
+      );
+      const isCompanyExecutive = executiveNames.some((executiveName) =>
+        samePerson(executiveName, name)
+      );
+
+      members.push({
+        name,
+        role: roleMatch ? normalizeSpace(roleMatch[1]) : null,
+        occupation: profileLead || null,
+        age: Number(ageMatch[1]),
+        directorSince,
+        tenureYears: Math.max(0, electionYear - directorSince),
+        isIndependent: /Lead Independent Director/i.test(profileLead)
+          ? true
+          : isCompanyExecutive
+            ? false
+            : null,
+        isFounder: /\b(co-?founder|founder)\b/i.test(profileLead),
+        sharesOwned: ownershipRecord.shares,
+        upForElection: true,
+        electionYear,
+        electionTerm,
+      });
+    });
+  }
 
   if (members.length === 0) {
     $("table").each((_index, table) => {

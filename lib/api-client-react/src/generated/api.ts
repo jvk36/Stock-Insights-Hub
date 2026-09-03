@@ -15,6 +15,7 @@ import type {
 
 import type {
   ApiError,
+  BoardLeadershipResponse,
   BuybackHistoryResponse,
   ChartData,
   CompanyProfile,
@@ -493,6 +494,97 @@ export function useGetStockProfile<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetStockProfileQueryOptions(symbol, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get current executives, board members, elections, and activist campaign signals
+ */
+export const getGetBoardLeadershipUrl = (symbol: string) => {
+  return `/api/stock/${symbol}/board-leadership`;
+};
+
+export const getBoardLeadership = async (
+  symbol: string,
+  options?: RequestInit,
+): Promise<BoardLeadershipResponse> => {
+  return customFetch<BoardLeadershipResponse>(
+    getGetBoardLeadershipUrl(symbol),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetBoardLeadershipQueryKey = (symbol: string) => {
+  return [`/api/stock/${symbol}/board-leadership`] as const;
+};
+
+export const getGetBoardLeadershipQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBoardLeadership>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBoardLeadership>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetBoardLeadershipQueryKey(symbol);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getBoardLeadership>>
+  > = ({ signal }) => getBoardLeadership(symbol, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!symbol,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBoardLeadership>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBoardLeadershipQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBoardLeadership>>
+>;
+export type GetBoardLeadershipQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get current executives, board members, elections, and activist campaign signals
+ */
+
+export function useGetBoardLeadership<
+  TData = Awaited<ReturnType<typeof getBoardLeadership>>,
+  TError = ErrorType<ApiError>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBoardLeadership>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBoardLeadershipQueryOptions(symbol, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

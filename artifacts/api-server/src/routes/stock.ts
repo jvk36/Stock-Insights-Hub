@@ -7,6 +7,8 @@ import {
   GetStockChartResponse,
   GetStockNewsParams,
   GetStockProfileParams,
+  GetBoardLeadershipParams,
+  GetBoardLeadershipResponse,
   GetStockFinancialsParams,
   GetStockFinancialsQueryParams,
   GetBuybackHistoryParams,
@@ -21,6 +23,7 @@ import {
   GetStockScreenerRatingsParams,
 } from "@workspace/api-zod";
 import { getBuybackHistory } from "../lib/buyback-history";
+import { getBoardLeadership } from "../lib/board-leadership";
 
 const router: IRouter = Router();
 const yahooFinance = new YahooFinance();
@@ -365,6 +368,31 @@ router.get("/stock/:symbol/profile", async (req, res): Promise<void> => {
   } catch (err: unknown) {
     req.log.error({ err, symbol }, "Failed to fetch profile");
     res.status(500).json({ error: "server_error", message: "Failed to fetch profile" });
+  }
+});
+
+router.get("/stock/:symbol/board-leadership", async (req, res): Promise<void> => {
+  const params = GetBoardLeadershipParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "bad_request", message: params.error.message });
+    return;
+  }
+
+  const symbol = getSymbol(params.data.symbol);
+  try {
+    const cik = await lookupCik(symbol);
+    const data = await getBoardLeadership(symbol, cik);
+    res.json(GetBoardLeadershipResponse.parse(data));
+  } catch (err: unknown) {
+    req.log.error({ err, symbol }, "Failed to compile board and leadership data");
+    if (err instanceof Error && err.message.includes("not found")) {
+      res.status(404).json({ error: "not_found", message: `Symbol ${symbol} not found` });
+      return;
+    }
+    res.status(500).json({
+      error: "server_error",
+      message: "Failed to compile board and leadership data",
+    });
   }
 });
 

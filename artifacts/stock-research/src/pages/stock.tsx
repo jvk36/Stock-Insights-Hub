@@ -18,6 +18,7 @@ import ScreenerRatings from "@/components/stock/ScreenerRatings";
 import BuybacksTab from "@/components/stock/BuybacksTab";
 import AnalysisTab from "@/components/stock/AnalysisTab";
 import ModelsTab from "@/components/stock/ModelsTab";
+import BoardLeadershipTab from "@/components/stock/BoardLeadershipTab";
 
 function SectionDivider({ children }: { children: React.ReactNode }) {
   return (
@@ -233,6 +234,7 @@ export default function StockDetail() {
             <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
             <TabsTrigger value="indicators" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Indicators</TabsTrigger>
             <TabsTrigger value="screener" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Ratings</TabsTrigger>
+            <TabsTrigger value="board-leadership" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Board & Leadership</TabsTrigger>
             <TabsTrigger value="buybacks" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Buybacks</TabsTrigger>
             <TabsTrigger value="insider-activity" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Insider Activity</TabsTrigger>
             <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Analysis</TabsTrigger>
@@ -271,6 +273,10 @@ export default function StockDetail() {
 
             <TabsContent value="screener" className="mt-0">
               <ScreenerRatings symbol={symbol!} />
+            </TabsContent>
+
+            <TabsContent value="board-leadership" className="mt-0">
+              <BoardLeadershipTab symbol={symbol!} />
             </TabsContent>
 
             <TabsContent value="buybacks" className="mt-0">

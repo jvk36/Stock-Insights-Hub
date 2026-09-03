@@ -104,6 +104,112 @@ export interface CompanyProfile {
   logoUrl?: string | null;
 }
 
+export interface ExecutiveCompensation {
+  /** @nullable */
+  fiscalYear: number | null;
+  /** @nullable */
+  salary: number | null;
+  /** @nullable */
+  stockAwards: number | null;
+  /** @nullable */
+  optionAwards: number | null;
+  /** @nullable */
+  nonEquityIncentive: number | null;
+  /** @nullable */
+  otherCompensation: number | null;
+  /** @nullable */
+  total: number | null;
+}
+
+export interface LeadershipExecutive {
+  name: string;
+  title: string;
+  /** @nullable */
+  age: number | null;
+  /** @nullable */
+  yearBorn: number | null;
+  isFounder: boolean;
+  /** @nullable */
+  sharesOwned: number | null;
+  /** @nullable */
+  ownershipDate: string | null;
+  compensation: ExecutiveCompensation;
+}
+
+export interface BoardMember {
+  name: string;
+  /** @nullable */
+  role: string | null;
+  /** @nullable */
+  occupation: string | null;
+  /** @nullable */
+  age: number | null;
+  /** @nullable */
+  directorSince: number | null;
+  /** @nullable */
+  tenureYears: number | null;
+  /** @nullable */
+  isIndependent: boolean | null;
+  isFounder: boolean;
+  /** @nullable */
+  sharesOwned: number | null;
+  upForElection: boolean;
+  /** @nullable */
+  electionYear: number | null;
+  /** @nullable */
+  electionTerm: string | null;
+}
+
+export type ActivistCampaignStatus =
+  (typeof ActivistCampaignStatus)[keyof typeof ActivistCampaignStatus];
+
+export const ActivistCampaignStatus = {
+  active: "active",
+  recent: "recent",
+  concluded: "concluded",
+  settled: "settled",
+  unknown: "unknown",
+} as const;
+
+export interface ActivistCampaign {
+  activistName: string;
+  status: ActivistCampaignStatus;
+  filingDate: string;
+  form: string;
+  /** @nullable */
+  objective: string | null;
+  statusDetail: string;
+  sourceUrl: string;
+}
+
+export interface BoardLeadershipSource {
+  label: string;
+  /** @nullable */
+  filingDate: string | null;
+  /** @nullable */
+  url: string | null;
+}
+
+export interface BoardLeadershipCoverage {
+  proxyAvailable: boolean;
+  executiveCompensationAvailable: boolean;
+  boardRosterAvailable: boolean;
+  activistFilingsReviewed: number;
+  note: string;
+}
+
+export interface BoardLeadershipResponse {
+  symbol: string;
+  companyName: string;
+  dataAsOf: string;
+  executives: LeadershipExecutive[];
+  boardMembers: BoardMember[];
+  activistCampaigns: ActivistCampaign[];
+  activistSummary: string;
+  sources: BoardLeadershipSource[];
+  coverage: BoardLeadershipCoverage;
+}
+
 export type FinancialPeriodData = { [key: string]: number | null };
 
 export interface FinancialPeriod {

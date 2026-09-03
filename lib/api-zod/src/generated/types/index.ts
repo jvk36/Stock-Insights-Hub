@@ -6,7 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./activistCampaign";
+export * from "./activistCampaignStatus";
 export * from "./apiError";
+export * from "./boardLeadershipCoverage";
+export * from "./boardLeadershipResponse";
+export * from "./boardLeadershipSource";
+export * from "./boardMember";
 export * from "./buybackHistoryCoverage";
 export * from "./buybackHistoryItem";
 export * from "./buybackHistoryItemIssuanceQuality";
@@ -26,6 +32,7 @@ export * from "./epvData";
 export * from "./epvHistoryRow";
 export * from "./evEbitData";
 export * from "./evEbitHistoryRow";
+export * from "./executiveCompensation";
 export * from "./financialPeriod";
 export * from "./financialPeriodData";
 export * from "./financialStatements";
@@ -61,6 +68,7 @@ export * from "./insiderTransactionsCoverage";
 export * from "./insiderTransactionsCoverageSource";
 export * from "./insiderTransactionsResponse";
 export * from "./katsenelsonData";
+export * from "./leadershipExecutive";
 export * from "./macroIndicator";
 export * from "./macroIndicatorsResponse";
 export * from "./marketCycle";

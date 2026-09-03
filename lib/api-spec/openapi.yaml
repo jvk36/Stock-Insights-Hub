@@ -138,6 +138,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /stock/{symbol}/board-leadership:
+    get:
+      operationId: getBoardLeadership
+      tags: [stock]
+      summary: Get current executives, board members, elections, and activist campaign signals
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Board and leadership data compiled from Yahoo Finance and SEC proxy filings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardLeadershipResponse"
+        "404":
+          description: Symbol or company not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Failed to compile board and leadership data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /stock/{symbol}/financials:
     get:
       operationId: getStockFinancials
@@ -1003,6 +1034,203 @@ components:
       required:
         - symbol
         - longName
+
+    ExecutiveCompensation:
+      type: object
+      properties:
+        fiscalYear:
+          type: ["integer", "null"]
+        salary:
+          type: ["number", "null"]
+        stockAwards:
+          type: ["number", "null"]
+        optionAwards:
+          type: ["number", "null"]
+        nonEquityIncentive:
+          type: ["number", "null"]
+        otherCompensation:
+          type: ["number", "null"]
+        total:
+          type: ["number", "null"]
+      required:
+        - fiscalYear
+        - salary
+        - stockAwards
+        - optionAwards
+        - nonEquityIncentive
+        - otherCompensation
+        - total
+
+    LeadershipExecutive:
+      type: object
+      properties:
+        name:
+          type: string
+        title:
+          type: string
+        age:
+          type: ["integer", "null"]
+        yearBorn:
+          type: ["integer", "null"]
+        isFounder:
+          type: boolean
+        sharesOwned:
+          type: ["number", "null"]
+        ownershipDate:
+          type: ["string", "null"]
+        compensation:
+          $ref: "#/components/schemas/ExecutiveCompensation"
+      required:
+        - name
+        - title
+        - age
+        - yearBorn
+        - isFounder
+        - sharesOwned
+        - ownershipDate
+        - compensation
+
+    BoardMember:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: ["string", "null"]
+        occupation:
+          type: ["string", "null"]
+        age:
+          type: ["integer", "null"]
+        directorSince:
+          type: ["integer", "null"]
+        tenureYears:
+          type: ["integer", "null"]
+        isIndependent:
+          type: ["boolean", "null"]
+        isFounder:
+          type: boolean
+        sharesOwned:
+          type: ["number", "null"]
+        upForElection:
+          type: boolean
+        electionYear:
+          type: ["integer", "null"]
+        electionTerm:
+          type: ["string", "null"]
+      required:
+        - name
+        - role
+        - occupation
+        - age
+        - directorSince
+        - tenureYears
+        - isIndependent
+        - isFounder
+        - sharesOwned
+        - upForElection
+        - electionYear
+        - electionTerm
+
+    ActivistCampaign:
+      type: object
+      properties:
+        activistName:
+          type: string
+        status:
+          type: string
+          enum: [active, recent, concluded, settled, unknown]
+        filingDate:
+          type: string
+        form:
+          type: string
+        objective:
+          type: ["string", "null"]
+        statusDetail:
+          type: string
+        sourceUrl:
+          type: string
+      required:
+        - activistName
+        - status
+        - filingDate
+        - form
+        - objective
+        - statusDetail
+        - sourceUrl
+
+    BoardLeadershipSource:
+      type: object
+      properties:
+        label:
+          type: string
+        filingDate:
+          type: ["string", "null"]
+        url:
+          type: ["string", "null"]
+      required:
+        - label
+        - filingDate
+        - url
+
+    BoardLeadershipCoverage:
+      type: object
+      properties:
+        proxyAvailable:
+          type: boolean
+        executiveCompensationAvailable:
+          type: boolean
+        boardRosterAvailable:
+          type: boolean
+        activistFilingsReviewed:
+          type: integer
+        note:
+          type: string
+      required:
+        - proxyAvailable
+        - executiveCompensationAvailable
+        - boardRosterAvailable
+        - activistFilingsReviewed
+        - note
+
+    BoardLeadershipResponse:
+      type: object
+      properties:
+        symbol:
+          type: string
+        companyName:
+          type: string
+        dataAsOf:
+          type: string
+        executives:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeadershipExecutive"
+        boardMembers:
+          type: array
+          items:
+            $ref: "#/components/schemas/BoardMember"
+        activistCampaigns:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivistCampaign"
+        activistSummary:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/BoardLeadershipSource"
+        coverage:
+          $ref: "#/components/schemas/BoardLeadershipCoverage"
+      required:
+        - symbol
+        - companyName
+        - dataAsOf
+        - executives
+        - boardMembers
+        - activistCampaigns
+        - activistSummary
+        - sources
+        - coverage
 
     FinancialPeriod:
       type: object

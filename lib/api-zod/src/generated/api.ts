@@ -144,6 +144,81 @@ export const GetStockProfileResponse = zod.object({
 });
 
 /**
+ * @summary Get current executives, board members, elections, and activist campaign signals
+ */
+export const GetBoardLeadershipParams = zod.object({
+  symbol: zod.coerce.string(),
+});
+
+export const GetBoardLeadershipResponse = zod.object({
+  symbol: zod.string(),
+  companyName: zod.string(),
+  dataAsOf: zod.string(),
+  executives: zod.array(
+    zod.object({
+      name: zod.string(),
+      title: zod.string(),
+      age: zod.number().nullable(),
+      yearBorn: zod.number().nullable(),
+      isFounder: zod.boolean(),
+      sharesOwned: zod.number().nullable(),
+      ownershipDate: zod.string().nullable(),
+      compensation: zod.object({
+        fiscalYear: zod.number().nullable(),
+        salary: zod.number().nullable(),
+        stockAwards: zod.number().nullable(),
+        optionAwards: zod.number().nullable(),
+        nonEquityIncentive: zod.number().nullable(),
+        otherCompensation: zod.number().nullable(),
+        total: zod.number().nullable(),
+      }),
+    }),
+  ),
+  boardMembers: zod.array(
+    zod.object({
+      name: zod.string(),
+      role: zod.string().nullable(),
+      occupation: zod.string().nullable(),
+      age: zod.number().nullable(),
+      directorSince: zod.number().nullable(),
+      tenureYears: zod.number().nullable(),
+      isIndependent: zod.boolean().nullable(),
+      isFounder: zod.boolean(),
+      sharesOwned: zod.number().nullable(),
+      upForElection: zod.boolean(),
+      electionYear: zod.number().nullable(),
+      electionTerm: zod.string().nullable(),
+    }),
+  ),
+  activistCampaigns: zod.array(
+    zod.object({
+      activistName: zod.string(),
+      status: zod.enum(["active", "recent", "concluded", "settled", "unknown"]),
+      filingDate: zod.string(),
+      form: zod.string(),
+      objective: zod.string().nullable(),
+      statusDetail: zod.string(),
+      sourceUrl: zod.string(),
+    }),
+  ),
+  activistSummary: zod.string(),
+  sources: zod.array(
+    zod.object({
+      label: zod.string(),
+      filingDate: zod.string().nullable(),
+      url: zod.string().nullable(),
+    }),
+  ),
+  coverage: zod.object({
+    proxyAvailable: zod.boolean(),
+    executiveCompensationAvailable: zod.boolean(),
+    boardRosterAvailable: zod.boolean(),
+    activistFilingsReviewed: zod.number(),
+    note: zod.string(),
+  }),
+});
+
+/**
  * @summary Get financial statements
  */
 export const GetStockFinancialsParams = zod.object({

@@ -39,6 +39,7 @@ type SecSubmissions = {
       filingDate?: string[];
       accessionNumber?: string[];
       primaryDocument?: string[];
+      fileNumber?: string[];
     };
   };
 };
@@ -96,7 +97,11 @@ export type BoardLeadershipData = {
 };
 
 function normalizeSpace(value: string): string {
-  return value.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+  return value
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function cleanPersonName(value: string): string {
@@ -124,10 +129,13 @@ function samePerson(left: string, right: string): boolean {
   const a = personTokens(left);
   const b = personTokens(right);
   if (a.length < 2 || b.length < 2) return false;
-  return a.at(-1) === b.at(-1) && a[0]?.[0] === b[0]?.[0];
+  const naturalOrder = a.at(-1) === b.at(-1) && a[0]?.[0] === b[0]?.[0];
+  const leftReversed = a[0] === b.at(-1) && a[1]?.[0] === b[0]?.[0];
+  const rightReversed = b[0] === a.at(-1) && b[1]?.[0] === a[0]?.[0];
+  return naturalOrder || leftReversed || rightReversed;
 }
 
-function parseNumber(value: string | undefined): number | null {
+function parseNumber(value: string | null | undefined): number | null {
   if (!value) return null;
   const normalized = value.replace(/\([^)]*\)/g, "").replace(/[$,%\s,]/g, "");
   if (!normalized || normalized === "—" || normalized === "-") return null;
@@ -175,7 +183,10 @@ function findOwnership(
   ownership: OwnershipRecord[],
   name: string,
 ): OwnershipRecord | null {
-  return ownership.find((entry) => samePerson(entry.name, name)) ?? null;
+  const matches = ownership
+    .filter((entry) => samePerson(entry.name, name))
+    .sort((left, right) => (right.date ?? "").localeCompare(left.date ?? ""));
+  return matches.find((entry) => entry.shares > 0) ?? matches[0] ?? null;
 }
 
 function parseOwnershipTable($: cheerio.CheerioAPI): OwnershipRecord[] {
@@ -194,9 +205,12 @@ function parseOwnershipTable($: cheerio.CheerioAPI): OwnershipRecord[] {
       const cells = $(row)
         .find("th,td")
         .map((_cellIndex, cell) => normalizeSpace($(cell).text()))
-        .get();
+        .get()
+        .filter(Boolean);
       const name = cells[0];
-      const shares = parseNumber(cells.find((cell, index) => index > 0 && /[\d,]{2,}/.test(cell)));
+      const shares = parseNumber(
+        cells.find((cell, index) => index > 0 && /[\d,]{2,}/.test(cell) && !/%/.test(cell)),
+      );
       if (
         !name ||
         shares == null ||
@@ -209,6 +223,118 @@ function parseOwnershipTable($: cheerio.CheerioAPI): OwnershipRecord[] {
   });
 
   return records;
+}
+
+function xmlValue(xml: string, tag: string): string | null {
+  const match = xml.match(
+    new RegExp(`<(?:[A-Za-z0-9_-]+:)?${tag}\\b[^>]*>[\\s\\S]*?<\\/(?:[A-Za-z0-9_-]+:)?${tag}>`, "i"),
+  )?.[0];
+  if (!match) return null;
+  const value = match.match(
+    /<(?:[A-Za-z0-9_-]+:)?value\b[^>]*>([\s\S]*?)<\/(?:[A-Za-z0-9_-]+:)?value>/i,
+  )?.[1] ?? match.replace(/<[^>]+>/g, "");
+  return normalizeSpace(
+    value
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&#39;|&apos;/g, "'")
+      .replace(/&quot;/g, "\""),
+  ) || null;
+}
+
+function xmlBlocks(xml: string, tag: string): string[] {
+  return [...xml.matchAll(
+    new RegExp(
+      `<(?:[A-Za-z0-9_-]+:)?${tag}\\b[^>]*>[\\s\\S]*?<\\/(?:[A-Za-z0-9_-]+:)?${tag}>`,
+      "gi",
+    ),
+  )].map((match) => match[0]);
+}
+
+function form4HoldingFromXml(
+  xml: string,
+  filingDate: string,
+  candidateNames: string[],
+): OwnershipRecord | null {
+  const ownerName = xmlValue(xml, "rptOwnerName");
+  if (!ownerName || !candidateNames.some((name) => samePerson(ownerName, name))) return null;
+
+  const directHoldings: Array<{ shares: number; date: string }> = [];
+  for (const block of [
+    ...xmlBlocks(xml, "nonDerivativeHolding"),
+    ...xmlBlocks(xml, "nonDerivativeTransaction"),
+  ]) {
+    const ownership = xmlValue(block, "directOrIndirectOwnership");
+    const shares = parseNumber(
+      xmlValue(block, "sharesOwnedFollowingTransaction") ??
+      xmlValue(block, "sharesOwned"),
+    );
+    if (ownership !== "D" || shares == null) continue;
+    directHoldings.push({
+      shares,
+      date: xmlValue(block, "transactionDate") ??
+        xmlValue(xml, "periodOfReport") ??
+        filingDate,
+    });
+  }
+  const latestDirectHolding = directHoldings.at(-1);
+  return latestDirectHolding
+    ? { name: ownerName, shares: latestDirectHolding.shares, date: latestDirectHolding.date }
+    : null;
+}
+
+async function fetchRecentForm4Ownership(
+  cik: string,
+  submissions: SecSubmissions,
+  candidateNames: string[],
+): Promise<OwnershipRecord[]> {
+  const recent = submissions.filings?.recent ?? {};
+  const entries = (recent.form ?? []).flatMap((form, index) => {
+    const accessionNumber = recent.accessionNumber?.[index];
+    const primaryDocument = recent.primaryDocument?.[index];
+    const filingDate = recent.filingDate?.[index];
+    const isIssuerSideFiling = !recent.fileNumber?.[index]?.trim();
+    if (
+      (form !== "4" && form !== "4/A") ||
+      !accessionNumber ||
+      !primaryDocument ||
+      !filingDate ||
+      !isIssuerSideFiling
+    ) {
+      return [];
+    }
+    return [{
+      form,
+      accessionNumber,
+      primaryDocument,
+      filingDate,
+    }];
+  }).slice(0, 24);
+
+  const records = await Promise.all(entries.map(async (entry) => {
+    try {
+      const url = `https://www.sec.gov/Archives/edgar/data/${cik}/${entry.accessionNumber.replace(/-/g, "")}/${encodeURIComponent(entry.primaryDocument.split("/").at(-1) ?? entry.primaryDocument)}`;
+      const response = await fetchSec(url);
+      if (!response.ok) return null;
+      const xml = await response.text();
+      if (!/<(?:[A-Za-z0-9_-]+:)?ownershipDocument\b/i.test(xml)) return null;
+      const issuerCik = xmlValue(xml, "issuerCik")?.replace(/^0+/, "");
+      if (issuerCik !== cik.replace(/^0+/, "")) return null;
+      return form4HoldingFromXml(xml, entry.filingDate, candidateNames);
+    } catch {
+      return null;
+    }
+  }));
+
+  const latestByOwner: OwnershipRecord[] = [];
+  for (const record of records) {
+    if (!record) continue;
+    if (!latestByOwner.some((existing) => samePerson(existing.name, record.name))) {
+      latestByOwner.push(record);
+    }
+  }
+  return latestByOwner;
 }
 
 function splitNameAndTitle(value: string): { name: string; title: string } | null {
@@ -595,7 +721,12 @@ export async function getBoardLeadership(
 
   const proxy$ = proxyHtml ? cheerio.load(proxyHtml) : null;
   const proxyText = proxy$ ? normalizeSpace(proxy$("body").text()) : "";
-  const proxyOwnership = proxy$ ? parseOwnershipTable(proxy$) : [];
+  const proxyOwnership = proxy$
+    ? parseOwnershipTable(proxy$).map((entry) => ({
+        ...entry,
+        date: proxyFiling?.filingDate ?? null,
+      }))
+    : [];
   const yahooOwnership: OwnershipRecord[] = (quoteSummary.insiderHolders?.holders ?? []).flatMap((holder) => {
     const direct = typeof holder.positionDirect === "number" ? holder.positionDirect : 0;
     const indirect = typeof holder.positionIndirect === "number" ? holder.positionIndirect : 0;
@@ -607,8 +738,15 @@ export async function getBoardLeadership(
       date: rawDate instanceof Date ? rawDate.toISOString().slice(0, 10) : null,
     }];
   });
-  const ownership = [...proxyOwnership, ...yahooOwnership];
   const proxyCompensation = proxy$ ? parseExecutiveCompensation(proxy$) : [];
+  const leadershipNames = [
+    ...(quoteSummary.assetProfile?.companyOfficers ?? []).map((officer) => officer.name),
+    ...proxyCompensation.map((officer) => officer.name),
+  ];
+  const form4Ownership = cik && submissionsData
+    ? await fetchRecentForm4Ownership(cik, submissionsData, leadershipNames)
+    : [];
+  const ownership = [...form4Ownership, ...proxyOwnership, ...yahooOwnership];
 
   const executivePattern =
     /\b(CEO|CFO|COO|Chief\b|General Counsel\b|Controller\b|Company Secretary\b|Corporate Secretary\b)/i;
@@ -715,7 +853,7 @@ export async function getBoardLeadership(
       boardRosterAvailable: boardMembers.length > 0,
       activistFilingsReviewed: activist.reviewed,
       note: proxy$
-        ? "Compensation, ownership, board tenure, and election details are based on the latest available proxy statement. Current titles are supplemented by Yahoo Finance."
+        ? "Compensation, board tenure, and election details use the latest proxy statement. Ownership uses a newer matched SEC Form 4 direct balance when available, otherwise proxy beneficial ownership. Current titles are supplemented by Yahoo Finance."
         : "SEC proxy details were unavailable, so leadership coverage is limited to current Yahoo Finance records.",
     },
   };

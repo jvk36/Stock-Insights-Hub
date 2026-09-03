@@ -31,7 +31,19 @@ Serialize SEC requests below the SEC request ceiling and do not cache a failed p
 
 **Why:** Form 4 enrichment can fan out to many documents. Concurrent bursts can trigger archive-host HTTP 429 responses, making every board look empty if the incomplete response is cached.
 
-**How to apply:** Queue SEC traffic with spacing, use curl only as a transport fallback rather than to bypass 429, and cache incomplete proxy responses briefly so they recover after throttling clears.
+**How to apply:** Queue SEC traffic with spacing and cache incomplete proxy responses briefly. If Node fetch returns 429 while a paced curl request succeeds, treat it as a transport-specific block and use curl as the fallback.
+
+Treat a local profile block containing one Director Since year and one Age value as director evidence even when the name is in a sibling row or concatenated with an independence label or honorific.
+
+**Why:** SEC filing HTML can render profiles as visual cards whose extracted text becomes `1998Age`, `NAMEIndependent`, or `NAMEMr.`. Requiring a conventional table row silently drops otherwise complete rosters.
+
+**How to apply:** Detect semantic labels with optional separators, then recover the nearby name from headings, ownership names, independence labels, or honorific boundaries. Validate names independently of layout classes.
+
+Follow issuer-successor filing links when the ticker's current CIK has no definitive proxy.
+
+**Why:** A holding-company reorganization can move the ticker to a new CIK while the latest DEF 14A and governance history remain under the predecessor CIK.
+
+**How to apply:** Use recent market-data filing URLs to discover linked CIKs, then select the linked registrant with the latest DEF 14A. Do not hardcode ticker-to-predecessor exceptions.
 
 Classify DFAN14A and contested-solicitation forms as activist campaign signals, but do not treat PX14A6G filings as activist campaigns by default.
 

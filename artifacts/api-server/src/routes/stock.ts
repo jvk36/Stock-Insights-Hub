@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import YahooFinance from "yahoo-finance2";
+import { execFile, execSync } from "node:child_process";
 import {
   GetStockQuoteParams,
   GetStockChartParams,
@@ -31,20 +32,64 @@ const yahooFinance = new YahooFinance();
 // Simple in-process CIK cache (symbol → CIK string) to avoid repeat EDGAR lookups
 const cikCache = new Map<string, string>();
 let tickerCikMapPromise: Promise<Map<string, string>> | null = null;
+const SEC_TICKER_MAP_URL = "https://www.sec.gov/files/company_tickers.json";
+const SEC_USER_AGENT = "Stock Research Platform research@example.com";
+const CURL_BIN = (() => {
+  try {
+    return execSync("which curl", { encoding: "utf8" }).trim();
+  } catch {
+    return "curl";
+  }
+})();
+
+function fetchSecTickerMapWithCurl(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile(
+      CURL_BIN,
+      [
+        "-sS",
+        "-f",
+        "-L",
+        "--max-time",
+        "30",
+        "-A",
+        SEC_USER_AGENT,
+        "-H",
+        "Accept: application/json",
+        SEC_TICKER_MAP_URL,
+      ],
+      { maxBuffer: 10 * 1024 * 1024 },
+      (error, stdout, stderr) => {
+        if (error) {
+          reject(new Error(`SEC ticker map curl fallback failed: ${error.message} — ${stderr}`));
+          return;
+        }
+        resolve(stdout);
+      },
+    );
+  });
+}
 
 async function getTickerCikMap(): Promise<Map<string, string>> {
   if (!tickerCikMapPromise) {
-    tickerCikMapPromise = fetch("https://www.sec.gov/files/company_tickers.json", {
-      headers: {
-        "User-Agent": "Stock Research Platform research@example.com",
-        Accept: "application/json",
-      },
-      signal: AbortSignal.timeout(8000),
-    }).then(async (response) => {
-      if (!response.ok) {
-        throw new Error(`SEC ticker map returned ${response.status}`);
+    tickerCikMapPromise = (async () => {
+      let raw: string;
+      try {
+        const response = await fetch(SEC_TICKER_MAP_URL, {
+          headers: {
+            "User-Agent": SEC_USER_AGENT,
+            Accept: "application/json",
+          },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!response.ok) {
+          throw new Error(`SEC ticker map returned ${response.status}`);
+        }
+        raw = await response.text();
+      } catch {
+        raw = await fetchSecTickerMapWithCurl();
       }
-      const rows = (await response.json()) as Record<
+      const rows = JSON.parse(raw) as Record<
         string,
         { cik_str: number; ticker: string }
       >;
@@ -54,7 +99,7 @@ async function getTickerCikMap(): Promise<Map<string, string>> {
           String(row.cik_str),
         ]),
       );
-    });
+    })();
   }
   return tickerCikMapPromise;
 }

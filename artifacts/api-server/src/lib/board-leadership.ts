@@ -72,6 +72,13 @@ type SecSubmissions = {
   };
 };
 
+type YahooSecFilings = {
+  filings?: Array<{
+    edgarUrl?: string;
+    exhibits?: Array<{ url?: string }>;
+  }>;
+};
+
 export type BoardLeadershipData = {
   symbol: string;
   companyName: string;
@@ -140,7 +147,7 @@ function cleanPersonName(value: string): string {
   if (cleaned && cleaned === cleaned.toUpperCase()) {
     return cleaned
       .toLowerCase()
-      .replace(/(^|[\s'-])\p{L}/gu, (letter) => letter.toUpperCase());
+      .replace(/(^|[\s'’\-])\p{L}/gu, (letter) => letter.toUpperCase());
   }
   return cleaned;
 }
@@ -206,7 +213,6 @@ async function fetchSec(url: string): Promise<Response> {
     }
   }
 
-  if (lastResponse?.status === 429) return lastResponse;
   try {
     return await scheduleSecRequest(async () =>
       await new Promise<Response>((resolve, reject) => {
@@ -262,6 +268,23 @@ function submissionFilings(data: SecSubmissions): ProxyFiling[] {
       primaryDocument: documents[index],
     }];
   });
+}
+
+function linkedFilingCiks(secFilings: YahooSecFilings | undefined): string[] {
+  const ciks: string[] = [];
+  for (const filing of secFilings?.filings ?? []) {
+    const urls = [
+      filing.edgarUrl,
+      ...(filing.exhibits ?? []).map((exhibit) => exhibit.url),
+    ];
+    for (const url of urls) {
+      if (!url) continue;
+      const cik = url.match(/_(\d+)(?:[/?#]|$)/)?.[1] ??
+        url.match(/\/sec-filings\/0*(\d+)\//i)?.[1];
+      if (cik && !ciks.includes(cik)) ciks.push(cik);
+    }
+  }
+  return ciks;
 }
 
 function findOwnership(
@@ -587,6 +610,17 @@ function parseBoardMembers(
     });
     return match?.name ?? null;
   };
+  const ownershipNameInProfile = (value: string): string | null => {
+    const normalizedValue = normalizeSpace(value).toLowerCase();
+    const match = ownership
+      .filter((record) => {
+        const normalizedName = normalizeSpace(record.name).toLowerCase();
+        const index = normalizedValue.indexOf(normalizedName);
+        return normalizedName.length >= 5 && index >= 0 && index < 1_200;
+      })
+      .sort((left, right) => right.name.length - left.name.length)[0];
+    return match?.name ?? null;
+  };
   const inferredSummaryName = (value: string): string | null => {
     const withoutParentheticalRole = value.replace(
       /\s*\((?:Board Chair|Chair|Lead Director|Lead Independent Director)\)\s*/gi,
@@ -792,9 +826,13 @@ function parseBoardMembers(
   if (members.length === 0) {
     $("table").each((_index, table) => {
       const text = normalizeSpace($(table).text());
-      const ageMatch = text.match(/\bAge:\s*(\d{2,3})\b/i);
+      const sinceOccurrences = text.match(
+        /\bDirector(?: and Chairperson)?\s+since\s*:?\s*(?:[A-Za-z]+\s+)?\d{4}(?!\d)/gi,
+      ) ?? [];
+      if (sinceOccurrences.length !== 1) return;
+      const ageMatch = text.match(/Age\s*:?\s*(\d{2,3})(?!\d)/i);
       const sinceMatch = text.match(
-        /\bDirector(?: and Chairperson)? since:\s*(?:[A-Za-z]+\s+)?(\d{4})\b/i,
+        /\bDirector(?: and Chairperson)?\s+since\s*:?\s*(?:[A-Za-z]+\s+)?(\d{4})(?!\d)/i,
       );
       if (!ageMatch || !sinceMatch) return;
 
@@ -807,10 +845,26 @@ function parseBoardMembers(
       const profileNameMatch = headingName
         ? null
         : text.match(
-          /^(.{2,100}?)\s+(?=Founder and Executive Chair\b|President and CEO\b|Co-Founder\b|Lead Independent Director\b|Senior Counsel\b|Dean\b|Managing General Partner\b|Managing Partner\b|Former\b|Chairman\b|President\b)/i,
+          /^(.{2,100}?)\s+(?=Founder and Executive Chair\b|President and CEO\b|Co-Founder\b|Lead Independent Director\b|Independent Director\b|Senior Counsel\b|Dean\b|Managing General Partner\b|Managing Partner\b|Former\b|Chairman\b|President\b)/i,
+        );
+      const independenceSuffixMatch = text.match(
+        /\b([A-Z][A-Z .,'’\-]{3,80}?)(?=(?:Independent|Non-Independent|Executive Director|Chairman of the Board|Mr\.|Ms\.|Mrs\.|Dr\.))/,
+      );
+      const headingElementName = $(table)
+        .find("h1,h2,h3,h4,h5,h6,strong,b")
+        .map((_headingIndex, heading) => normalizeSpace($(heading).text()))
+        .get()
+        .find((candidate) =>
+          /^[\p{L}][\p{L} .,'’\-]{3,80}$/u.test(candidate) &&
+          personTokens(candidate).length >= 2 &&
+          personTokens(candidate).length <= 6 &&
+          !/\b(?:Director|Committee|Board|Age|Since|Independent|Qualifications|Experience)\b/i.test(candidate)
         );
       const inferredName = headingName ??
-        (profileNameMatch ? cleanPersonName(profileNameMatch[1]) : null);
+        ownershipNameInProfile(text) ??
+        (profileNameMatch ? cleanPersonName(profileNameMatch[1]) : null) ??
+        (independenceSuffixMatch ? cleanPersonName(independenceSuffixMatch[1]) : null) ??
+        (headingElementName ? cleanPersonName(headingElementName) : null);
       const ownershipRecord = inferredName
         ? findOwnership(ownership, inferredName)
         : ownership
@@ -826,6 +880,11 @@ function parseBoardMembers(
       if (!name) return;
       if (members.some((member) => samePerson(member.name, name))) return;
       const directorSince = Number(sinceMatch[1]);
+      const nameIndex = text.toLowerCase().indexOf(name.toLowerCase());
+      const profilePrefix = text.slice(
+        Math.max(0, nameIndex),
+        Math.min(text.length, Math.max(0, nameIndex) + name.length + 180),
+      );
       const profileLead = headingMatch
         ? normalizeSpace(headingMatch[2])
         : normalizeSpace(
@@ -844,7 +903,7 @@ function parseBoardMembers(
         );
       const role = /\bLead Independent Director\b/i.test(profileLead)
         ? "Lead Independent Director"
-        : /\b(?:Chairman of the Board|Board Chair)\b/i.test(profileLead)
+        : /\b(?:Chairman of the Board|Board Chair)\b/i.test(`${profileLead} ${profilePrefix}`)
           ? "Board Chair"
           : /\bExecutive Chair(?:man)?\b/i.test(profileLead) &&
               !/\bFormer Executive Chair(?:man)?\b/i.test(profileLead)
@@ -865,7 +924,8 @@ function parseBoardMembers(
         age: Number(ageMatch[1]),
         directorSince,
         tenureYears: Math.max(0, electionYear - directorSince),
-        isIndependent: /Lead Independent Director/i.test(profileLead)
+        isIndependent: /\bIndependent Director\b/i.test(`${profileLead} ${profilePrefix}`) &&
+            !/\bNon-Independent\b/i.test(profilePrefix)
           ? true
           : isCompanyExecutive
             ? false
@@ -1078,7 +1138,7 @@ export async function getBoardLeadership(
 
   const [quoteSummary, submissionsData] = await Promise.all([
     yahooFinance.quoteSummary(symbol, {
-      modules: ["assetProfile", "price", "insiderHolders"],
+      modules: ["assetProfile", "price", "insiderHolders", "secFilings"],
     }),
     cik
       ? fetchSec(`https://data.sec.gov/submissions/CIK${cik.padStart(10, "0")}.json`)
@@ -1092,12 +1152,38 @@ export async function getBoardLeadership(
     throw new Error(`Symbol ${symbol} not found`);
   }
 
-  const filings = submissionsData ? submissionFilings(submissionsData) : [];
-  const proxyFiling = filings.find((filing) => filing.form === "DEF 14A") ?? null;
+  let filingCik = cik;
+  let filingSubmissions = submissionsData;
+  let filings = filingSubmissions ? submissionFilings(filingSubmissions) : [];
+  let proxyFiling = filings.find((filing) => filing.form === "DEF 14A") ?? null;
+  if (!proxyFiling) {
+    const predecessorCiks = linkedFilingCiks(
+      quoteSummary.secFilings as YahooSecFilings | undefined,
+    ).filter((candidate) => candidate !== cik);
+    for (const candidateCik of predecessorCiks.slice(0, 6)) {
+      try {
+        const response = await fetchSec(
+          `https://data.sec.gov/submissions/CIK${candidateCik.padStart(10, "0")}.json`,
+        );
+        if (!response.ok) continue;
+        const candidateSubmissions = await response.json() as SecSubmissions;
+        const candidateFilings = submissionFilings(candidateSubmissions);
+        const candidateProxy = candidateFilings.find((filing) => filing.form === "DEF 14A");
+        if (!candidateProxy) continue;
+        filingCik = candidateCik;
+        filingSubmissions = candidateSubmissions;
+        filings = candidateFilings;
+        proxyFiling = candidateProxy;
+        break;
+      } catch {
+        continue;
+      }
+    }
+  }
   let proxyHtml: string | null = null;
-  if (cik && proxyFiling) {
+  if (filingCik && proxyFiling) {
     try {
-      const response = await fetchSec(documentUrl(cik, proxyFiling));
+      const response = await fetchSec(documentUrl(filingCik, proxyFiling));
       proxyHtml = response.ok ? await response.text() : null;
     } catch {
       proxyHtml = null;
@@ -1128,8 +1214,8 @@ export async function getBoardLeadership(
     ...(quoteSummary.assetProfile?.companyOfficers ?? []).map((officer) => officer.name),
     ...proxyCompensation.map((officer) => officer.name),
   ];
-  const form4Ownership = cik && submissionsData
-    ? await fetchRecentForm4Ownership(cik, submissionsData, leadershipNames)
+  const form4Ownership = filingCik && filingSubmissions
+    ? await fetchRecentForm4Ownership(filingCik, filingSubmissions, leadershipNames)
     : [];
   const ownership = [...form4Ownership, ...proxyOwnership, ...yahooOwnership];
 
@@ -1189,8 +1275,8 @@ export async function getBoardLeadership(
         executives.map((executive) => executive.name),
       )
     : [];
-  const activist = cik
-    ? await parseActivistCampaigns(cik, filings)
+  const activist = filingCik
+    ? await parseActivistCampaigns(filingCik, filings)
     : { campaigns: [], reviewed: 0 };
 
   const hasCurrentCampaign = activist.campaigns.some((campaign) =>
@@ -1222,12 +1308,12 @@ export async function getBoardLeadership(
       {
         label: "Latest SEC definitive proxy statement",
         filingDate: proxyFiling?.filingDate ?? null,
-        url: cik && proxyFiling ? documentUrl(cik, proxyFiling) : null,
+        url: filingCik && proxyFiling ? documentUrl(filingCik, proxyFiling) : null,
       },
       {
         label: "SEC company filing history",
         filingDate: null,
-        url: cik ? `https://www.sec.gov/edgar/browse/?CIK=${cik}` : null,
+        url: filingCik ? `https://www.sec.gov/edgar/browse/?CIK=${filingCik}` : null,
       },
     ],
     coverage: {

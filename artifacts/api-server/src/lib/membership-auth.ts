@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { clerkClient, getAuth } from "@clerk/express";
-import { db, membershipsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, membershipDeletionsTable, membershipsTable } from "@workspace/db";
+import { eq, sql } from "drizzle-orm";
 import { refreshStripeEntitlement } from "./stripe-client";
 
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
@@ -14,23 +14,31 @@ export async function getMembership(req: Request) {
   if (!primary?.emailAddress || primary.verification?.status !== "verified") return null;
   const email = primary.emailAddress.trim().toLowerCase();
   const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const [existing] = await db.select().from(membershipsTable).where(eq(membershipsTable.clerkUserId, userId)).limit(1);
-  const role = adminEmail && email === adminEmail
-    ? "admin"
-    : existing?.role === "paid"
-      ? "paid"
-      : "free";
-  await db.insert(membershipsTable).values({ clerkUserId: userId, email, role })
-    .onConflictDoUpdate({
-      target: membershipsTable.clerkUserId,
-      set: { email, role, updatedAt: new Date() },
-    });
-  const [membership] = await db.select().from(membershipsTable).where(eq(membershipsTable.clerkUserId, userId)).limit(1);
-  return membership ?? null;
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${userId}))`);
+    const [deleted] = await tx.select().from(membershipDeletionsTable)
+      .where(eq(membershipDeletionsTable.clerkUserId, userId))
+      .limit(1);
+    if (deleted) return null;
+    const [existing] = await tx.select().from(membershipsTable).where(eq(membershipsTable.clerkUserId, userId)).limit(1);
+    const role = adminEmail && email === adminEmail
+      ? "admin"
+      : existing?.role === "paid"
+        ? "paid"
+        : "free";
+    await tx.insert(membershipsTable).values({ clerkUserId: userId, email, role })
+      .onConflictDoUpdate({
+        target: membershipsTable.clerkUserId,
+        set: { email, role, updatedAt: new Date() },
+      });
+    const [membership] = await tx.select().from(membershipsTable).where(eq(membershipsTable.clerkUserId, userId)).limit(1);
+    return membership ?? null;
+  });
 }
 
 export function hasPremiumAccess(membership: Awaited<ReturnType<typeof getMembership>>) {
   if (!membership) return false;
+  if (membership.deletionStartedAt) return false;
   if (membership.role === "admin") return true;
   return membership.role === "paid" &&
     !!membership.subscriptionStatus &&

@@ -18,9 +18,16 @@ async function stripeRequest<T>(path: string, method = "GET", fields?: Record<st
   return payload;
 }
 
+async function deleteStripeResource(path: string) {
+  const response = await connectors.proxy("stripe", path, { method: "DELETE" });
+  if (response.status === 404) return;
+  const payload = await response.json() as { error?: { message?: string } };
+  if (!response.ok) throw new Error(payload.error?.message ?? `Stripe request failed (${response.status})`);
+}
+
 type StripeProduct = { id: string };
 type StripePrice = { id: string; unit_amount: number; metadata?: Record<string, string> };
-type StripeCustomer = { id: string };
+type StripeCustomer = { id: string; metadata?: Record<string, string> };
 type StripeSession = { url: string | null };
 type StripeSubscription = {
   id: string;
@@ -81,7 +88,31 @@ export async function createBillingPortal(customerId: string, returnUrl: string)
   });
 }
 
+export async function deleteStripeBillingAccount(customerId: string) {
+  // Deleting a Stripe customer immediately cancels all of that customer's
+  // active subscriptions and keeps the cancellation visible in Stripe history.
+  await deleteStripeResource(`/v1/customers/${encodeURIComponent(customerId)}`);
+}
+
+export async function deleteStripeBillingAccountsForUser(clerkUserId: string, knownCustomerId?: string | null) {
+  const [recent, found] = await Promise.all([
+    stripeRequest<{ data: StripeCustomer[] }>("/v1/customers?limit=100"),
+    stripeRequest<{ data: StripeCustomer[] }>(
+      `/v1/customers/search?query=${encodeURIComponent(`metadata['clerkUserId']:'${clerkUserId}'`)}`,
+    ),
+  ]);
+  const customerIds = new Set([
+    ...recent.data.filter((customer) => customer.metadata?.clerkUserId === clerkUserId).map((customer) => customer.id),
+    ...found.data.map((customer) => customer.id),
+  ]);
+  if (knownCustomerId) customerIds.add(knownCustomerId);
+  for (const customerId of customerIds) {
+    await deleteStripeBillingAccount(customerId);
+  }
+}
+
 export async function refreshStripeEntitlement(membership: Membership) {
+  if (membership.deletionStartedAt) return membership;
   if (!membership.stripeCustomerId || membership.role === "admin") return membership;
   const prices = await ensureMembershipPrices();
   const allowedPriceIds = new Set([prices.monthly, prices.annual]);

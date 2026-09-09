@@ -11,6 +11,7 @@ export const membershipsTable = pgTable(
     subscriptionStatus: text("subscription_status"),
     plan: text("plan"),
     currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+    deletionStartedAt: timestamp("deletion_started_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   },
@@ -22,3 +23,8 @@ export const membershipsTable = pgTable(
 );
 
 export type Membership = typeof membershipsTable.$inferSelect;
+
+export const membershipDeletionsTable = pgTable("membership_deletions", {
+  clerkUserId: text("clerk_user_id").primaryKey(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

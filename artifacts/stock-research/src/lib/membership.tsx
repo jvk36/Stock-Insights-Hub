@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
 import { useAuth } from "@clerk/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -21,6 +21,7 @@ const MembershipContext = createContext<{
 export function MembershipProvider({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn, userId } = useAuth();
   const queryClient = useQueryClient();
+  const wasSignedIn = useRef(false);
   const query = useQuery({
     queryKey: ["membership", userId],
     enabled: isLoaded && isSignedIn && !!userId,
@@ -35,8 +36,16 @@ export function MembershipProvider({ children }: { children: React.ReactNode }) 
     },
   });
   useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      queryClient.removeQueries({ queryKey: ["membership"] });
+    if (!isLoaded) return;
+    if (isSignedIn) {
+      wasSignedIn.current = true;
+      return;
+    }
+    queryClient.clear();
+    if (wasSignedIn.current) {
+      wasSignedIn.current = false;
+      const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+      window.location.replace(`${basePath}/13f`);
     }
   }, [isLoaded, isSignedIn, queryClient]);
 

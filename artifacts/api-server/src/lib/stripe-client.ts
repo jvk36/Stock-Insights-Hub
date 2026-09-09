@@ -27,10 +27,15 @@ type StripeSubscription = {
   status: string;
   current_period_end?: number;
   metadata?: Record<string, string>;
-  items?: { data?: Array<{ current_period_end?: number; price?: { metadata?: Record<string, string> } }> };
+  items?: { data?: Array<{ current_period_end?: number; price?: { id?: string; metadata?: Record<string, string> } }> };
 };
 
+let priceCache: { monthly: string; annual: string; expiresAt: number } | undefined;
+
 export async function ensureMembershipPrices() {
+  if (priceCache && priceCache.expiresAt > Date.now()) {
+    return { monthly: priceCache.monthly, annual: priceCache.annual };
+  }
   const found = await stripeRequest<{ data: StripeProduct[] }>(
     `/v1/products/search?query=${encodeURIComponent("metadata['app_key']:'stock_research_membership'")}`,
   );
@@ -50,6 +55,7 @@ export async function ensureMembershipPrices() {
     product: product.id, currency: "usd", unit_amount: "15000",
     "recurring[interval]": "year", "metadata[plan]": "annual",
   });
+  priceCache = { monthly: monthly.id, annual: annual.id, expiresAt: Date.now() + 5 * 60_000 };
   return { monthly: monthly.id, annual: annual.id };
 }
 
@@ -59,14 +65,14 @@ export async function createStripeCustomer(email: string, clerkUserId: string) {
   });
 }
 
-export async function createCheckout(customerId: string, priceId: string, clerkUserId: string, plan: string, successUrl: string, cancelUrl: string) {
+export async function createCheckout(customerId: string, priceId: string, clerkUserId: string, plan: string, attemptId: string, successUrl: string, cancelUrl: string) {
   return stripeRequest<StripeSession>("/v1/checkout/sessions", "POST", {
     customer: customerId, mode: "subscription",
     "line_items[0][price]": priceId, "line_items[0][quantity]": "1",
     success_url: successUrl, cancel_url: cancelUrl,
     "subscription_data[metadata][clerkUserId]": clerkUserId,
     "subscription_data[metadata][plan]": plan,
-  }, `membership-checkout-${clerkUserId}-${Math.floor(Date.now() / 1_800_000)}`);
+  }, `membership-checkout-${clerkUserId}-${plan}-${attemptId}`);
 }
 
 export async function createBillingPortal(customerId: string, returnUrl: string) {
@@ -77,10 +83,19 @@ export async function createBillingPortal(customerId: string, returnUrl: string)
 
 export async function refreshStripeEntitlement(membership: Membership) {
   if (!membership.stripeCustomerId || membership.role === "admin") return membership;
+  const prices = await ensureMembershipPrices();
+  const allowedPriceIds = new Set([prices.monthly, prices.annual]);
   const result = await stripeRequest<{ data: StripeSubscription[] }>(
     `/v1/subscriptions?customer=${membership.stripeCustomerId}&status=all&limit=20`,
   );
-  const subscriptions = result.data.sort((a, b) => {
+  const subscriptions = result.data.filter((subscription) => {
+    const item = subscription.items?.data?.[0];
+    const plan = subscription.metadata?.plan ?? item?.price?.metadata?.plan;
+    return subscription.metadata?.clerkUserId === membership.clerkUserId &&
+      (plan === "monthly" || plan === "annual") &&
+      !!item?.price?.id &&
+      allowedPriceIds.has(item.price.id);
+  }).sort((a, b) => {
     const bEnd = b.current_period_end ?? b.items?.data?.[0]?.current_period_end ?? 0;
     const aEnd = a.current_period_end ?? a.items?.data?.[0]?.current_period_end ?? 0;
     return bEnd - aEnd;

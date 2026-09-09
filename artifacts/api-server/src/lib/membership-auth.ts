@@ -14,11 +14,16 @@ export async function getMembership(req: Request) {
   if (!primary?.emailAddress || primary.verification?.status !== "verified") return null;
   const email = primary.emailAddress.trim().toLowerCase();
   const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const role = adminEmail && email === adminEmail ? "admin" : "free";
+  const [existing] = await db.select().from(membershipsTable).where(eq(membershipsTable.clerkUserId, userId)).limit(1);
+  const role = adminEmail && email === adminEmail
+    ? "admin"
+    : existing?.role === "paid"
+      ? "paid"
+      : "free";
   await db.insert(membershipsTable).values({ clerkUserId: userId, email, role })
     .onConflictDoUpdate({
       target: membershipsTable.clerkUserId,
-      set: { email, ...(role === "admin" ? { role: "admin" } : {}), updatedAt: new Date() },
+      set: { email, role, updatedAt: new Date() },
     });
   const [membership] = await db.select().from(membershipsTable).where(eq(membershipsTable.clerkUserId, userId)).limit(1);
   return membership ?? null;

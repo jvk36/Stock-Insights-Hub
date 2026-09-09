@@ -10,6 +10,18 @@ router.get("/membership/plans", (_req, res) => {
   res.json({ monthly: { amount: 15, interval: "month" }, annual: { amount: 150, interval: "year" } });
 });
 
+function getFrontendOrigin() {
+  const configured = process.env.PUBLIC_APP_URL?.trim();
+  if (configured) {
+    const url = new URL(configured);
+    if (url.protocol !== "https:" && url.hostname !== "localhost") throw new Error("PUBLIC_APP_URL must use HTTPS");
+    return url.origin;
+  }
+  const replitDomain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
+  if (!replitDomain) throw new Error("PUBLIC_APP_URL or REPLIT_DOMAINS is required");
+  return `https://${replitDomain}`;
+}
+
 router.get("/membership/me", async (req, res) => {
   let membership = await getMembership(req);
   if (!membership) return res.status(401).json({ authenticated: false, premium: false, role: "free" });
@@ -29,6 +41,10 @@ router.post("/membership/checkout", async (req, res) => {
   if (hasPremiumAccess(membership)) return res.status(409).json({ error: "A premium subscription is already active" });
   const plan: "monthly" | "annual" | undefined = req.body?.plan;
   if (plan !== "monthly" && plan !== "annual") return res.status(400).json({ error: "Invalid plan" });
+  const attemptId = req.body?.attemptId;
+  if (typeof attemptId !== "string" || !/^[a-zA-Z0-9-]{8,80}$/.test(attemptId)) {
+    return res.status(400).json({ error: "Invalid checkout attempt" });
+  }
   let customerId = membership.stripeCustomerId;
   if (!customerId) {
     const customer = await createStripeCustomer(membership.email, membership.clerkUserId);
@@ -36,10 +52,10 @@ router.post("/membership/checkout", async (req, res) => {
     await db.update(membershipsTable).set({ stripeCustomerId: customerId }).where(eq(membershipsTable.clerkUserId, membership.clerkUserId));
   }
   const prices = await ensureMembershipPrices();
-  const origin = req.get("origin") ?? `${req.protocol}://${req.get("host")}`;
+  const origin = getFrontendOrigin();
   const basePath = typeof req.body?.basePath === "string" && /^\/[a-z0-9-]*$/i.test(req.body.basePath) ? req.body.basePath : "";
   const session = await createCheckout(
-    customerId, prices[plan], membership.clerkUserId, plan,
+    customerId, prices[plan], membership.clerkUserId, plan, attemptId,
     `${origin}${basePath}/account?checkout=success`,
     `${origin}${basePath}/pricing`,
   );
@@ -50,7 +66,7 @@ router.post("/membership/portal", async (req, res) => {
   const membership = await getMembership(req);
   if (!membership) return res.status(401).json({ error: "Sign in required" });
   if (!membership.stripeCustomerId) return res.status(400).json({ error: "No billing account found" });
-  const origin = req.get("origin") ?? `${req.protocol}://${req.get("host")}`;
+  const origin = getFrontendOrigin();
   const basePath = typeof req.body?.basePath === "string" && /^\/[a-z0-9-]*$/i.test(req.body.basePath) ? req.body.basePath : "";
   const session = await createBillingPortal(membership.stripeCustomerId, `${origin}${basePath}/account`);
   return res.json({ url: session.url });

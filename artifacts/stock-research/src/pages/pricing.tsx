@@ -18,7 +18,7 @@ export default function Pricing() {
     if (!isSignedIn) return setLocation("/sign-up");
     setBusy(plan); setError("");
     try {
-      const result = await postMembership("checkout", { plan, basePath });
+      const result = await postMembership("checkout", { plan, basePath, attemptId: crypto.randomUUID() });
       if (result.url) window.location.assign(result.url);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Checkout could not be started");

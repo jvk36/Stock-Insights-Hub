@@ -69,7 +69,7 @@ function Routes() {
 export default function App() {
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
   const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
-  const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+  const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL || (import.meta.env.PROD ? "/api/__clerk" : undefined);
   return (
     <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} appearance={{ theme: shadcn, variables: { colorPrimary: "hsl(145 52% 30%)" } }}>
       <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={basePath}><MembershipProvider><Routes /><AccountDock /></MembershipProvider></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>

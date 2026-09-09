@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { Search, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -30,15 +30,24 @@ export default function MacroSummary() {
     }
   };
 
-  const { data, isLoading, isError } = useGetMacroIndicators({
+  const { data, isLoading, isFetching, isError, error, refetch } = useGetMacroIndicators({
     query: {
       queryKey: getGetMacroIndicatorsQueryKey(),
       staleTime: 5 * 60 * 1000,
+      retry: 1,
     },
   });
 
   const indicators = data?.indicators ?? [];
+  const availableCount = indicators.filter((indicator) => indicator.value !== null).length;
+  const unavailableCount = indicators.length - availableCount;
   const marketCycle = data?.marketCycle ?? { phase: "Unknown", confidence: 0 };
+
+  useEffect(() => {
+    if (!data || availableCount > 0 || isFetching) return;
+    const interval = window.setInterval(() => void refetch(), 3_000);
+    return () => window.clearInterval(interval);
+  }, [availableCount, data, isFetching, refetch]);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -127,13 +136,34 @@ export default function MacroSummary() {
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-6 text-center">
             <p className="text-destructive font-medium">Failed to load macro data</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Check your connection and FRED API availability.
+              {error instanceof Error ? error.message : "The data service did not respond."}
             </p>
+            <button type="button" onClick={() => void refetch()} className="mt-4 rounded-md border bg-background px-4 py-2 text-sm font-medium hover:bg-muted">
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!isLoading && !isError && indicators.length > 0 && availableCount === 0 && (
+          <div className="rounded-lg border border-primary/25 bg-primary/5 p-6 text-center">
+            <p className="font-medium">Macro data is warming up</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              The first readings are loading after a server restart. This page will update automatically.
+            </p>
+            <button type="button" disabled={isFetching} onClick={() => void refetch()} className="mt-4 rounded-md border bg-background px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-60">
+              {isFetching ? "Checking…" : "Check now"}
+            </button>
+          </div>
+        )}
+
+        {!isLoading && !isError && availableCount > 0 && unavailableCount > 0 && (
+          <div className="rounded-md border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+            Showing {availableCount} current readings. {unavailableCount} {unavailableCount === 1 ? "series is" : "series are"} temporarily unavailable and will be filled in automatically.
           </div>
         )}
 
         {/* Main content */}
-        {!isLoading && !isError && (
+        {!isLoading && !isError && availableCount > 0 && (
           <Tabs defaultValue="overview" className="w-full">
             <TabsList className="bg-card border border-border h-auto p-1 flex flex-wrap gap-0.5 w-full lg:w-auto lg:inline-flex lg:flex-nowrap overflow-x-auto">
               <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm">Overview</TabsTrigger>

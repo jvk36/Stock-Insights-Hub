@@ -4,6 +4,18 @@ import { eq } from "drizzle-orm";
 
 const connectors = new ReplitConnectors();
 
+async function readStripeResponse<T>(response: Response): Promise<T & { error?: { message?: string } }> {
+  const raw = await response.text();
+  if (!raw.trim()) {
+    throw new Error(`Stripe returned an empty response (${response.status})`);
+  }
+  try {
+    return JSON.parse(raw) as T & { error?: { message?: string } };
+  } catch {
+    throw new Error(`Stripe returned an invalid response (${response.status})`);
+  }
+}
+
 async function stripeRequest<T>(path: string, method = "GET", fields?: Record<string, string>, idempotencyKey?: string) {
   const response = await connectors.proxy("stripe", path, {
     method,
@@ -13,7 +25,7 @@ async function stripeRequest<T>(path: string, method = "GET", fields?: Record<st
     } : undefined,
     body: fields ? new URLSearchParams(fields).toString() : undefined,
   });
-  const payload = await response.json() as T & { error?: { message?: string } };
+  const payload = await readStripeResponse<T>(response);
   if (!response.ok) throw new Error(payload.error?.message ?? `Stripe request failed (${response.status})`);
   return payload;
 }
@@ -21,7 +33,7 @@ async function stripeRequest<T>(path: string, method = "GET", fields?: Record<st
 async function deleteStripeResource(path: string) {
   const response = await connectors.proxy("stripe", path, { method: "DELETE" });
   if (response.status === 404) return;
-  const payload = await response.json() as { error?: { message?: string } };
+  const payload = await readStripeResponse<Record<string, unknown>>(response);
   if (!response.ok) throw new Error(payload.error?.message ?? `Stripe request failed (${response.status})`);
 }
 

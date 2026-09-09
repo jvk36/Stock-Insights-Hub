@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Response } from "express";
 import { clerkClient } from "@clerk/express";
 import { db, membershipDeletionsTable, membershipsTable } from "@workspace/db";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
@@ -32,10 +32,22 @@ function getFrontendOrigin() {
   return `https://${replitDomain}`;
 }
 
+function billingUnavailable(res: Response, action: string) {
+  return res.status(503).json({
+    error: `Billing is temporarily unavailable, so ${action} could not be completed. Reconnect Stripe and retry.`,
+    retryable: true,
+  });
+}
+
 router.get("/membership/me", async (req, res) => {
   let membership = await getMembership(req);
   if (!membership) return res.status(401).json({ authenticated: false, premium: false, role: "free" });
-  membership = await refreshStripeEntitlement(membership);
+  try {
+    membership = await refreshStripeEntitlement(membership);
+  } catch (error) {
+    req.log.warn({ err: error, clerkUserId: membership.clerkUserId }, "Stripe entitlement refresh failed");
+    return billingUnavailable(res, "membership verification");
+  }
   return res.json({
     authenticated: true, premium: hasPremiumAccess(membership), role: membership.role,
     email: membership.email, plan: membership.plan, subscriptionStatus: membership.subscriptionStatus,
@@ -48,7 +60,12 @@ router.post("/membership/checkout", async (req, res) => {
   if (!membership) return res.status(401).json({ error: "Sign in required" });
   if (membership.deletionStartedAt) return res.status(409).json({ error: "This account is being deleted" });
   if (membership.role === "admin") return res.status(400).json({ error: "Administrators already have premium access" });
-  membership = await refreshStripeEntitlement(membership);
+  try {
+    membership = await refreshStripeEntitlement(membership);
+  } catch (error) {
+    req.log.warn({ err: error, clerkUserId: membership.clerkUserId }, "Stripe checkout entitlement check failed");
+    return billingUnavailable(res, "checkout");
+  }
   if (hasPremiumAccess(membership)) return res.status(409).json({ error: "A premium subscription is already active" });
   const plan: "monthly" | "annual" | undefined = req.body?.plan;
   if (plan !== "monthly" && plan !== "annual") return res.status(400).json({ error: "Invalid plan" });
@@ -56,43 +73,49 @@ router.post("/membership/checkout", async (req, res) => {
   if (typeof attemptId !== "string" || !/^[a-zA-Z0-9-]{8,80}$/.test(attemptId)) {
     return res.status(400).json({ error: "Invalid checkout attempt" });
   }
-  let customerId = membership.stripeCustomerId;
-  if (!customerId) {
-    const customer = await createStripeCustomer(membership.email, membership.clerkUserId);
-    customerId = customer.id;
-    try {
-      const [updated] = await db.update(membershipsTable).set({ stripeCustomerId: customerId })
-        .where(and(
-          eq(membershipsTable.clerkUserId, membership.clerkUserId),
-          isNull(membershipsTable.deletionStartedAt),
-        ))
-        .returning();
-      if (updated) customerId = updated.stripeCustomerId!;
-      else {
-        await deleteStripeBillingAccount(customer.id);
-        return res.status(409).json({ error: "This account is being deleted" });
+  try {
+    let customerId = membership.stripeCustomerId;
+    if (!customerId) {
+      const customer = await createStripeCustomer(membership.email, membership.clerkUserId);
+      customerId = customer.id;
+      try {
+        const [updated] = await db.update(membershipsTable).set({ stripeCustomerId: customerId })
+          .where(and(
+            eq(membershipsTable.clerkUserId, membership.clerkUserId),
+            isNull(membershipsTable.deletionStartedAt),
+          ))
+          .returning();
+        if (updated) customerId = updated.stripeCustomerId!;
+        else {
+          await deleteStripeBillingAccount(customer.id);
+          return res.status(409).json({ error: "This account is being deleted" });
+        }
+      } catch (error) {
+        await deleteStripeBillingAccount(customerId);
+        throw error;
       }
-    } catch (error) {
-      await deleteStripeBillingAccount(customerId);
-      throw error;
     }
+    const prices = await ensureMembershipPrices();
+    const [checkoutMembership] = await db.select().from(membershipsTable)
+      .where(eq(membershipsTable.clerkUserId, membership.clerkUserId))
+      .limit(1);
+    if (!checkoutMembership || checkoutMembership.deletionStartedAt) {
+      await deleteStripeBillingAccountsForUser(membership.clerkUserId, customerId);
+      return res.status(409).json({ error: "This account is being deleted" });
+    }
+    const origin = getFrontendOrigin();
+    const basePath = typeof req.body?.basePath === "string" && /^\/[a-z0-9-]*$/i.test(req.body.basePath) ? req.body.basePath : "";
+    const session = await createCheckout(
+      customerId, prices[plan], membership.clerkUserId, plan, attemptId,
+      `${origin}${basePath}/account?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      `${origin}${basePath}/pricing`,
+    );
+    if (!session.url) return res.status(502).json({ error: "Stripe did not provide a checkout link. Please retry." });
+    return res.json({ url: session.url });
+  } catch (error) {
+    req.log.warn({ err: error, clerkUserId: membership.clerkUserId }, "Stripe checkout creation failed");
+    return billingUnavailable(res, "checkout");
   }
-  const prices = await ensureMembershipPrices();
-  const [checkoutMembership] = await db.select().from(membershipsTable)
-    .where(eq(membershipsTable.clerkUserId, membership.clerkUserId))
-    .limit(1);
-  if (!checkoutMembership || checkoutMembership.deletionStartedAt) {
-    await deleteStripeBillingAccountsForUser(membership.clerkUserId, customerId);
-    return res.status(409).json({ error: "This account is being deleted" });
-  }
-  const origin = getFrontendOrigin();
-  const basePath = typeof req.body?.basePath === "string" && /^\/[a-z0-9-]*$/i.test(req.body.basePath) ? req.body.basePath : "";
-  const session = await createCheckout(
-    customerId, prices[plan], membership.clerkUserId, plan, attemptId,
-    `${origin}${basePath}/account?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-    `${origin}${basePath}/pricing`,
-  );
-  return res.json({ url: session.url });
 });
 
 router.post("/membership/portal", async (req, res) => {
@@ -100,10 +123,16 @@ router.post("/membership/portal", async (req, res) => {
   if (!membership) return res.status(401).json({ error: "Sign in required" });
   if (membership.deletionStartedAt) return res.status(409).json({ error: "This account is being deleted" });
   if (!membership.stripeCustomerId) return res.status(400).json({ error: "No billing account found" });
-  const origin = getFrontendOrigin();
-  const basePath = typeof req.body?.basePath === "string" && /^\/[a-z0-9-]*$/i.test(req.body.basePath) ? req.body.basePath : "";
-  const session = await createBillingPortal(membership.stripeCustomerId, `${origin}${basePath}/account`);
-  return res.json({ url: session.url });
+  try {
+    const origin = getFrontendOrigin();
+    const basePath = typeof req.body?.basePath === "string" && /^\/[a-z0-9-]*$/i.test(req.body.basePath) ? req.body.basePath : "";
+    const session = await createBillingPortal(membership.stripeCustomerId, `${origin}${basePath}/account`);
+    if (!session.url) return res.status(502).json({ error: "Stripe did not provide a billing portal link. Please retry." });
+    return res.json({ url: session.url });
+  } catch (error) {
+    req.log.warn({ err: error, clerkUserId: membership.clerkUserId }, "Stripe billing portal creation failed");
+    return billingUnavailable(res, "the billing portal request");
+  }
 });
 
 router.get("/membership/admin/users", async (req, res) => {

@@ -1,6 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
-import { warmMacroCache } from "./routes/macro";
+import { primeMacroCache, warmMacroCache } from "./routes/macro";
 import { warmIndexMetricsCache } from "./routes/indexes";
 import { initEdgarFetcher } from "./lib/edgar-fetcher";
 import { ensureMembershipPrices } from "./lib/stripe-client";
@@ -18,6 +18,9 @@ const port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
+
+// Ensure the public Macro route can respond immediately while upstream data warms.
+primeMacroCache();
 
 async function initializeMemberships() {
   await ensureMembershipPrices();

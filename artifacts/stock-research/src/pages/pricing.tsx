@@ -19,7 +19,8 @@ export default function Pricing() {
     setBusy(plan); setError("");
     try {
       const result = await postMembership("checkout", { plan, basePath, attemptId: crypto.randomUUID() });
-      if (result.url) window.location.assign(result.url);
+      if (!result.url) throw new Error("Checkout did not return a payment link. Please retry.");
+      window.location.assign(result.url);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Checkout could not be started");
       setBusy(undefined);
@@ -42,7 +43,7 @@ export default function Pricing() {
           <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10"><Crown className="h-6 w-6 text-primary" /></div>
           <p className="text-sm font-semibold uppercase tracking-[.2em] text-primary">Premium research</p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">Make better-informed decisions</h1>
-          <p className="mt-4 text-lg text-muted-foreground">Unlock the complete stock research terminal. Cancel anytime.</p>
+          <p className="mt-4 text-lg text-muted-foreground">Unlock the complete stock research terminal. New accounts remain Free until payment succeeds. Cancel anytime.</p>
         </div>
         {membership?.premium ? (
           <div className="mx-auto mt-10 max-w-lg rounded-xl border border-primary/30 bg-primary/5 p-6 text-center">

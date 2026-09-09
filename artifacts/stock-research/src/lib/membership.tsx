@@ -18,6 +18,29 @@ const MembershipContext = createContext<{
   refresh: () => Promise<unknown>;
 }>({ loading: true, refresh: async () => undefined });
 
+type MembershipResponse = { url?: string; error?: string; message?: string };
+
+async function readMembershipResponse(response: Response): Promise<MembershipResponse> {
+  const raw = await response.text();
+  if (!raw.trim()) return {};
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed && typeof parsed === "object" ? parsed as MembershipResponse : {};
+  } catch {
+    return {};
+  }
+}
+
+function membershipError(response: Response, data: MembershipResponse): string {
+  if (data.error) return data.error;
+  if (data.message) return data.message;
+  if (response.status === 401) return "Your session expired. Sign in and retry.";
+  if (response.status === 403) return "This request is not allowed from the current page.";
+  if (response.status === 409) return "This account cannot be changed right now. Refresh and retry.";
+  if (response.status === 502 || response.status === 503) return "Billing is temporarily unavailable. Please retry shortly.";
+  return `The request could not be completed (server returned ${response.status}).`;
+}
+
 export function MembershipProvider({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn, userId } = useAuth();
   const queryClient = useQueryClient();
@@ -31,8 +54,10 @@ export function MembershipProvider({ children }: { children: React.ReactNode }) 
     refetchOnWindowFocus: true,
     queryFn: async () => {
       const response = await fetch("/api/membership/me", { credentials: "include" });
-      if (!response.ok) throw new Error("Unable to load membership");
-      return response.json() as Promise<Membership>;
+      const data = await readMembershipResponse(response);
+      if (!response.ok) throw new Error(membershipError(response, data));
+      if (!("authenticated" in data)) throw new Error("The server returned an invalid membership response.");
+      return data as Membership;
     },
   });
   useEffect(() => {
@@ -77,7 +102,7 @@ export async function postMembership(path: string, body: Record<string, unknown>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Request failed");
-  return data as { url?: string };
+  const data = await readMembershipResponse(response);
+  if (!response.ok) throw new Error(membershipError(response, data));
+  return data;
 }

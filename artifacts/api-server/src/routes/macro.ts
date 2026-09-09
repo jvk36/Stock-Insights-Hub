@@ -109,6 +109,8 @@ const INDICATORS: IndicatorDef[] = [
 
 interface CacheEntry<T> { data: T; expires: number; refreshing?: boolean }
 const cache = new Map<string, CacheEntry<unknown>>();
+const MACRO_CACHE_KEY = "macro:indicators";
+const MACRO_CACHE_TTL = 24 * 60 * 60 * 1000;
 
 function fromCache<T>(key: string): { data: T; stale: boolean } | null {
   const entry = cache.get(key) as CacheEntry<T> | undefined;
@@ -127,6 +129,13 @@ function isCacheRefreshing(key: string): boolean {
 function setCacheRefreshing(key: string, v: boolean): void {
   const e = cache.get(key);
   if (e) (e as CacheEntry<unknown>).refreshing = v;
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs)),
+  ]);
 }
 
 // ─── Yahoo Finance helpers (market indicators — no rate limit issues) ─────────
@@ -615,40 +624,10 @@ function inferMarketCycle(indicators: Map<string, number | null>) {
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
-async function fetchAllIndicators() {
-  const YAHOO_IDS = new Set(["yield_curve", "sp500_200ma", ...Object.keys(YAHOO_SYMBOLS)]);
-
-  // Fetch Yahoo Finance indicators in parallel — fast, no rate limit concerns
-  const yahooResultMap = new Map<string, { value: number | null; date: string | null }>();
-  await Promise.allSettled(
-    INDICATORS.filter((d) => YAHOO_IDS.has(d.id)).map(async (def) => {
-      const result =
-        def.id === "yield_curve"
-          ? await yahooYieldCurve()
-          : def.id === "sp500_200ma"
-          ? await yahooSP500vs200MA()
-          : await yahooLatest(YAHOO_SYMBOLS[def.id]!);
-      yahooResultMap.set(def.id, result);
-    }),
-  );
-
-  // Fetch FRED-based indicators serially — 600ms gap (~1.5 req/sec) to stay under FRED rate limit
-  const fredResultMap = new Map<string, { value: number | null; date: string | null }>();
-  // Deduplicate: if two indicators share the same seriesId+units, reuse the first result
-  const fredCache = new Map<string, { value: number | null; date: string | null }>();
-  const fredDefs = INDICATORS.filter((d) => !YAHOO_IDS.has(d.id));
-  for (let i = 0; i < fredDefs.length; i++) {
-    const def = fredDefs[i];
-    const key = `${def.seriesId}:${def.chartUnits}`;
-    let result = fredCache.get(key);
-    if (!result) {
-      if (i > 0) await delay(600);
-      result = await fredLatest(def);
-      fredCache.set(key, result);
-    }
-    fredResultMap.set(def.id, result);
-  }
-
+function buildIndicatorsPayload(
+  yahooResultMap: Map<string, { value: number | null; date: string | null }>,
+  fredResultMap: Map<string, { value: number | null; date: string | null }>,
+): IndicatorsPayload {
   const valueMap = new Map<string, number | null>();
   const indicators = INDICATORS.map((def) => {
     const { value, date } =
@@ -673,34 +652,134 @@ async function fetchAllIndicators() {
       explanation,
     };
   });
+  return { indicators, marketCycle: inferMarketCycle(valueMap), fetchedAt: new Date().toISOString() };
+}
 
-  const marketCycle = inferMarketCycle(valueMap);
-  return { indicators, marketCycle, fetchedAt: new Date().toISOString() };
+async function fetchInitialIndicators(onPartial?: (payload: IndicatorsPayload) => void) {
+  const YAHOO_IDS = new Set(["yield_curve", "sp500_200ma", ...Object.keys(YAHOO_SYMBOLS)]);
+
+  // Fetch Yahoo Finance indicators in parallel — fast, no rate limit concerns
+  const yahooResultMap = new Map<string, { value: number | null; date: string | null }>();
+  await Promise.allSettled(
+    INDICATORS.filter((d) => YAHOO_IDS.has(d.id)).map(async (def) => {
+      const request =
+        def.id === "yield_curve"
+          ? yahooYieldCurve()
+          : def.id === "sp500_200ma"
+          ? yahooSP500vs200MA()
+          : yahooLatest(YAHOO_SYMBOLS[def.id]!);
+      const result = await withTimeout(request, 5_000, { value: null, date: null });
+      yahooResultMap.set(def.id, result);
+    }),
+  );
+  onPartial?.(buildIndicatorsPayload(
+    yahooResultMap,
+    new Map<string, { value: number | null; date: string | null }>(),
+  ));
+
+  // Fetch FRED-based indicators serially — 600ms gap (~1.5 req/sec) to stay under FRED rate limit
+  const fredResultMap = new Map<string, { value: number | null; date: string | null }>();
+  // Deduplicate: if two indicators share the same seriesId+units, reuse the first result
+  const fredCache = new Map<string, { value: number | null; date: string | null }>();
+  const fredDefs = INDICATORS.filter((d) => !YAHOO_IDS.has(d.id)).slice(0, 8);
+  for (let i = 0; i < fredDefs.length; i++) {
+    const def = fredDefs[i];
+    const key = `${def.seriesId}:${def.chartUnits}`;
+    let result = fredCache.get(key);
+    if (!result) {
+      if (i > 0) await delay(600);
+      result = await fredLatest(def);
+      fredCache.set(key, result);
+    }
+    fredResultMap.set(def.id, result);
+  }
+
+  return buildIndicatorsPayload(yahooResultMap, fredResultMap);
+}
+
+interface IndicatorEntry {
+  id: string; seriesId: string; title: string; value: number | null;
+  date: string | null; unitsLabel: string; chartUnits: string;
+  source: string; frequency: string; category: string; type: string | null;
+  whyItMatters: string | null; signal: string | null; signalLabel: string | null;
+  explanation: string | null;
+}
+interface IndicatorsPayload { indicators: IndicatorEntry[]; marketCycle: unknown; fetchedAt: string }
+
+function emptyIndicatorsPayload(): IndicatorsPayload {
+  const valueMap = new Map<string, number | null>();
+  const indicators = INDICATORS.map((def) => {
+    valueMap.set(def.id, null);
+    const { signal, label: signalLabel, explanation } = getSignal(def.id, null);
+    return {
+      ...def,
+      value: null,
+      date: null,
+      type: def.type ?? null,
+      whyItMatters: def.whyItMatters ?? null,
+      signal,
+      signalLabel,
+      explanation,
+    };
+  });
+  return { indicators, marketCycle: inferMarketCycle(valueMap), fetchedAt: new Date().toISOString() };
+}
+
+function mergeIndicatorPayload(
+  existing: IndicatorsPayload,
+  incoming: IndicatorsPayload,
+): IndicatorsPayload {
+  const incomingById = new Map(incoming.indicators.map((indicator) => [indicator.id, indicator]));
+  const valueMap = new Map<string, number | null>();
+  const indicators = existing.indicators.map((indicator) => {
+    const fresh = incomingById.get(indicator.id);
+    const merged = fresh?.value != null ? fresh : indicator;
+    valueMap.set(merged.id, merged.value);
+    return merged;
+  });
+  return {
+    indicators,
+    marketCycle: inferMarketCycle(valueMap),
+    fetchedAt: incoming.fetchedAt,
+  };
+}
+
+export function primeMacroCache(): void {
+  if (!fromCache<IndicatorsPayload>(MACRO_CACHE_KEY)) {
+    toCache(MACRO_CACHE_KEY, emptyIndicatorsPayload(), MACRO_CACHE_TTL);
+  }
+}
+
+async function refreshInitialMacroCache(): Promise<void> {
+  const mergeIntoCache = (incoming: IndicatorsPayload) => {
+    const existing = fromCache<IndicatorsPayload>(MACRO_CACHE_KEY)?.data;
+    const payload = existing ? mergeIndicatorPayload(existing, incoming) : incoming;
+    toCache(MACRO_CACHE_KEY, payload, MACRO_CACHE_TTL);
+  };
+  const incoming = await fetchInitialIndicators(mergeIntoCache);
+  mergeIntoCache(incoming);
 }
 
 router.get("/macro/indicators", async (req, res): Promise<void> => {
-  const CACHE_KEY = "macro:indicators";
-  const CACHE_TTL = 24 * 60 * 60 * 1000; // 24-hour TTL (data is daily)
-
-  const cached = fromCache<object>(CACHE_KEY);
+  const cached = fromCache<IndicatorsPayload>(MACRO_CACHE_KEY);
 
   if (cached) {
     res.json(cached.data);
     // Revalidate in background if stale and not already refreshing
-    if (cached.stale && !isCacheRefreshing(CACHE_KEY)) {
-      setCacheRefreshing(CACHE_KEY, true);
-      fetchAllIndicators()
-        .then((payload) => toCache(CACHE_KEY, payload, CACHE_TTL))
+    if (cached.stale && !isCacheRefreshing(MACRO_CACHE_KEY)) {
+      setCacheRefreshing(MACRO_CACHE_KEY, true);
+      refreshInitialMacroCache()
         .catch(() => { /* suppress background errors */ })
-        .finally(() => setCacheRefreshing(CACHE_KEY, false));
+        .finally(() => setCacheRefreshing(MACRO_CACHE_KEY, false));
     }
     return;
   }
 
   try {
-    const payload = await fetchAllIndicators();
-    toCache(CACHE_KEY, payload, CACHE_TTL);
-    res.json(payload);
+    primeMacroCache();
+    const primed = fromCache<IndicatorsPayload>(MACRO_CACHE_KEY)!;
+    res.json(primed.data);
+    void warmMacroCache();
   } catch (err: unknown) {
     req.log.error({ err }, "Failed to fetch macro indicators");
     res.status(500).json({ error: "server_error", message: "Failed to fetch macro indicators" });
@@ -748,15 +827,6 @@ router.get("/macro/series/:seriesId/observations", async (req, res): Promise<voi
 
 // ─── Startup Cache Warming ────────────────────────────────────────────────────
 
-interface IndicatorEntry {
-  id: string; seriesId: string; title: string; value: number | null;
-  date: string | null; unitsLabel: string; chartUnits: string;
-  source: string; frequency: string; category: string; type: string | null;
-  whyItMatters: string | null; signal: string | null; signalLabel: string | null;
-  explanation: string | null;
-}
-interface IndicatorsPayload { indicators: IndicatorEntry[]; marketCycle: unknown; fetchedAt: string }
-
 // Fetch a specific subset of FRED defs serially (600ms between each)
 async function fetchFredSubset(
   defs: IndicatorDef[],
@@ -782,16 +852,17 @@ async function fetchFredSubset(
 // Phase 2-7: enrichment passes (60-second gaps) — try next 8 null FRED series per pass.
 // Users always get the latest cached snapshot (instant after first cache write).
 export async function warmMacroCache(): Promise<void> {
-  const CACHE_KEY = "macro:indicators";
-  const CACHE_TTL = 24 * 60 * 60 * 1000; // 24-hour TTL (data is daily)
-  if (fromCache(CACHE_KEY)) return; // already warm
+  primeMacroCache();
+  if (isCacheRefreshing(MACRO_CACHE_KEY)) return;
+  setCacheRefreshing(MACRO_CACHE_KEY, true);
 
   // Phase 1: initial fetch (Yahoo parallel + ~9 FRED series in serial)
   try {
-    const payload = await fetchAllIndicators();
-    toCache(CACHE_KEY, payload, CACHE_TTL);
+    await refreshInitialMacroCache();
   } catch {
-    return; // non-fatal — route handler will retry on first user request
+    return;
+  } finally {
+    setCacheRefreshing(MACRO_CACHE_KEY, false);
   }
 
   // Phase 2+: enrichment passes — 60-second pauses let FRED's rate limit window reset
@@ -800,7 +871,7 @@ export async function warmMacroCache(): Promise<void> {
   const BATCH_SIZE = 8;
 
   for (let pass = 0; pass < MAX_PASSES; pass++) {
-    const cached = fromCache<IndicatorsPayload>(CACHE_KEY);
+    const cached = fromCache<IndicatorsPayload>(MACRO_CACHE_KEY);
     if (!cached) break;
 
     // Find FRED indicators that are still null in the cached payload
@@ -821,7 +892,7 @@ export async function warmMacroCache(): Promise<void> {
     const newValues = await fetchFredSubset(batchDefs);
 
     // Merge into existing payload; don't overwrite Yahoo values or already-filled FRED values
-    const existing = fromCache<IndicatorsPayload>(CACHE_KEY);
+    const existing = fromCache<IndicatorsPayload>(MACRO_CACHE_KEY);
     if (!existing) break;
 
     const valueMap = new Map<string, number | null>();
@@ -837,7 +908,11 @@ export async function warmMacroCache(): Promise<void> {
     });
 
     const marketCycle = inferMarketCycle(valueMap);
-    toCache(CACHE_KEY, { indicators: updatedIndicators, marketCycle, fetchedAt: existing.data.fetchedAt }, CACHE_TTL);
+    toCache(MACRO_CACHE_KEY, {
+      indicators: updatedIndicators,
+      marketCycle,
+      fetchedAt: new Date().toISOString(),
+    }, MACRO_CACHE_TTL);
   }
 }
 

@@ -129,7 +129,7 @@ export default function App() {
   const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
   const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
   return (
-    <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} appearance={{ theme: shadcn, variables: { colorPrimary: "hsl(145 52% 30%)" } }}>
+    <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} afterSignOutUrl={`${basePath}/pricing`} appearance={{ theme: shadcn, variables: { colorPrimary: "hsl(145 52% 30%)" } }}>
       <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={basePath}><MembershipProvider><Routes /><AccountDock /></MembershipProvider></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>
     </ClerkProvider>
   );

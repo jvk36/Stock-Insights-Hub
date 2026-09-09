@@ -56,7 +56,7 @@ router.post("/membership/checkout", async (req, res) => {
   const basePath = typeof req.body?.basePath === "string" && /^\/[a-z0-9-]*$/i.test(req.body.basePath) ? req.body.basePath : "";
   const session = await createCheckout(
     customerId, prices[plan], membership.clerkUserId, plan, attemptId,
-    `${origin}${basePath}/account?checkout=success`,
+    `${origin}${basePath}/account?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
     `${origin}${basePath}/pricing`,
   );
   return res.json({ url: session.url });

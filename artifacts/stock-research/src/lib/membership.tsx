@@ -1,6 +1,6 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect } from "react";
 import { useAuth } from "@clerk/react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export type Membership = {
   authenticated: boolean;
@@ -19,23 +19,37 @@ const MembershipContext = createContext<{
 }>({ loading: true, refresh: async () => undefined });
 
 export function MembershipProvider({ children }: { children: React.ReactNode }) {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, userId } = useAuth();
+  const queryClient = useQueryClient();
   const query = useQuery({
-    queryKey: ["membership", isSignedIn],
-    enabled: isLoaded,
+    queryKey: ["membership", userId],
+    enabled: isLoaded && isSignedIn && !!userId,
     retry: false,
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     queryFn: async () => {
-      if (!isSignedIn) return { authenticated: false, premium: false, role: "free" } as Membership;
       const response = await fetch("/api/membership/me", { credentials: "include" });
       if (!response.ok) throw new Error("Unable to load membership");
       return response.json() as Promise<Membership>;
     },
   });
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      queryClient.removeQueries({ queryKey: ["membership"] });
+    }
+  }, [isLoaded, isSignedIn, queryClient]);
+
+  const signedOutMembership: Membership = {
+    authenticated: false,
+    premium: false,
+    role: "free",
+  };
+  const membership = isSignedIn ? query.data : signedOutMembership;
   return (
     <MembershipContext.Provider value={{
-      membership: query.data,
-      loading: !isLoaded || query.isLoading,
+      membership,
+      loading: !isLoaded || (!!isSignedIn && query.isLoading),
       refresh: query.refetch,
     }}>
       {children}

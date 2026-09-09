@@ -3,6 +3,7 @@ import { logger } from "./lib/logger";
 import { warmMacroCache } from "./routes/macro";
 import { warmIndexMetricsCache } from "./routes/indexes";
 import { initEdgarFetcher } from "./lib/edgar-fetcher";
+import { ensureMembershipPrices } from "./lib/stripe-client";
 
 const rawPort = process.env["PORT"];
 
@@ -16,6 +17,10 @@ const port = Number(rawPort);
 
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
+}
+
+async function initializeMemberships() {
+  await ensureMembershipPrices();
 }
 
 app.listen(port, (err) => {
@@ -34,4 +39,5 @@ app.listen(port, (err) => {
 
   // Initialize 13F EDGAR fetcher: seeds Berkshire data and starts refresh scheduler
   initEdgarFetcher().catch((e) => logger.error({ err: e }, "EDGAR fetcher init failed"));
+  initializeMemberships().catch((e) => logger.error({ err: e }, "Membership initialization failed"));
 });

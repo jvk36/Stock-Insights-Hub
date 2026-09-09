@@ -121,6 +121,12 @@ router.get("/membership/admin/users", async (req, res) => {
       currentPeriodEnd: user.currentPeriodEnd,
       createdAt: user.createdAt,
       deletionStartedAt: user.deletionStartedAt,
+      hasBillingAccount: Boolean(
+        user.stripeCustomerId ||
+        user.stripeSubscriptionId ||
+        user.plan ||
+        user.role === "paid"
+      ),
       deletable: user.clerkUserId !== membership.clerkUserId,
     })),
   });
@@ -158,18 +164,43 @@ router.delete("/membership/admin/users/:clerkUserId", async (req, res) => {
       ));
   });
 
-  // Discover by immutable Clerk metadata as well as the locally stored ID so
-  // checkout/delete races and earlier partial writes cannot orphan billing.
-  await deleteStripeBillingAccountsForUser(targetClerkUserId, target.stripeCustomerId);
+  const hasBillingAccount = Boolean(
+    target.stripeCustomerId ||
+    target.stripeSubscriptionId ||
+    target.plan ||
+    target.role === "paid"
+  );
+  let billingCleanup: "deleted" | "not_required" = "not_required";
+  if (hasBillingAccount) {
+    try {
+      // Discover by immutable Clerk metadata as well as the locally stored ID so
+      // checkout/delete races and earlier partial writes cannot orphan billing.
+      await deleteStripeBillingAccountsForUser(targetClerkUserId, target.stripeCustomerId);
+      billingCleanup = "deleted";
+    } catch (error) {
+      req.log.warn({ err: error, targetClerkUserId }, "Stripe cleanup failed during member deletion");
+      return res.status(503).json({
+        error: "Billing cleanup could not be completed because Stripe is unavailable. Reconnect Stripe, then retry deletion.",
+        retryable: true,
+        deletionPending: true,
+      });
+    }
+  }
+
   try {
     await clerkClient.users.deleteUser(targetClerkUserId);
   } catch (error) {
     if (!(typeof error === "object" && error !== null && "status" in error && error.status === 404)) {
-      throw error;
+      req.log.warn({ err: error, targetClerkUserId }, "Clerk cleanup failed during member deletion");
+      return res.status(502).json({
+        error: "The sign-in account could not be removed. Please retry deletion.",
+        retryable: true,
+        deletionPending: true,
+      });
     }
   }
   await db.delete(membershipsTable).where(eq(membershipsTable.clerkUserId, targetClerkUserId));
-  return res.json({ deleted: true });
+  return res.json({ deleted: true, billingCleanup });
 });
 
 export default router;

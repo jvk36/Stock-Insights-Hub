@@ -166,3 +166,36 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Keep Clerk's credential and one-time-code fields visually distinct even when
+   its production UI bundle uses styles outside Tailwind's generated layers. */
+.cl-formFieldInput,
+.cl-otpCodeFieldInput {
+  min-height: 3rem;
+  border: 2px solid hsl(var(--input)) !important;
+  border-radius: 0.5rem !important;
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  box-shadow: var(--shadow-sm);
+}
+
+.cl-formFieldInput:focus,
+.cl-otpCodeFieldInput:focus {
+  border-color: hsl(var(--primary)) !important;
+  outline: 3px solid hsl(var(--primary) / 0.18) !important;
+  outline-offset: 1px;
+}
+
+.cl-otpCodeFieldInput {
+  min-height: 3.5rem;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  text-align: center;
+}
+
+.cl-formResendCodeLink {
+  color: hsl(var(--primary)) !important;
+  font-weight: 650 !important;
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}

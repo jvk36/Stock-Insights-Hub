@@ -1,22 +1,21 @@
-import { createContext, useContext, useEffect, useRef } from "react";
+import { createContext, useContext, useEffect } from "react";
 import { useAuth } from "@clerk/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  getClerkAuthState,
+  membershipForAuthState,
+  type ClerkAuthState,
+} from "./membership-state";
+import type { Membership } from "./membership-types";
 
-export type Membership = {
-  authenticated: boolean;
-  premium: boolean;
-  role: "free" | "paid" | "admin";
-  email?: string;
-  plan?: string | null;
-  subscriptionStatus?: string | null;
-  currentPeriodEnd?: string | null;
-};
+export type { Membership } from "./membership-types";
 
 const MembershipContext = createContext<{
   membership?: Membership;
   loading: boolean;
+  authState: ClerkAuthState;
   refresh: () => Promise<unknown>;
-}>({ loading: true, refresh: async () => undefined });
+}>({ loading: true, authState: "unknown", refresh: async () => undefined });
 
 type MembershipResponse = { url?: string; error?: string; message?: string };
 
@@ -44,16 +43,17 @@ function membershipError(response: Response, data: MembershipResponse): string {
 export function MembershipProvider({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn, userId } = useAuth();
   const queryClient = useQueryClient();
-  const wasSignedIn = useRef(false);
+  const authState = getClerkAuthState(isLoaded, isSignedIn, userId);
+  const membershipQueryKey = ["membership", authState === "signed-in" ? userId : null] as const;
   const query = useQuery({
-    queryKey: ["membership", userId],
-    enabled: isLoaded && isSignedIn && !!userId,
+    queryKey: membershipQueryKey,
+    enabled: authState === "signed-in",
     retry: false,
     staleTime: 0,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
-    queryFn: async () => {
-      const response = await fetch("/api/membership/me", { credentials: "include" });
+    queryFn: async ({ signal }) => {
+      const response = await fetch("/api/membership/me", { credentials: "include", signal });
       const data = await readMembershipResponse(response);
       if (!response.ok) throw new Error(membershipError(response, data));
       if (!("authenticated" in data)) throw new Error("The server returned an invalid membership response.");
@@ -61,29 +61,18 @@ export function MembershipProvider({ children }: { children: React.ReactNode }) 
     },
   });
   useEffect(() => {
-    if (!isLoaded) return;
-    if (isSignedIn) {
-      wasSignedIn.current = true;
-      return;
-    }
-    queryClient.clear();
-    if (wasSignedIn.current) {
-      wasSignedIn.current = false;
-      const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-      window.location.replace(`${basePath}/13f`);
-    }
-  }, [isLoaded, isSignedIn, queryClient]);
+    if (authState === "signed-in") return;
+    void queryClient.cancelQueries({ queryKey: ["membership"] }).then(() => {
+      queryClient.removeQueries({ queryKey: ["membership"] });
+    });
+  }, [authState, queryClient]);
 
-  const signedOutMembership: Membership = {
-    authenticated: false,
-    premium: false,
-    role: "free",
-  };
-  const membership = isSignedIn ? query.data : signedOutMembership;
+  const membership = membershipForAuthState(authState, query.data);
   return (
     <MembershipContext.Provider value={{
       membership,
-      loading: !isLoaded || (!!isSignedIn && query.isLoading),
+      loading: authState === "unknown" || (authState === "signed-in" && query.isLoading),
+      authState,
       refresh: query.refetch,
     }}>
       {children}

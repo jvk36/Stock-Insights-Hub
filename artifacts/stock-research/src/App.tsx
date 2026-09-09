@@ -1,6 +1,6 @@
 import { Redirect, Route, Router as WouterRouter, Switch } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ClerkProvider, SignIn, SignUp, Show, UserButton } from "@clerk/react";
+import { ClerkProvider, SignIn, SignUp, UserButton } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { CheckCircle2, MailCheck } from "lucide-react";
@@ -19,26 +19,29 @@ import { MembershipProvider, useMembership } from "@/lib/membership";
 const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false, staleTime: 5 * 60 * 1000, retry: 1 } } });
 
 function PremiumRoute({ children }: { children: React.ReactNode }) {
-  const { membership, loading } = useMembership();
-  if (loading) return <div className="min-h-screen grid place-items-center bg-background text-muted-foreground">Checking membership…</div>;
+  const { membership, loading, authState } = useMembership();
+  if (authState === "unknown" || loading) return <div className="min-h-screen grid place-items-center bg-background text-muted-foreground">Checking membership…</div>;
+  if (authState === "signed-out") return <Redirect to="/pricing" />;
   return membership?.premium ? children : <Redirect to="/pricing" />;
 }
 
 function SignedInRoute({ children }: { children: React.ReactNode }) {
-  const { membership, loading } = useMembership();
-  if (loading) return <div className="min-h-screen grid place-items-center bg-background text-muted-foreground">Checking account…</div>;
+  const { membership, loading, authState } = useMembership();
+  if (authState === "unknown" || loading) return <div className="min-h-screen grid place-items-center bg-background text-muted-foreground">Checking account…</div>;
+  if (authState === "signed-out") return <Redirect to="/sign-in" />;
   return membership?.authenticated ? children : <Redirect to="/sign-in" />;
 }
 
 function AccountDock() {
-  const { membership } = useMembership();
+  const { membership, authState } = useMembership();
+  const signedIn = authState === "signed-in";
   return (
     <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full border bg-card/95 p-2 pl-3 shadow-lg backdrop-blur">
-      <Show when="signed-out"><a href={`${import.meta.env.BASE_URL}sign-in`} className="text-sm font-semibold text-primary">Sign in</a></Show>
-      <Show when="signed-in">
-        <a href={`${import.meta.env.BASE_URL}account`} className="text-xs font-semibold text-muted-foreground hover:text-foreground">{membership?.role === "admin" ? "Admin" : membership?.premium ? "Premium" : "Free"}</a>
+      {!signedIn && <a href={`${import.meta.env.BASE_URL}sign-in`} className="text-sm font-semibold text-primary">Sign in</a>}
+      {signedIn && <>
+        <a href={`${import.meta.env.BASE_URL}account`} className="text-xs font-semibold text-muted-foreground hover:text-foreground">{membership?.role === "admin" ? "Admin" : membership?.premium ? "Premium" : membership ? "Free" : "Account"}</a>
         <UserButton />
-      </Show>
+      </>}
     </div>
   );
 }

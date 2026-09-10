@@ -34,3 +34,8 @@ externalPort = 3000
 [nix]
 channel = "stable-25_05"
 
+[userenv]
+
+[userenv.production]
+PUBLIC_APP_URL = "https://diyabsolutereturns.com"
+

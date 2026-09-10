@@ -3,7 +3,7 @@ import { clerkClient } from "@clerk/express";
 import { db, membershipDeletionsTable, membershipsTable } from "@workspace/db";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { getMembership, hasPremiumAccess } from "../lib/membership-auth";
-import { createBillingPortal, createCheckout, createStripeCustomer, deleteStripeBillingAccount, deleteStripeBillingAccountsForUser, ensureMembershipPrices, refreshStripeEntitlement } from "../lib/stripe-client";
+import { createBillingPortal, createCheckout, createStripeCustomer, deleteStripeBillingAccount, deleteStripeBillingAccountsForUser, ensureMembershipPrices, refreshStripeEntitlement, StripeEnvironmentError } from "../lib/stripe-client";
 import { isTrustedOrigin } from "../lib/trusted-origins";
 
 const router: IRouter = Router();
@@ -124,6 +124,12 @@ router.post("/membership/checkout", async (req, res) => {
     return res.json({ url: session.url });
   } catch (error) {
     req.log.warn({ err: error, clerkUserId: membership.clerkUserId }, "Stripe checkout creation failed");
+    if (error instanceof StripeEnvironmentError) {
+      return res.status(503).json({
+        error: "Live Stripe is not connected to this deployment. Checkout is temporarily unavailable.",
+        retryable: true,
+      });
+    }
     return billingUnavailable(res, "checkout");
   }
 });

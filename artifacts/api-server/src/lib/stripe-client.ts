@@ -18,6 +18,13 @@ class StripeApiError extends Error {
   }
 }
 
+export class StripeEnvironmentError extends Error {
+  constructor() {
+    super("Production Stripe checkout is still using test mode");
+    this.name = "StripeEnvironmentError";
+  }
+}
+
 async function readStripeResponse<T>(response: Response): Promise<T & StripeErrorPayload> {
   const raw = await response.text();
   if (!raw.trim()) {
@@ -59,9 +66,9 @@ async function deleteStripeResource(path: string) {
 }
 
 type StripeProduct = { id: string };
-type StripePrice = { id: string; unit_amount: number; metadata?: Record<string, string> };
+type StripePrice = { id: string; unit_amount: number; livemode?: boolean; metadata?: Record<string, string> };
 type StripeCustomer = { id: string; metadata?: Record<string, string> };
-type StripeSession = { url: string | null };
+type StripeSession = { url: string | null; livemode?: boolean };
 type StripeSubscription = {
   id: string;
   status: string;
@@ -95,6 +102,9 @@ export async function ensureMembershipPrices() {
     product: product.id, currency: "usd", unit_amount: "15000",
     "recurring[interval]": "year", "metadata[plan]": "annual",
   });
+  if (process.env.NODE_ENV === "production" && (monthly.livemode !== true || annual.livemode !== true)) {
+    throw new StripeEnvironmentError();
+  }
   priceCache = { monthly: monthly.id, annual: annual.id, expiresAt: Date.now() + 5 * 60_000 };
   return { monthly: monthly.id, annual: annual.id };
 }
@@ -106,13 +116,17 @@ export async function createStripeCustomer(email: string, clerkUserId: string) {
 }
 
 export async function createCheckout(customerId: string, priceId: string, clerkUserId: string, plan: string, attemptId: string, successUrl: string, cancelUrl: string) {
-  return stripeRequest<StripeSession>("/v1/checkout/sessions", "POST", {
+  const session = await stripeRequest<StripeSession>("/v1/checkout/sessions", "POST", {
     customer: customerId, mode: "subscription",
     "line_items[0][price]": priceId, "line_items[0][quantity]": "1",
     success_url: successUrl, cancel_url: cancelUrl,
     "subscription_data[metadata][clerkUserId]": clerkUserId,
     "subscription_data[metadata][plan]": plan,
   }, `membership-checkout-${clerkUserId}-${plan}-${attemptId}`);
+  if (process.env.NODE_ENV === "production" && session.livemode !== true) {
+    throw new StripeEnvironmentError();
+  }
+  return session;
 }
 
 export async function createBillingPortal(customerId: string, returnUrl: string) {

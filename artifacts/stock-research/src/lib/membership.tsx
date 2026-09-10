@@ -53,7 +53,11 @@ export function MembershipProvider({ children }: { children: React.ReactNode }) 
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
     queryFn: async ({ signal }) => {
-      const response = await fetch("/api/membership/me", { credentials: "include", signal });
+      const response = await fetch("/api/membership/me", {
+        credentials: "include",
+        cache: "no-store",
+        signal,
+      });
       const data = await readMembershipResponse(response);
       if (!response.ok) throw new Error(membershipError(response, data));
       if (!("authenticated" in data)) throw new Error("The server returned an invalid membership response.");

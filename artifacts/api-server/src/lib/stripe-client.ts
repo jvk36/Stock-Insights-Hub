@@ -4,13 +4,27 @@ import { eq } from "drizzle-orm";
 
 const connectors = new ReplitConnectors();
 
-async function readStripeResponse<T>(response: Response): Promise<T & { error?: { message?: string } }> {
+type StripeErrorPayload = { error?: { code?: string; message?: string; param?: string } };
+
+class StripeApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+    readonly param?: string,
+  ) {
+    super(message);
+    this.name = "StripeApiError";
+  }
+}
+
+async function readStripeResponse<T>(response: Response): Promise<T & StripeErrorPayload> {
   const raw = await response.text();
   if (!raw.trim()) {
     throw new Error(`Stripe returned an empty response (${response.status})`);
   }
   try {
-    return JSON.parse(raw) as T & { error?: { message?: string } };
+    return JSON.parse(raw) as T & StripeErrorPayload;
   } catch {
     throw new Error(`Stripe returned an invalid response (${response.status})`);
   }
@@ -26,7 +40,14 @@ async function stripeRequest<T>(path: string, method = "GET", fields?: Record<st
     body: fields ? new URLSearchParams(fields).toString() : undefined,
   });
   const payload = await readStripeResponse<T>(response);
-  if (!response.ok) throw new Error(payload.error?.message ?? `Stripe request failed (${response.status})`);
+  if (!response.ok) {
+    throw new StripeApiError(
+      payload.error?.message ?? `Stripe request failed (${response.status})`,
+      response.status,
+      payload.error?.code,
+      payload.error?.param,
+    );
+  }
   return payload;
 }
 
@@ -128,9 +149,36 @@ export async function refreshStripeEntitlement(membership: Membership) {
   if (!membership.stripeCustomerId || membership.role === "admin") return membership;
   const prices = await ensureMembershipPrices();
   const allowedPriceIds = new Set([prices.monthly, prices.annual]);
-  const result = await stripeRequest<{ data: StripeSubscription[] }>(
-    `/v1/subscriptions?customer=${membership.stripeCustomerId}&status=all&limit=20`,
-  );
+  let result: { data: StripeSubscription[] };
+  try {
+    result = await stripeRequest<{ data: StripeSubscription[] }>(
+      `/v1/subscriptions?customer=${membership.stripeCustomerId}&status=all&limit=20`,
+    );
+  } catch (error) {
+    const missingCustomer = error instanceof StripeApiError &&
+      error.status === 400 &&
+      error.code === "resource_missing" &&
+      error.param === "customer";
+    if (!missingCustomer || membership.role === "paid") throw error;
+    const [updated] = await db.update(membershipsTable).set({
+      role: "free",
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      subscriptionStatus: null,
+      currentPeriodEnd: null,
+      plan: null,
+      updatedAt: new Date(),
+    }).where(eq(membershipsTable.clerkUserId, membership.clerkUserId)).returning();
+    return updated ?? {
+      ...membership,
+      role: "free",
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      subscriptionStatus: null,
+      currentPeriodEnd: null,
+      plan: null,
+    };
+  }
   const subscriptions = result.data.filter((subscription) => {
     const item = subscription.items?.data?.[0];
     const plan = subscription.metadata?.plan ?? item?.price?.metadata?.plan;

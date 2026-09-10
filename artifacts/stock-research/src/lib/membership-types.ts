@@ -6,4 +6,5 @@ export type Membership = {
   plan?: string | null;
   subscriptionStatus?: string | null;
   currentPeriodEnd?: string | null;
+  billingUnavailable?: boolean;
 };

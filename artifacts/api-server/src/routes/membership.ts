@@ -40,13 +40,23 @@ function billingUnavailable(res: Response, action: string) {
 }
 
 router.get("/membership/me", async (req, res) => {
+  res.set("Cache-Control", "private, no-store");
   let membership = await getMembership(req);
   if (!membership) return res.status(401).json({ authenticated: false, premium: false, role: "free" });
   try {
     membership = await refreshStripeEntitlement(membership);
   } catch (error) {
     req.log.warn({ err: error, clerkUserId: membership.clerkUserId }, "Stripe entitlement refresh failed");
-    return billingUnavailable(res, "membership verification");
+    return res.json({
+      authenticated: true,
+      premium: false,
+      role: "free",
+      email: membership.email,
+      plan: null,
+      subscriptionStatus: null,
+      currentPeriodEnd: null,
+      billingUnavailable: true,
+    });
   }
   return res.json({
     authenticated: true, premium: hasPremiumAccess(membership), role: membership.role,

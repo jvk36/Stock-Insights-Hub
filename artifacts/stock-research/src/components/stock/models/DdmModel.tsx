@@ -45,6 +45,7 @@ export default function DdmModel({ data, currentPrice }: Props) {
     data.beta != null ? parseFloat(data.beta.toFixed(2)) : 1.0
   );
   const [erp, setErp] = useState(5.0);
+  const [terminalGrowthInput, setTerminalGrowthInput] = useState(2.5);
 
   const result = useMemo(() => {
     const sorted = [...data.dividendHistory]
@@ -61,14 +62,14 @@ export default function DdmModel({ data, currentPrice }: Props) {
     const lastDps = last6[last6.length - 1].dps;
     const n = last6.length - 1;
     const dividendGrowthRate = n > 0 ? (Math.pow(lastDps / firstDps, 1 / n) - 1) * 100 : 0;
-    const terminalGrowthRate = (2 / 3) * dividendGrowthRate;
+    const terminalGrowthRate = terminalGrowthInput;
 
     const costOfEquity = rfRate + betaInput * erp;
 
     if (costOfEquity <= terminalGrowthRate) {
       return {
         incalculable: true as const,
-        reason: `Cost of Equity (${pct(costOfEquity)}) must be greater than the Terminal Growth Rate (${pct(terminalGrowthRate)}) for the Gordon Growth formula to work. Try increasing the discount rate or decreasing ERP.`,
+        reason: `Cost of Equity (${pct(costOfEquity)}) must be greater than the Terminal Growth Rate (${pct(terminalGrowthRate)}) for the Gordon Growth formula to work. Lower the Terminal Growth Rate, or increase the Cost of Equity by raising the Risk-Free Rate, Beta, or Equity Risk Premium.`,
       };
     }
 
@@ -113,7 +114,7 @@ export default function DdmModel({ data, currentPrice }: Props) {
       payoutRatio,
       payoutUnsustainable,
     };
-  }, [data, rfRate, betaInput, erp, currentPrice]);
+  }, [data, rfRate, betaInput, erp, terminalGrowthInput, currentPrice]);
 
   return (
     <div className="space-y-6">
@@ -232,7 +233,7 @@ export default function DdmModel({ data, currentPrice }: Props) {
                       step: "2",
                       label: "Terminal Dividend Growth (Year 6+)",
                       value: pct(result.terminalGrowthRate),
-                      note: `Two-thirds of the 5-year CAGR (${pct(result.dividendGrowthRate)} × 0.667). After 5 years the company is assumed to mature further and grow dividends more slowly, closer to long-run nominal GDP growth.`,
+                      note: `Long-run perpetual-growth assumption, set independently from the historical dividend CAGR. The default is 2.5%, near long-run nominal economic growth, because unusually high recent dividend growth cannot continue forever. You can adjust it under Model Assumptions.`,
                     },
                     {
                       step: "3",
@@ -369,7 +370,7 @@ export default function DdmModel({ data, currentPrice }: Props) {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Adjust Discount Rate (CAPM)</CardTitle>
+              <CardTitle className="text-sm">Model Assumptions (CAPM &amp; Growth)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
@@ -409,6 +410,19 @@ export default function DdmModel({ data, currentPrice }: Props) {
                 />
                 <p className="text-xs text-muted-foreground">
                   The extra return investors demand for holding equities over risk-free bonds. Damodaran's long-run US estimate is ~4.5–5.5%. Default 5%.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Terminal Dividend Growth Rate — %</Label>
+                <NumericInput
+                  min={0}
+                  max={5}
+                  value={terminalGrowthInput}
+                  onChange={setTerminalGrowthInput}
+                  className="h-8 text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Perpetual dividend growth from Year 6 onward. Default 2.5%, independent of recent dividend growth. Keep this in the low single digits and below the Cost of Equity.
                 </p>
               </div>
             </CardContent>

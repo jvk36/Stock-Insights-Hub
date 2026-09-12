@@ -3,6 +3,7 @@ import type { DcfInputs } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Info, TrendingUp } from "lucide-react";
 
 interface Props {
@@ -154,25 +155,33 @@ function NumberInput({
 }
 
 export default function ReverseDcfAnalysis({ dcfInputs }: Props) {
+  const [basis, setBasis] = useState<"fcf" | "affo">(dcfInputs.valuationBasis);
   const [termG, setTermG] = useState(1);
-  const [discount, setDiscount] = useState(12);
+  const [discount, setDiscount] = useState(dcfInputs.valuationBasis === "affo" ? 10 : 12);
   const [fcf, setFcf] = useState<number>((dcfInputs.freeCashFlow ?? 0) / 1e9);
   const [shares, setShares] = useState<number>((dcfInputs.sharesOutstanding ?? 0) / 1e9);
   const [netDebt, setNetDebt] = useState<number>((dcfInputs.netDebt ?? 0) / 1e9);
+  const reportedAffoPerShare = dcfInputs.affo.perShare;
+  const [affoPerShare, setAffoPerShare] = useState<number>(reportedAffoPerShare ?? 0);
+  const isAffo = basis === "affo";
+  const mortgageBlocked =
+    isAffo && dcfInputs.reitClassification.kind === "mortgage_reit";
 
   const currentPrice = dcfInputs.currentPrice;
 
   const result = useMemo(() => {
-    if (!fcf || !shares || !currentPrice || discount <= termG) return null;
-    const fcfRaw = fcf * 1e9;
-    const sharesRaw = shares * 1e9;
-    const netDebtRaw = netDebt * 1e9;
+    if (!currentPrice || discount <= termG || mortgageBlocked) return null;
+    if (isAffo && affoPerShare <= 0) return null;
+    if (!isAffo && (!fcf || !shares)) return null;
+    const cashFlow = isAffo ? affoPerShare : fcf * 1e9;
+    const sharesRaw = isAffo ? 1 : shares * 1e9;
+    const netDebtRaw = isAffo ? 0 : netDebt * 1e9;
 
     const impliedG1 = findImpliedGrowth(
       currentPrice,
       termG,
       discount,
-      fcfRaw,
+      cashFlow,
       sharesRaw,
       netDebtRaw
     );
@@ -187,13 +196,15 @@ export default function ReverseDcfAnalysis({ dcfInputs }: Props) {
       impliedG3,
       termG,
       discount,
-      fcfRaw,
+      cashFlow,
       sharesRaw,
       netDebtRaw
     );
 
     return { impliedG1, impliedG2, impliedG3, ...dcfResult };
-  }, [termG, discount, fcf, shares, netDebt, currentPrice]);
+  }, [termG, discount, fcf, shares, netDebt, currentPrice, isAffo, affoPerShare, mortgageBlocked]);
+
+  const standardGrowth = isAffo ? [4, 3, 2] : [10, 5, 3];
 
   function verdictColor(g1: number): string {
     if (g1 <= 0) return "text-emerald-600";
@@ -213,13 +224,60 @@ export default function ReverseDcfAnalysis({ dcfInputs }: Props) {
 
   return (
     <div className="space-y-6">
+      <Card className="border-border">
+        <CardContent className="pt-4 pb-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="font-semibold">
+                  Reverse DCF — {isAffo ? "AFFO Basis" : "FCF Basis"}
+                </p>
+                <Badge variant="secondary">
+                  {dcfInputs.reitClassification.confidence} confidence
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {dcfInputs.reitClassification.reason} Source: {dcfInputs.reitClassification.source}
+                {dcfInputs.reitClassification.industry
+                  ? ` (${dcfInputs.reitClassification.industry})`
+                  : ""}
+              </p>
+            </div>
+            <div className="flex rounded-md border border-border p-1" aria-label="Valuation basis">
+              {(["fcf", "affo"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setBasis(option)}
+                  className={`rounded px-3 py-1 text-xs font-medium ${
+                    basis === option ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {option.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+          {basis !== dcfInputs.valuationBasis && (
+            <p className="text-xs text-amber-700">
+              Manual override active. Automatic basis: {dcfInputs.valuationBasis.toUpperCase()}.
+            </p>
+          )}
+          {mortgageBlocked && (
+            <p className="text-sm text-rose-700 font-medium">
+              Mortgage REITs are not supported by this AFFO Reverse DCF. Use a book-value, spread, and leverage model instead.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Explanation */}
       <Card className="border-border">
         <CardContent className="pt-4 pb-4">
           <div className="flex gap-2">
             <Info className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
             <p className="text-sm text-muted-foreground leading-relaxed">
-              A <strong className="text-foreground">Reverse DCF</strong> flips the question: instead of asking "what is the stock worth?", it asks <em>"what growth rate must this company achieve to justify its current stock price?"</em> This is powerful because it reveals the market's embedded expectations. If the implied growth rate seems unrealistic, the stock may be overvalued — and vice versa. Growth rates are assumed to follow a <strong className="text-foreground">10:5:3 ratio</strong> across the three phases (the 1–5yr rate is the anchor, with later phases scaling proportionally).
+              A <strong className="text-foreground">Reverse DCF</strong> asks what growth rate the company must achieve to justify its current stock price. {isAffo ? <>For equity REITs, it projects <strong className="text-foreground">AFFO per share</strong> and discounts that after-interest equity cash flow directly, without subtracting net debt.</> : <>For other companies, it projects free cash flow and subtracts net debt before calculating per-share value.</>} Later growth phases scale to 50% and 30% of the initial five-year rate.
             </p>
           </div>
         </CardContent>
@@ -234,7 +292,7 @@ export default function ReverseDcfAnalysis({ dcfInputs }: Props) {
               <p className="text-xs text-muted-foreground">Same meaning as in the DCF model. The reverse DCF will find the growth rate that makes the stock's intrinsic value match its current price, given these rates.</p>
             </CardHeader>
             <CardContent className="space-y-3">
-              <NumberInput label="Discount Rate" value={discount} onChange={setDiscount} suffix="%" hint="Default 12%" />
+              <NumberInput label="Discount Rate" value={discount} onChange={setDiscount} suffix="%" hint={isAffo ? "Initial REIT default: 10%" : "Initial equity default: 12%"} />
               <NumberInput label="Terminal Growth Rate" value={termG} onChange={setTermG} suffix="%" hint="Default 1%" />
             </CardContent>
           </Card>
@@ -247,19 +305,40 @@ export default function ReverseDcfAnalysis({ dcfInputs }: Props) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <NumberInput label="Free Cash Flow (billions)" value={fcf} onChange={setFcf} suffix="B" />
-              <NumberInput label="Shares Outstanding (billions)" value={shares} onChange={setShares} suffix="B" />
-              <NumberInput label="Net Debt (billions)" value={netDebt} onChange={setNetDebt} suffix="B" />
+              {isAffo ? (
+                <>
+                  <div className="rounded-md bg-muted/50 p-3 text-xs space-y-1">
+                    <p className="font-semibold">Company-reported AFFO</p>
+                    <p>{dcfInputs.affo.status === "reported" ? `${dcfInputs.affo.perShare != null ? `$${fmt(dcfInputs.affo.perShare)} per share` : fmtB(dcfInputs.affo.total)} for period ${dcfInputs.affo.period}` : "Unavailable"}</p>
+                    <p className="text-muted-foreground">{dcfInputs.affo.source ?? dcfInputs.affo.note}</p>
+                    {dcfInputs.affo.concept && <p className="text-muted-foreground">SEC concept: {dcfInputs.affo.concept}</p>}
+                  </div>
+                  <NumberInput
+                    label="AFFO per share assumption"
+                    value={affoPerShare}
+                    onChange={setAffoPerShare}
+                    suffix="$"
+                    hint={reportedAffoPerShare != null ? `Initialized from reported data: $${fmt(reportedAffoPerShare)}` : "Required manual input. No FCF or FFO substitution is made."}
+                  />
+                  <p className="text-xs text-muted-foreground">Net debt is not subtracted because AFFO is an after-interest equity measure.</p>
+                </>
+              ) : (
+                <>
+                  <NumberInput label="Free Cash Flow (billions)" value={fcf} onChange={setFcf} suffix="B" />
+                  <NumberInput label="Shares Outstanding (billions)" value={shares} onChange={setShares} suffix="B" />
+                  <NumberInput label="Net Debt (billions)" value={netDebt} onChange={setNetDebt} suffix="B" />
+                </>
+              )}
             </CardContent>
           </Card>
 
           {/* Growth Ratio Explainer */}
           <Card className="border-border bg-muted/30">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">10:5:3 Phase Ratio</CardTitle>
+              <CardTitle className="text-sm font-semibold">Declining Growth Phases</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <p className="text-xs text-muted-foreground">Growth rates across the three phases are locked in a 10:5:3 ratio. If the implied Year 1–5 rate is <strong>X%</strong>:</p>
+              <p className="text-xs text-muted-foreground">If the implied Years 1–5 rate is <strong>X%</strong>, the later phases use 50% and 30% of X.</p>
               {result ? (
                 <div className="space-y-1">
                   {[
@@ -322,11 +401,11 @@ export default function ReverseDcfAnalysis({ dcfInputs }: Props) {
                     </thead>
                     <tbody>
                       {[
-                        { label: "Years 1–5", implied: result.impliedG1, standard: 10 },
-                        { label: "Years 6–10", implied: result.impliedG2, standard: 5 },
-                        { label: "Years 11–15", implied: result.impliedG3, standard: 3 },
+                        { label: "Years 1–5", implied: result.impliedG1, standard: standardGrowth[0] },
+                        { label: "Years 6–10", implied: result.impliedG2, standard: standardGrowth[1] },
+                        { label: "Years 11–15", implied: result.impliedG3, standard: standardGrowth[2] },
                         { label: "Terminal", implied: termG, standard: 1 },
-                        { label: "Discount Rate", implied: discount, standard: 12 },
+                        { label: "Discount Rate", implied: discount, standard: isAffo ? 10 : 12 },
                       ].map(({ label, implied, standard }) => {
                         const diff = implied - standard;
                         return (
@@ -351,8 +430,8 @@ export default function ReverseDcfAnalysis({ dcfInputs }: Props) {
               {/* 15-Year Table */}
               <Card className="border-border">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold">Implied 15-Year Cash Flow Projection</CardTitle>
-                  <p className="text-xs text-muted-foreground">These are the cash flows the market is effectively pricing in at the current stock price.</p>
+                  <CardTitle className="text-sm font-semibold">Implied 15-Year {isAffo ? "AFFO per Share" : "Cash Flow"} Projection</CardTitle>
+                  <p className="text-xs text-muted-foreground">These are the {isAffo ? "per-share equity cash flows" : "cash flows"} the market is effectively pricing in at the current stock price.</p>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
@@ -361,7 +440,7 @@ export default function ReverseDcfAnalysis({ dcfInputs }: Props) {
                         <tr className="border-b border-border bg-muted/40">
                           <th className="text-left px-4 py-2 font-semibold text-muted-foreground">Year</th>
                           <th className="text-right px-4 py-2 font-semibold text-muted-foreground">Growth</th>
-                          <th className="text-right px-4 py-2 font-semibold text-muted-foreground">Free Cash Flow</th>
+                          <th className="text-right px-4 py-2 font-semibold text-muted-foreground">{isAffo ? "AFFO / Share" : "Free Cash Flow"}</th>
                           <th className="text-right px-4 py-2 font-semibold text-muted-foreground">Present Value</th>
                           <th className="text-right px-4 py-2 font-semibold text-muted-foreground">Cumulative PV</th>
                         </tr>
@@ -371,15 +450,15 @@ export default function ReverseDcfAnalysis({ dcfInputs }: Props) {
                           <tr key={row.year} className={`border-b border-border/50 hover:bg-muted/30 ${row.year === 5 || row.year === 10 ? "bg-primary/5" : ""}`}>
                             <td className="px-4 py-1.5 font-mono font-medium">{row.year}</td>
                             <td className="px-4 py-1.5 font-mono text-right text-muted-foreground">{fmt(row.growthRate)}%</td>
-                            <td className="px-4 py-1.5 font-mono text-right">{fmtB(row.cashFlow)}</td>
-                            <td className="px-4 py-1.5 font-mono text-right text-primary">{fmtB(row.pv)}</td>
-                            <td className="px-4 py-1.5 font-mono text-right">{fmtB(row.cumPV)}</td>
+                            <td className="px-4 py-1.5 font-mono text-right">{isAffo ? `$${fmt(row.cashFlow)}` : fmtB(row.cashFlow)}</td>
+                            <td className="px-4 py-1.5 font-mono text-right text-primary">{isAffo ? `$${fmt(row.pv)}` : fmtB(row.pv)}</td>
+                            <td className="px-4 py-1.5 font-mono text-right">{isAffo ? `$${fmt(row.cumPV)}` : fmtB(row.cumPV)}</td>
                           </tr>
                         ))}
                         <tr className="border-b border-border bg-muted/40 font-semibold">
                           <td className="px-4 py-2" colSpan={3}>Terminal Value (Year 16+)</td>
-                          <td className="px-4 py-2 font-mono text-right text-primary">{fmtB(result.terminalPV)}</td>
-                          <td className="px-4 py-2 font-mono text-right">{fmtB(result.totalPV)}</td>
+                          <td className="px-4 py-2 font-mono text-right text-primary">{isAffo ? `$${fmt(result.terminalPV)}` : fmtB(result.terminalPV)}</td>
+                          <td className="px-4 py-2 font-mono text-right">{isAffo ? `$${fmt(result.totalPV)}` : fmtB(result.totalPV)}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -392,7 +471,11 @@ export default function ReverseDcfAnalysis({ dcfInputs }: Props) {
           {!result && (
             <Card className="border-border">
               <CardContent className="pt-8 pb-8 text-center text-muted-foreground text-sm">
-                Enter valid inputs (discount rate must exceed terminal growth rate) to see the implied growth rate.
+                {mortgageBlocked
+                  ? "AFFO Reverse DCF is unavailable for mortgage REITs."
+                  : isAffo && affoPerShare <= 0
+                    ? "Enter a positive AFFO per share assumption to calculate implied growth. FCF is not used as a fallback."
+                    : "Enter valid inputs (discount rate must exceed terminal growth rate) to see the implied growth rate."}
               </CardContent>
             </Card>
           )}

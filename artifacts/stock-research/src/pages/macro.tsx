@@ -62,6 +62,9 @@ export default function MacroSummary() {
 
           {/* Nav menu */}
           <nav className="flex items-center gap-1">
+            <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
+              Macro Summary
+            </span>
             <Link
               href="/13f"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
@@ -80,9 +83,6 @@ export default function MacroSummary() {
             >
               Stock Insights
             </button>
-            <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
-              Macro Summary
-            </span>
           </nav>
 
           <div className="flex-1" />

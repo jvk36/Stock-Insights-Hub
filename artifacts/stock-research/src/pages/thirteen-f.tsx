@@ -992,6 +992,12 @@ export default function ThirteenFInsights() {
           </div>
 
           <nav className="flex items-center gap-1">
+            <Link
+              href="/macro"
+              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+            >
+              Macro Summary
+            </Link>
             <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
               Top Hedge Funds - Insights
             </span>
@@ -1006,12 +1012,6 @@ export default function ThirteenFInsights() {
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
             >
               Stock Insights
-            </Link>
-            <Link
-              href="/macro"
-              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-            >
-              Macro Summary
             </Link>
           </nav>
 

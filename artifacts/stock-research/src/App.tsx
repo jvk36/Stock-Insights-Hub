@@ -108,7 +108,7 @@ function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
 
 function Routes() {
   return <Switch>
-    <Route path="/"><Redirect to="/13f" /></Route>
+    <Route path="/"><Redirect to="/macro" /></Route>
     <Route path="/13f" component={ThirteenFInsights} />
     <Route path="/13f/:slug" component={ThirteenFInsights} />
     <Route path="/macro" component={MacroSummary} />

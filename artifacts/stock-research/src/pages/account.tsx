@@ -37,6 +37,7 @@ export default function Account() {
           <p className="mt-1 text-muted-foreground">{membership?.email}</p>
           {activating && !membership?.premium && <p className="mt-4 rounded-lg bg-primary/10 px-4 py-3 text-sm font-medium text-primary">Activating your Premium membership…</p>}
           {!activating && membership?.role === "free" && <p className="mt-4 rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">Your account is Free. Premium activates only after Stripe confirms a successful subscription.</p>}
+          {membership?.billingUnavailable && membership.premium && <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-foreground">Premium access is using your last verified subscription because billing is temporarily unavailable.</p>}
           {billingError && <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{billingError}</p>}
           <div className="mt-6 grid gap-4 rounded-xl bg-muted/50 p-5 sm:grid-cols-2">
             <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Access</p><p className="mt-1 font-semibold capitalize">{membership?.role}{membership?.premium ? " · Premium" : ""}</p></div>

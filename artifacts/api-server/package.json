@@ -8,7 +8,8 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:affo": "node --experimental-strip-types src/lib/reit-affo.test.mjs"
+    "test:affo": "node --experimental-strip-types src/lib/reit-affo.test.mjs",
+    "test:membership-entitlement": "node --experimental-strip-types src/lib/membership-entitlement.test.mjs"
   },
   "dependencies": {
     "@clerk/express": "^2.1.66",

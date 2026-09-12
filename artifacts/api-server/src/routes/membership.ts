@@ -47,14 +47,15 @@ router.get("/membership/me", async (req, res) => {
     membership = await refreshStripeEntitlement(membership);
   } catch (error) {
     req.log.warn({ err: error, clerkUserId: membership.clerkUserId }, "Stripe entitlement refresh failed");
+    const premium = hasPremiumAccess(membership);
     return res.json({
       authenticated: true,
-      premium: false,
-      role: "free",
+      premium,
+      role: membership.role,
       email: membership.email,
-      plan: null,
-      subscriptionStatus: null,
-      currentPeriodEnd: null,
+      plan: membership.plan,
+      subscriptionStatus: membership.subscriptionStatus,
+      currentPeriodEnd: membership.currentPeriodEnd,
       billingUnavailable: true,
     });
   }

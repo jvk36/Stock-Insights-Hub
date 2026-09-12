@@ -3,8 +3,7 @@ import { clerkClient, getAuth } from "@clerk/express";
 import { db, membershipDeletionsTable, membershipsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { refreshStripeEntitlement } from "./stripe-client";
-
-const ACTIVE_STATUSES = new Set(["active", "trialing"]);
+import { hasStoredPremiumAccess } from "./membership-entitlement";
 
 export async function getMembership(req: Request) {
   const { userId } = getAuth(req);
@@ -37,20 +36,26 @@ export async function getMembership(req: Request) {
 }
 
 export function hasPremiumAccess(membership: Awaited<ReturnType<typeof getMembership>>) {
-  if (!membership) return false;
-  if (membership.deletionStartedAt) return false;
-  if (membership.role === "admin") return true;
-  return membership.role === "paid" &&
-    !!membership.subscriptionStatus &&
-    ACTIVE_STATUSES.has(membership.subscriptionStatus) &&
-    (!membership.currentPeriodEnd || membership.currentPeriodEnd > new Date());
+  return hasStoredPremiumAccess(membership);
 }
 
 export async function requirePremium(req: Request, res: Response, next: NextFunction) {
   try {
     let membership = await getMembership(req);
     if (!membership) return res.status(401).json({ error: "Sign in required" });
-    membership = await refreshStripeEntitlement(membership);
+    try {
+      membership = await refreshStripeEntitlement(membership);
+    } catch (error) {
+      req.log.warn(
+        { err: error, clerkUserId: membership.clerkUserId },
+        "Stripe entitlement refresh failed during premium authorization",
+      );
+      if (!hasPremiumAccess(membership)) {
+        return res.status(503).json({
+          error: "Unable to verify Premium membership while billing is unavailable",
+        });
+      }
+    }
     if (!hasPremiumAccess(membership)) return res.status(403).json({ error: "Premium membership required" });
     res.locals.membership = membership;
     return next();

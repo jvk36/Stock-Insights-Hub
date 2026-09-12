@@ -5,6 +5,9 @@
  * Stock Research Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { AffoData } from "./affoData";
+import type { DcfInputsValuationBasis } from "./dcfInputsValuationBasis";
+import type { ReitClassification } from "./reitClassification";
 
 export interface DcfInputs {
   freeCashFlow?: number | null;
@@ -12,4 +15,7 @@ export interface DcfInputs {
   netDebt?: number | null;
   currentPrice?: number | null;
   dataYear: string;
+  valuationBasis: DcfInputsValuationBasis;
+  reitClassification: ReitClassification;
+  affo: AffoData;
 }

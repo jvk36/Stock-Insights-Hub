@@ -25,6 +25,11 @@ import {
 } from "@workspace/api-zod";
 import { getBuybackHistory } from "../lib/buyback-history";
 import { getBoardLeadership } from "../lib/board-leadership";
+import {
+  classifyReit,
+  defaultValuationBasis,
+  getReportedAffo,
+} from "../lib/reit-affo";
 
 const router: IRouter = Router();
 const yahooFinance = new YahooFinance();
@@ -2072,7 +2077,7 @@ router.get("/stock/:symbol/analysis", async (req, res): Promise<void> => {
         period1: "2020-01-01",
       }),
       yahooFinance.quoteSummary(symbol, {
-        modules: ["financialData", "defaultKeyStatistics", "price"],
+        modules: ["financialData", "defaultKeyStatistics", "price", "summaryProfile"],
       }),
     ]);
 
@@ -2196,6 +2201,13 @@ router.get("/stock/:symbol/analysis", async (req, res): Promise<void> => {
     const netDebt =
       totalDebt != null && totalCash != null ? totalDebt - totalCash : null;
     const currentPrice = price?.regularMarketPrice ?? null;
+    const classification = classifyReit(
+      summary.summaryProfile?.sector,
+      summary.summaryProfile?.industry,
+    );
+    const affo = classification.isLikelyReit
+      ? await getReportedAffo(await lookupCik(symbol))
+      : await getReportedAffo(null);
 
     res.json({
       dcfInputs: {
@@ -2204,6 +2216,9 @@ router.get("/stock/:symbol/analysis", async (req, res): Promise<void> => {
         netDebt: netDebt ?? null,
         currentPrice: currentPrice ?? null,
         dataYear: mostRecentYear ? `${mostRecentYear} Annual` : "N/A",
+        valuationBasis: defaultValuationBasis(classification),
+        reitClassification: classification,
+        affo,
       },
       moatRows,
     });

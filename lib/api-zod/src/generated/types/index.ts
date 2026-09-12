@@ -8,6 +8,8 @@
 
 export * from "./activistCampaign";
 export * from "./activistCampaignStatus";
+export * from "./affoData";
+export * from "./affoDataStatus";
 export * from "./apiError";
 export * from "./boardLeadershipCoverage";
 export * from "./boardLeadershipResponse";
@@ -24,6 +26,7 @@ export * from "./chartDataPoint";
 export * from "./chartStockSplitEvent";
 export * from "./companyProfile";
 export * from "./dcfInputs";
+export * from "./dcfInputsValuationBasis";
 export * from "./ddmData";
 export * from "./ddmDividendRow";
 export * from "./earningsHistoryItem";
@@ -76,6 +79,9 @@ export * from "./moatRow";
 export * from "./newsItem";
 export * from "./newsResponse";
 export * from "./ownersEarningsData";
+export * from "./reitClassification";
+export * from "./reitClassificationConfidence";
+export * from "./reitClassificationKind";
 export * from "./rivData";
 export * from "./screenerData";
 export * from "./secFiling";

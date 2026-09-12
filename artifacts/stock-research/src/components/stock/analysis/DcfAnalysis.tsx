@@ -5,6 +5,7 @@ import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Info } from "lucide-react";
+import { calculateDcf, type DcfResult } from "@/lib/dcf-calculations";
 
 interface Props {
   dcfInputs: DcfInputs;
@@ -29,64 +30,6 @@ function fmtShares(n: number | null): string {
   if (n >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
   if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
   return n.toFixed(0);
-}
-
-interface DcfParams {
-  g1: number;
-  g2: number;
-  g3: number;
-  termG: number;
-  discount: number;
-  fcf: number;
-  shares: number;
-  netDebt: number;
-}
-
-interface DcfRow {
-  year: number;
-  growthRate: number;
-  cashFlow: number;
-  pv: number;
-  cumPV: number;
-}
-
-interface DcfResult {
-  rows: DcfRow[];
-  terminalValue: number;
-  terminalPV: number;
-  sumPV: number;
-  totalPV: number;
-  equityValue: number;
-  intrinsicValue: number;
-}
-
-function calcDCF(p: DcfParams): DcfResult {
-  const r = p.discount / 100;
-  const g1 = p.g1 / 100;
-  const g2 = p.g2 / 100;
-  const g3 = p.g3 / 100;
-  const termG = p.termG / 100;
-
-  const rows: DcfRow[] = [];
-  let cf = p.fcf;
-  let cumPV = 0;
-
-  for (let yr = 1; yr <= 15; yr++) {
-    const g = yr <= 5 ? g1 : yr <= 10 ? g2 : g3;
-    cf = cf * (1 + g);
-    const pv = cf / Math.pow(1 + r, yr);
-    cumPV += pv;
-    rows.push({ year: yr, growthRate: (yr <= 5 ? p.g1 : yr <= 10 ? p.g2 : p.g3), cashFlow: cf, pv, cumPV });
-  }
-
-  const cf15 = rows[14].cashFlow;
-  const terminalValue = (cf15 * (1 + termG)) / (r - termG);
-  const terminalPV = terminalValue / Math.pow(1 + r, 15);
-  const totalPV = cumPV + terminalPV;
-  const equityValue = totalPV - p.netDebt;
-  const intrinsicValue = equityValue / p.shares;
-
-  return { rows, terminalValue, terminalPV, sumPV: cumPV, totalPV, equityValue, intrinsicValue };
 }
 
 function NumberInput({
@@ -123,28 +66,36 @@ function NumberInput({
 }
 
 export default function DcfAnalysis({ dcfInputs }: Props) {
-  const [g1, setG1] = useState(10);
-  const [g2, setG2] = useState(5);
-  const [g3, setG3] = useState(3);
+  const [basis, setBasis] = useState<"fcf" | "affo">(dcfInputs.valuationBasis);
+  const [g1, setG1] = useState(dcfInputs.valuationBasis === "affo" ? 4 : 10);
+  const [g2, setG2] = useState(dcfInputs.valuationBasis === "affo" ? 3 : 5);
+  const [g3, setG3] = useState(dcfInputs.valuationBasis === "affo" ? 2 : 3);
   const [termG, setTermG] = useState(1);
-  const [discount, setDiscount] = useState(12);
+  const [discount, setDiscount] = useState(dcfInputs.valuationBasis === "affo" ? 10 : 12);
   const [fcf, setFcf] = useState<number>((dcfInputs.freeCashFlow ?? 0) / 1e9);
   const [shares, setShares] = useState<number>((dcfInputs.sharesOutstanding ?? 0) / 1e9);
   const [netDebt, setNetDebt] = useState<number>((dcfInputs.netDebt ?? 0) / 1e9);
+  const reportedAffoPerShare = dcfInputs.affo.perShare;
+  const [affoPerShare, setAffoPerShare] = useState<number>(reportedAffoPerShare ?? 0);
+  const isAffo = basis === "affo";
+  const mortgageBlocked =
+    isAffo && dcfInputs.reitClassification.kind === "mortgage_reit";
 
   const result = useMemo<DcfResult | null>(() => {
-    if (!fcf || !shares || discount <= termG) return null;
+    if (discount <= termG || mortgageBlocked) return null;
+    if (isAffo && affoPerShare <= 0) return null;
+    if (!isAffo && (!fcf || !shares)) return null;
     try {
-      return calcDCF({
+      return calculateDcf({
         g1, g2, g3, termG, discount,
-        fcf: fcf * 1e9,
-        shares: shares * 1e9,
-        netDebt: netDebt * 1e9,
+        cashFlow: isAffo ? affoPerShare : fcf * 1e9,
+        shares: isAffo ? 1 : shares * 1e9,
+        netDebt: isAffo ? 0 : netDebt * 1e9,
       });
     } catch {
       return null;
     }
-  }, [g1, g2, g3, termG, discount, fcf, shares, netDebt]);
+  }, [g1, g2, g3, termG, discount, fcf, shares, netDebt, isAffo, affoPerShare, mortgageBlocked]);
 
   const currentPrice = dcfInputs.currentPrice;
   const margin = result && currentPrice
@@ -153,13 +104,64 @@ export default function DcfAnalysis({ dcfInputs }: Props) {
 
   return (
     <div className="space-y-6">
+      <Card className="border-border">
+        <CardContent className="pt-4 pb-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="font-semibold">
+                  DCF Valuation — {isAffo ? "AFFO Basis" : "FCF Basis"}
+                </p>
+                <Badge variant="secondary">
+                  {dcfInputs.reitClassification.confidence} confidence
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {dcfInputs.reitClassification.reason} Source: {dcfInputs.reitClassification.source}
+                {dcfInputs.reitClassification.industry
+                  ? ` (${dcfInputs.reitClassification.industry})`
+                  : ""}
+              </p>
+            </div>
+            <div className="flex rounded-md border border-border p-1" aria-label="Valuation basis">
+              {(["fcf", "affo"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setBasis(option)}
+                  className={`rounded px-3 py-1 text-xs font-medium ${
+                    basis === option ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {option.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+          {basis !== dcfInputs.valuationBasis && (
+            <p className="text-xs text-amber-700">
+              Manual override active. Automatic basis: {dcfInputs.valuationBasis.toUpperCase()}.
+            </p>
+          )}
+          {mortgageBlocked && (
+            <p className="text-sm text-rose-700 font-medium">
+              Mortgage REITs are not supported by this AFFO DCF. Use a book-value, spread, and leverage model instead.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Explanation */}
       <Card className="border-border">
         <CardContent className="pt-4 pb-4">
           <div className="flex gap-2">
             <Info className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
             <p className="text-sm text-muted-foreground leading-relaxed">
-              A <strong className="text-foreground">Discounted Cash Flow (DCF)</strong> model estimates a company's value today by projecting its future free cash flows and discounting them back to present value. The core idea: a dollar received years from now is worth less than a dollar today (due to inflation and the time value of money). The <em>discount rate</em> represents your required annual return. If the resulting intrinsic value per share exceeds the current stock price, the stock may be undervalued.
+              {isAffo ? (
+                <>For equity REITs, this model projects <strong className="text-foreground">AFFO per share</strong> and discounts those after-interest equity cash flows directly. Net debt is not subtracted. AFFO is used because ordinary free cash flow is distorted by real-estate depreciation and property investment.</>
+              ) : (
+                <>A <strong className="text-foreground">Discounted Cash Flow (DCF)</strong> model estimates a company's value today by projecting its future free cash flows and discounting them back to present value. The <em>discount rate</em> represents your required annual return.</>
+              )}
             </p>
           </div>
         </CardContent>
@@ -171,12 +173,12 @@ export default function DcfAnalysis({ dcfInputs }: Props) {
           <Card className="border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold">Growth Rate Assumptions</CardTitle>
-              <p className="text-xs text-muted-foreground">How fast do you expect the company's free cash flow to grow? Use optimistic estimates for year 1–5, then taper off. The defaults (10% → 5% → 3%) represent a high-quality compounder.</p>
+               <p className="text-xs text-muted-foreground">How fast do you expect {isAffo ? "AFFO per share" : "free cash flow"} to grow? Defaults are {isAffo ? "conservative for a mature equity REIT (4% → 3% → 2%)" : "10% → 5% → 3% for a high-quality compounder"}.</p>
             </CardHeader>
             <CardContent className="space-y-3">
-              <NumberInput label="Years 1–5 Growth Rate" value={g1} onChange={setG1} suffix="%" hint="Default 10%: a strong-growth company" />
-              <NumberInput label="Years 6–10 Growth Rate" value={g2} onChange={setG2} suffix="%" hint="Default 5%: growth slowing as company matures" />
-              <NumberInput label="Years 11–15 Growth Rate" value={g3} onChange={setG3} suffix="%" hint="Default 3%: approaching steady-state" />
+              <NumberInput label="Years 1–5 Growth Rate" value={g1} onChange={setG1} suffix="%" />
+              <NumberInput label="Years 6–10 Growth Rate" value={g2} onChange={setG2} suffix="%" />
+              <NumberInput label="Years 11–15 Growth Rate" value={g3} onChange={setG3} suffix="%" />
             </CardContent>
           </Card>
 
@@ -186,7 +188,7 @@ export default function DcfAnalysis({ dcfInputs }: Props) {
               <p className="text-xs text-muted-foreground">The discount rate is your minimum required annual return (think of it as your hurdle rate). The terminal growth rate is how fast you expect cash flows to grow after year 15, in perpetuity — keep it near long-run GDP (1–3%).</p>
             </CardHeader>
             <CardContent className="space-y-3">
-              <NumberInput label="Discount Rate" value={discount} onChange={setDiscount} suffix="%" hint="Default 12%: reasonable for equities" />
+              <NumberInput label="Discount Rate" value={discount} onChange={setDiscount} suffix="%" hint={isAffo ? "Initial REIT default: 10%" : "Initial equity default: 12%"} />
               <NumberInput label="Terminal Growth Rate" value={termG} onChange={setTermG} suffix="%" hint="Default 1%: conservative long-run growth" />
             </CardContent>
           </Card>
@@ -197,30 +199,33 @@ export default function DcfAnalysis({ dcfInputs }: Props) {
                 Financial Inputs
                 <span className="ml-2 text-xs font-normal text-muted-foreground">({dcfInputs.dataYear})</span>
               </CardTitle>
-              <p className="text-xs text-muted-foreground">Pre-filled from the most recent annual report. Adjust if you want to use a different base year or make a conservative adjustment.</p>
+              <p className="text-xs text-muted-foreground">{isAffo ? "Company-reported data is shown separately from your editable valuation assumption." : "Pre-filled from current financial data. Adjust if needed."}</p>
             </CardHeader>
             <CardContent className="space-y-3">
-              <NumberInput
-                label="Free Cash Flow (billions)"
-                value={fcf}
-                onChange={setFcf}
-                suffix="B"
-                hint={`Current: ${fmtB(dcfInputs.freeCashFlow ?? null)}`}
-              />
-              <NumberInput
-                label="Shares Outstanding (billions)"
-                value={shares}
-                onChange={setShares}
-                suffix="B"
-                hint={`Current: ${fmtShares(dcfInputs.sharesOutstanding ?? null)}`}
-              />
-              <NumberInput
-                label="Net Debt (billions)"
-                value={netDebt}
-                onChange={setNetDebt}
-                suffix="B"
-                hint={`Current: ${fmtB(dcfInputs.netDebt ?? null)} — negative means net cash`}
-              />
+              {isAffo ? (
+                <>
+                  <div className="rounded-md bg-muted/50 p-3 text-xs space-y-1">
+                    <p className="font-semibold">Company-reported AFFO</p>
+                    <p>{dcfInputs.affo.status === "reported" ? `${dcfInputs.affo.perShare != null ? `$${fmt(dcfInputs.affo.perShare)} per share` : fmtB(dcfInputs.affo.total)} for period ${dcfInputs.affo.period}` : "Unavailable"}</p>
+                    <p className="text-muted-foreground">{dcfInputs.affo.source ?? dcfInputs.affo.note}</p>
+                    {dcfInputs.affo.concept && <p className="text-muted-foreground">SEC concept: {dcfInputs.affo.concept}</p>}
+                  </div>
+                  <NumberInput
+                    label="AFFO per share assumption"
+                    value={affoPerShare}
+                    onChange={setAffoPerShare}
+                    suffix="$"
+                    hint={reportedAffoPerShare != null ? `Initialized from reported data: $${fmt(reportedAffoPerShare)}` : "Required manual input. No FCF or FFO substitution is made."}
+                  />
+                  <p className="text-xs text-muted-foreground">Net debt is not subtracted because AFFO is an after-interest equity measure.</p>
+                </>
+              ) : (
+                <>
+                  <NumberInput label="Free Cash Flow (billions)" value={fcf} onChange={setFcf} suffix="B" hint={`Current: ${fmtB(dcfInputs.freeCashFlow ?? null)}`} />
+                  <NumberInput label="Shares Outstanding (billions)" value={shares} onChange={setShares} suffix="B" hint={`Current: ${fmtShares(dcfInputs.sharesOutstanding ?? null)}`} />
+                  <NumberInput label="Net Debt (billions)" value={netDebt} onChange={setNetDebt} suffix="B" hint={`Current: ${fmtB(dcfInputs.netDebt ?? null)} — negative means net cash`} />
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -251,9 +256,9 @@ export default function DcfAnalysis({ dcfInputs }: Props) {
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Total PV</p>
+                     <p className="text-xs text-muted-foreground mb-1">{isAffo ? "PV per Share" : "Total PV"}</p>
                     <p className="text-lg font-bold font-mono">
-                      {fmtB(result.totalPV)}
+                       {isAffo ? `$${fmt(result.totalPV)}` : fmtB(result.totalPV)}
                     </p>
                   </div>
                 </div>
@@ -284,18 +289,18 @@ export default function DcfAnalysis({ dcfInputs }: Props) {
                 <div className="grid grid-cols-3 gap-3 text-sm">
                   <div className="bg-muted/50 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">PV of Years 1–15</p>
-                    <p className="font-mono font-semibold mt-1">{fmtB(result.sumPV)}</p>
+                    <p className="font-mono font-semibold mt-1">{isAffo ? `$${fmt(result.sumPV)}` : fmtB(result.sumPV)}</p>
                     <p className="text-xs text-muted-foreground mt-1">{fmt((result.sumPV / result.totalPV) * 100)}% of total</p>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">PV of Terminal Value</p>
-                    <p className="font-mono font-semibold mt-1">{fmtB(result.terminalPV)}</p>
+                    <p className="font-mono font-semibold mt-1">{isAffo ? `$${fmt(result.terminalPV)}` : fmtB(result.terminalPV)}</p>
                     <p className="text-xs text-muted-foreground mt-1">{fmt((result.terminalPV / result.totalPV) * 100)}% of total</p>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">Equity Value</p>
-                    <p className="font-mono font-semibold mt-1">{fmtB(result.equityValue)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">After net debt</p>
+                    <p className="font-mono font-semibold mt-1">{isAffo ? `$${fmt(result.equityValue)}` : fmtB(result.equityValue)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{isAffo ? "No net debt subtraction" : "After net debt"}</p>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-3">
@@ -309,7 +314,7 @@ export default function DcfAnalysis({ dcfInputs }: Props) {
           {result && (
             <Card className="border-border">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">15-Year Projected Cash Flows</CardTitle>
+                 <CardTitle className="text-sm font-semibold">15-Year Projected {isAffo ? "AFFO per Share" : "Cash Flows"}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
@@ -318,7 +323,7 @@ export default function DcfAnalysis({ dcfInputs }: Props) {
                       <tr className="border-b border-border bg-muted/40">
                         <th className="text-left px-4 py-2 font-semibold text-muted-foreground">Year</th>
                         <th className="text-right px-4 py-2 font-semibold text-muted-foreground">Growth</th>
-                        <th className="text-right px-4 py-2 font-semibold text-muted-foreground">Free Cash Flow</th>
+                         <th className="text-right px-4 py-2 font-semibold text-muted-foreground">{isAffo ? "AFFO / Share" : "Free Cash Flow"}</th>
                         <th className="text-right px-4 py-2 font-semibold text-muted-foreground">Present Value</th>
                         <th className="text-right px-4 py-2 font-semibold text-muted-foreground">Cumulative PV</th>
                       </tr>
@@ -338,15 +343,15 @@ export default function DcfAnalysis({ dcfInputs }: Props) {
                             {row.year === 15 && <span className="ml-1 text-muted-foreground">(terminal base)</span>}
                           </td>
                           <td className="px-4 py-1.5 font-mono text-right text-muted-foreground">{row.growthRate}%</td>
-                          <td className="px-4 py-1.5 font-mono text-right">{fmtB(row.cashFlow)}</td>
-                          <td className="px-4 py-1.5 font-mono text-right text-primary">{fmtB(row.pv)}</td>
-                          <td className="px-4 py-1.5 font-mono text-right">{fmtB(row.cumPV)}</td>
+                           <td className="px-4 py-1.5 font-mono text-right">{isAffo ? `$${fmt(row.cashFlow)}` : fmtB(row.cashFlow)}</td>
+                           <td className="px-4 py-1.5 font-mono text-right text-primary">{isAffo ? `$${fmt(row.pv)}` : fmtB(row.pv)}</td>
+                           <td className="px-4 py-1.5 font-mono text-right">{isAffo ? `$${fmt(row.cumPV)}` : fmtB(row.cumPV)}</td>
                         </tr>
                       ))}
                       <tr className="border-b border-border bg-muted/40 font-semibold">
                         <td className="px-4 py-2" colSpan={3}>Terminal Value (Year 16+)</td>
-                        <td className="px-4 py-2 font-mono text-right text-primary">{fmtB(result.terminalPV)}</td>
-                        <td className="px-4 py-2 font-mono text-right">{fmtB(result.totalPV)}</td>
+                         <td className="px-4 py-2 font-mono text-right text-primary">{isAffo ? `$${fmt(result.terminalPV)}` : fmtB(result.terminalPV)}</td>
+                         <td className="px-4 py-2 font-mono text-right">{isAffo ? `$${fmt(result.totalPV)}` : fmtB(result.totalPV)}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -358,7 +363,11 @@ export default function DcfAnalysis({ dcfInputs }: Props) {
           {!result && (
             <Card className="border-border">
               <CardContent className="pt-8 pb-8 text-center text-muted-foreground text-sm">
-                Enter valid inputs (discount rate must exceed terminal growth rate) to see the DCF valuation.
+                 {mortgageBlocked
+                   ? "AFFO DCF is unavailable for mortgage REITs."
+                   : isAffo && affoPerShare <= 0
+                     ? "Enter a positive AFFO per share assumption to calculate a valuation. FCF is not used as a fallback."
+                     : "Enter valid inputs (discount rate must exceed terminal growth rate) to see the DCF valuation."}
               </CardContent>
             </Card>
           )}

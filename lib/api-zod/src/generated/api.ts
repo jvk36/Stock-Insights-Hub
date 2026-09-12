@@ -526,6 +526,27 @@ export const GetStockAnalysisResponse = zod.object({
     netDebt: zod.number().nullish(),
     currentPrice: zod.number().nullish(),
     dataYear: zod.string(),
+    valuationBasis: zod.enum(["fcf", "affo"]),
+    reitClassification: zod.object({
+      kind: zod.enum(["equity_reit", "mortgage_reit", "non_reit", "unknown"]),
+      isLikelyReit: zod.boolean(),
+      supported: zod.boolean(),
+      confidence: zod.enum(["high", "medium", "low"]),
+      source: zod.string(),
+      sector: zod.string().nullable(),
+      industry: zod.string().nullable(),
+      reason: zod.string(),
+    }),
+    affo: zod.object({
+      status: zod.enum(["reported", "unavailable"]),
+      total: zod.number().nullable(),
+      perShare: zod.number().nullable(),
+      period: zod.string().nullable(),
+      filedAt: zod.string().nullable(),
+      source: zod.string().nullable(),
+      concept: zod.string().nullable(),
+      note: zod.string(),
+    }),
   }),
   moatRows: zod.array(
     zod.object({

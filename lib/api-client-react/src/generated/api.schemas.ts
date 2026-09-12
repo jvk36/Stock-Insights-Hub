@@ -533,12 +533,80 @@ export interface StockModels {
   riv: RivData;
 }
 
+export type DcfInputsValuationBasis =
+  (typeof DcfInputsValuationBasis)[keyof typeof DcfInputsValuationBasis];
+
+export const DcfInputsValuationBasis = {
+  fcf: "fcf",
+  affo: "affo",
+} as const;
+
+export type ReitClassificationKind =
+  (typeof ReitClassificationKind)[keyof typeof ReitClassificationKind];
+
+export const ReitClassificationKind = {
+  equity_reit: "equity_reit",
+  mortgage_reit: "mortgage_reit",
+  non_reit: "non_reit",
+  unknown: "unknown",
+} as const;
+
+export type ReitClassificationConfidence =
+  (typeof ReitClassificationConfidence)[keyof typeof ReitClassificationConfidence];
+
+export const ReitClassificationConfidence = {
+  high: "high",
+  medium: "medium",
+  low: "low",
+} as const;
+
+export interface ReitClassification {
+  kind: ReitClassificationKind;
+  isLikelyReit: boolean;
+  supported: boolean;
+  confidence: ReitClassificationConfidence;
+  source: string;
+  /** @nullable */
+  sector: string | null;
+  /** @nullable */
+  industry: string | null;
+  reason: string;
+}
+
+export type AffoDataStatus =
+  (typeof AffoDataStatus)[keyof typeof AffoDataStatus];
+
+export const AffoDataStatus = {
+  reported: "reported",
+  unavailable: "unavailable",
+} as const;
+
+export interface AffoData {
+  status: AffoDataStatus;
+  /** @nullable */
+  total: number | null;
+  /** @nullable */
+  perShare: number | null;
+  /** @nullable */
+  period: string | null;
+  /** @nullable */
+  filedAt: string | null;
+  /** @nullable */
+  source: string | null;
+  /** @nullable */
+  concept: string | null;
+  note: string;
+}
+
 export interface DcfInputs {
   freeCashFlow?: number | null;
   sharesOutstanding?: number | null;
   netDebt?: number | null;
   currentPrice?: number | null;
   dataYear: string;
+  valuationBasis: DcfInputsValuationBasis;
+  reitClassification: ReitClassification;
+  affo: AffoData;
 }
 
 export interface MoatRow {

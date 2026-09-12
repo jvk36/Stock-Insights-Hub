@@ -1979,8 +1979,63 @@ components:
           nullable: true
         dataYear:
           type: string
+        valuationBasis:
+          type: string
+          enum: [fcf, affo]
+        reitClassification:
+          $ref: "#/components/schemas/ReitClassification"
+        affo:
+          $ref: "#/components/schemas/AffoData"
       required:
         - dataYear
+        - valuationBasis
+        - reitClassification
+        - affo
+
+    ReitClassification:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [equity_reit, mortgage_reit, non_reit, unknown]
+        isLikelyReit:
+          type: boolean
+        supported:
+          type: boolean
+        confidence:
+          type: string
+          enum: [high, medium, low]
+        source:
+          type: string
+        sector:
+          type: ["string", "null"]
+        industry:
+          type: ["string", "null"]
+        reason:
+          type: string
+      required: [kind, isLikelyReit, supported, confidence, source, sector, industry, reason]
+
+    AffoData:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [reported, unavailable]
+        total:
+          type: ["number", "null"]
+        perShare:
+          type: ["number", "null"]
+        period:
+          type: ["string", "null"]
+        filedAt:
+          type: ["string", "null"]
+        source:
+          type: ["string", "null"]
+        concept:
+          type: ["string", "null"]
+        note:
+          type: string
+      required: [status, total, perShare, period, filedAt, source, concept, note]
 
     MoatRow:
       type: object

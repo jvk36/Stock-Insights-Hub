@@ -21,6 +21,13 @@ function fmt(v: number | null, dec = 2): string {
   return `$${v.toFixed(dec)}`;
 }
 
+function fmtShares(v: number | null): string {
+  if (v == null || isNaN(v)) return "—";
+  if (v >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
+  return v.toLocaleString();
+}
+
 function pct(v: number | null, dec = 1): string {
   if (v == null || isNaN(v)) return "—";
   return `${(v * 100).toFixed(dec)}%`;
@@ -149,6 +156,93 @@ export default function EpvModel({ data, currentPrice }: Props) {
                         <td className="py-2 text-right font-mono">{fmtB(row.capex ?? null)}</td>
                         <td className="py-2 text-right font-mono">{fmtB(row.depreciation ?? null)}</td>
                         <td className="py-2 text-right">{row.taxRate != null ? pct(row.taxRate) : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Company Financial Inputs Used in EPV</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground mb-3">
+                These figures come from the company's financial statements or market data and feed the calculations below. Calculated values such as normalized EBIT, maintenance CapEx, capital weights, and WACC are shown separately in the valuation steps.
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 font-medium text-muted-foreground">Financial Input</th>
+                      <th className="text-right py-2 font-medium text-muted-foreground">Value</th>
+                      <th className="text-left py-2 pl-4 font-medium text-muted-foreground">Used In</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      {
+                        label: "Latest Operating Income (EBIT)",
+                        value: fmtB(data.history.at(-1)?.ebit ?? null),
+                        usedIn: "5-year normalized EBIT",
+                      },
+                      {
+                        label: "Latest Revenue",
+                        value: fmtB(data.history.at(-1)?.revenue ?? null),
+                        usedIn: "Revenue growth and Growth CapEx",
+                      },
+                      {
+                        label: "Latest Revenue Increase",
+                        value: fmtB(data.latestRevenueDelta ?? null),
+                        usedIn: "Growth CapEx",
+                      },
+                      {
+                        label: "Latest Total CapEx",
+                        value: fmtB(data.latestCapex ?? null),
+                        usedIn: "Maintenance CapEx",
+                      },
+                      {
+                        label: "Latest Depreciation & Amortization",
+                        value: fmtB(data.latestDepreciation ?? null),
+                        usedIn: "Adjusted earnings",
+                      },
+                      {
+                        label: "Latest Interest Expense",
+                        value: fmtB(data.latestInterestExpense ?? null),
+                        usedIn: "Pre-tax Cost of Debt (Kd)",
+                      },
+                      {
+                        label: "Cash and Cash Equivalents",
+                        value: fmtB(data.currentCash ?? null),
+                        usedIn: "Earnings Power Value of Equity",
+                      },
+                      {
+                        label: "Total Debt",
+                        value: fmtB(data.currentDebt ?? null),
+                        usedIn: "Kd, Debt Weight, and EPV of Equity",
+                      },
+                      {
+                        label: "Shares Outstanding",
+                        value: fmtShares(data.sharesOutstanding ?? null),
+                        usedIn: "Market capitalization and EPV per share",
+                      },
+                      {
+                        label: "Current Share Price",
+                        value: fmt(currentPrice),
+                        usedIn: "Market capitalization and upside",
+                      },
+                      {
+                        label: "Beta",
+                        value: data.beta != null ? data.beta.toFixed(2) : "1.00 fallback",
+                        usedIn: "Cost of Equity (Ke)",
+                      },
+                    ].map((row) => (
+                      <tr key={row.label} className="border-b border-border/50">
+                        <td className="py-2">{row.label}</td>
+                        <td className="py-2 text-right font-mono">{row.value}</td>
+                        <td className="py-2 pl-4 text-xs text-muted-foreground">{row.usedIn}</td>
                       </tr>
                     ))}
                   </tbody>

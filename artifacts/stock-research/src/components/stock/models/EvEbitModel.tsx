@@ -21,6 +21,13 @@ function fmt(v: number | null, prefix = "$", decimals = 2): string {
   return `${prefix}${v.toFixed(decimals)}`;
 }
 
+function fmtShares(v: number | null): string {
+  if (v == null || isNaN(v)) return "—";
+  if (v >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
+  return v.toLocaleString();
+}
+
 function pct(v: number | null): string {
   if (v == null || isNaN(v)) return "—";
   return `${(v * 100).toFixed(1)}%`;
@@ -145,7 +152,7 @@ export default function EvEbitModel({ data, currentPrice }: Props) {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">5-Year Operating History</CardTitle>
+              <CardTitle className="text-base">Historical Company Financial Inputs</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -155,21 +162,14 @@ export default function EvEbitModel({ data, currentPrice }: Props) {
                       <th className="text-left py-2 font-medium text-muted-foreground">Year</th>
                       <th className="text-right py-2 font-medium text-muted-foreground">Revenue</th>
                       <th className="text-right py-2 font-medium text-muted-foreground">EBIT</th>
-                      <th className="text-right py-2 font-medium text-muted-foreground">Op. Margin</th>
-                      <th className="text-right py-2 font-medium text-muted-foreground">Hist. EV</th>
-                      <th className="text-right py-2 font-medium text-muted-foreground">EV/EBIT</th>
+                      <th className="text-right py-2 font-medium text-muted-foreground">Year-End Price</th>
+                      <th className="text-right py-2 font-medium text-muted-foreground">Diluted Shares</th>
+                      <th className="text-right py-2 font-medium text-muted-foreground">Debt</th>
+                      <th className="text-right py-2 font-medium text-muted-foreground">Cash</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.history.map((row: EvEbitHistoryRow) => {
-                      const margin =
-                        row.ebit != null && row.revenue != null && row.revenue > 0
-                          ? row.ebit / row.revenue
-                          : null;
-                      const evEbit =
-                        row.ev != null && row.ebit != null && row.ebit > 0
-                          ? row.ev / row.ebit
-                          : null;
                       const isNeg = row.ebit != null && row.ebit <= 0;
                       return (
                         <tr key={row.year} className="border-b border-border/50 hover:bg-muted/30">
@@ -178,17 +178,10 @@ export default function EvEbitModel({ data, currentPrice }: Props) {
                           <td className={`py-2 text-right font-mono ${isNeg ? "text-destructive" : ""}`}>
                             {fmtB(row.ebit ?? null)}
                           </td>
-                          <td className="py-2 text-right">{pct(margin)}</td>
-                          <td className="py-2 text-right font-mono text-muted-foreground text-xs">
-                            {row.ev != null ? fmtB(row.ev) : "—"}
-                          </td>
-                          <td className="py-2 text-right font-mono">
-                            {evEbit != null
-                              ? evEbit.toFixed(1) + "×"
-                              : isNeg
-                              ? <span className="text-destructive text-xs">N/A (neg)</span>
-                              : "—"}
-                          </td>
+                          <td className="py-2 text-right font-mono">{fmt(row.yearEndPrice ?? null)}</td>
+                          <td className="py-2 text-right font-mono">{fmtShares(row.dilutedShares ?? null)}</td>
+                          <td className="py-2 text-right font-mono">{fmtB(row.totalDebt ?? null)}</td>
+                          <td className="py-2 text-right font-mono">{fmtB(row.cash ?? null)}</td>
                         </tr>
                       );
                     })}
@@ -196,9 +189,44 @@ export default function EvEbitModel({ data, currentPrice }: Props) {
                 </table>
               </div>
               <p className="text-xs text-muted-foreground mt-3">
-                Historical EV = (fiscal year-end stock price × diluted shares) + total debt − cash.
-                Stock price is sourced from the monthly close matching the company's fiscal year-end month.
+                These are the raw annual figures used by the model. Historical Enterprise Value is calculated separately as
+                (fiscal year-end stock price × diluted shares) + total debt − cash.
               </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Current Company Financial Inputs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 font-medium text-muted-foreground">Financial Input</th>
+                      <th className="text-right py-2 font-medium text-muted-foreground">Value</th>
+                      <th className="text-left py-2 pl-4 font-medium text-muted-foreground">Used In</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { label: "Current Share Price", value: fmt(currentPrice), usedIn: "Upside or downside to intrinsic value" },
+                      { label: "Shares Outstanding", value: fmtShares(data.sharesOutstanding ?? null), usedIn: "Intrinsic value per share" },
+                      { label: "Total Debt", value: fmtB(latestBalance?.totalDebt ?? null), usedIn: "Net debt and equity value" },
+                      { label: "Cash and Cash Equivalents", value: fmtB(latestBalance?.cash ?? null), usedIn: "Net debt and equity value" },
+                      { label: "Minority Interest", value: fmtB(latestBalance?.minorityInterest ?? null), usedIn: "Claims senior to common equity" },
+                      { label: "Preferred Stock", value: fmtB(preferredStockB * 1e9), usedIn: "Claims senior to common equity; adjustable assumption" },
+                    ].map((row) => (
+                      <tr key={row.label} className="border-b border-border/50">
+                        <td className="py-2">{row.label}</td>
+                        <td className="py-2 text-right font-mono">{row.value}</td>
+                        <td className="py-2 pl-4 text-xs text-muted-foreground">{row.usedIn}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
 

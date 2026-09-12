@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGetStockModels } from "@workspace/api-client-react";
 import GrahamModel from "./models/GrahamModel";
@@ -32,17 +33,19 @@ export default function ModelsTab({ symbol }: Props) {
   }
 
   const tabs = [
-    { value: "graham", label: "Graham Growth" },
-    { value: "katsenelson", label: "Abs. PE" },
-    { value: "evebit", label: "EV / EBIT" },
-    { value: "epv", label: "EPV" },
-    { value: "owners", label: "Owner's Earnings" },
-    { value: "riv", label: "Residual Income" },
-    { value: "ddm", label: "Dividend Growth" },
+    { value: "graham", label: "Graham Growth", suitableFor: "Profitable growth companies with positive earnings and reasonably predictable long-term growth." },
+    { value: "katsenelson", label: "Abs. PE", suitableFor: "Established profitable businesses whose quality, growth, and financial strength can justify a normalized P/E multiple." },
+    { value: "evebit", label: "EV / EBIT", suitableFor: "Mature, capital-intensive businesses where depreciation is meaningful and capital structures differ across peers." },
+    { value: "epv", label: "EPV", suitableFor: "Mature businesses with stable recurring operating earnings whose current earnings power can be valued without assuming growth." },
+    { value: "owners", label: "Owner's Earnings", suitableFor: "Cash-generative businesses where reported earnings differ from the cash owners can withdraw after required reinvestment." },
+    { value: "riv", label: "Residual Income", suitableFor: "Financial institutions and other businesses where book value is meaningful and free cash flow is difficult to interpret." },
+    { value: "ddm", label: "Dividend Growth", suitableFor: "Mature dividend-paying companies with a consistent, sustainable record of dividend growth." },
   ];
+  const [activeModel, setActiveModel] = useState("graham");
+  const activeSuitability = tabs.find((tab) => tab.value === activeModel)?.suitableFor;
 
   return (
-    <Tabs defaultValue="graham" className="w-full">
+    <Tabs value={activeModel} onValueChange={setActiveModel} className="w-full">
       <TabsList className="bg-card border border-border h-auto p-1 flex flex-wrap gap-1">
         {tabs.map(t => (
           <TabsTrigger
@@ -54,6 +57,11 @@ export default function ModelsTab({ symbol }: Props) {
           </TabsTrigger>
         ))}
       </TabsList>
+
+      <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Best suited to</p>
+        <p className="mt-1 text-sm">{activeSuitability}</p>
+      </div>
 
       <div className="mt-4">
         <TabsContent value="graham" className="mt-0">

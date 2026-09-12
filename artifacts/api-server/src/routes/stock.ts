@@ -2369,6 +2369,8 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
         cash: cash > 0 ? cash : null,
         minorityInterest:
           (bal["minorityInterest"] as number | undefined) ?? null,
+        yearEndPrice,
+        dilutedShares: yearShares > 0 ? yearShares : null,
         ev: historicalEv,
       };
     });

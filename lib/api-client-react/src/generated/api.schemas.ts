@@ -432,6 +432,8 @@ export interface EvEbitHistoryRow {
   totalDebt?: number | null;
   cash?: number | null;
   minorityInterest?: number | null;
+  yearEndPrice?: number | null;
+  dilutedShares?: number | null;
   ev?: number | null;
 }
 

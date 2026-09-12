@@ -1693,6 +1693,12 @@ components:
         minorityInterest:
           type: number
           nullable: true
+        yearEndPrice:
+          type: number
+          nullable: true
+        dilutedShares:
+          type: number
+          nullable: true
         ev:
           type: number
           nullable: true

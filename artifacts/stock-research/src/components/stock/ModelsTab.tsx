@@ -14,6 +14,7 @@ interface Props {
 }
 
 export default function ModelsTab({ symbol }: Props) {
+  const [activeModel, setActiveModel] = useState("graham");
   const { data, isLoading, error } = useGetStockModels(symbol);
 
   if (isLoading) {
@@ -41,7 +42,6 @@ export default function ModelsTab({ symbol }: Props) {
     { value: "riv", label: "Residual Income", suitableFor: "Financial institutions and other businesses where book value is meaningful and free cash flow is difficult to interpret." },
     { value: "ddm", label: "Dividend Growth", suitableFor: "Mature dividend-paying companies with a consistent, sustainable record of dividend growth." },
   ];
-  const [activeModel, setActiveModel] = useState("graham");
   const activeSuitability = tabs.find((tab) => tab.value === activeModel)?.suitableFor;
 
   return (

@@ -102,6 +102,9 @@ export default function EpvModel({ data, currentPrice }: Props) {
   }, [data, currentPrice, rfRate, erp]);
 
   const growthCapexPct = data.growthCapexRatio != null ? (data.growthCapexRatio * 100).toFixed(1) : null;
+  const growthCapex = data.latestCapex != null && data.maintenanceCapex != null
+    ? Math.max(0, data.latestCapex - data.maintenanceCapex)
+    : null;
 
   return (
     <div className="space-y-6">
@@ -110,7 +113,7 @@ export default function EpvModel({ data, currentPrice }: Props) {
         <p className="text-sm">
           <strong>Mature companies with stable, recurring earnings</strong> — especially capital-intensive businesses
           like utilities, industrials, and manufacturing where maintenance CapEx is a real economic cost.
-          Greenwald's EPV strips away all long-term growth assumptions and asks: what is this business worth
+          Greenwald's <strong>EPV (Earnings Power Value)</strong> strips away all long-term growth assumptions and asks: what is this business worth
           if it simply keeps doing what it's doing today, forever? The gap between current price and EPV
           represents the <em>growth premium</em> the market is pricing in.
         </p>
@@ -176,9 +179,14 @@ export default function EpvModel({ data, currentPrice }: Props) {
                   note: "Total capital expenditures spent in the latest year (absolute value of cash spent on property, plant, and equipment). This includes both growth and maintenance capital.",
                 },
                 {
-                  step: "4", label: "Maintenance CapEx",
+                  step: "4", label: "Growth CapEx",
+                  value: fmtB(growthCapex),
+                  note: `Growth CapEx Ratio (${growthCapexPct ?? "—"}%) × Revenue Growth (${fmtB(data.latestRevenueDelta ?? null)}). This is the estimated portion of total CapEx used to support incremental revenue rather than maintain existing earning capacity.`,
+                },
+                {
+                  step: "5", label: "Maintenance CapEx",
                   value: fmtB(data.maintenanceCapex ?? null),
-                  note: `Total CapEx (${fmtB(data.latestCapex ?? null)}) minus Growth CapEx. This is the irreducible minimum the business must spend just to maintain its current earnings capacity — not to grow, simply to survive. Traditional FCF analysis uses total CapEx, which overstates the maintenance burden.`,
+                  note: `Total CapEx (${fmtB(data.latestCapex ?? null)}) minus Growth CapEx (${fmtB(growthCapex)}). This is the estimated amount the business must spend to maintain its current earnings capacity. Traditional FCF analysis uses total CapEx, which can overstate the maintenance burden.`,
                 },
               ].map(({ step, label, value, note }) => (
                 <div key={step} className="flex gap-3 p-3 rounded-lg border border-border bg-muted/20">
@@ -215,42 +223,42 @@ export default function EpvModel({ data, currentPrice }: Props) {
               <CardContent className="space-y-3">
                 {[
                   {
-                    step: "5", label: "Normalized EBIT (5-yr avg)",
+                    step: "6", label: "Normalized EBIT (5-yr avg)",
                     value: fmtB(result.normalizedEbit ?? null),
                     note: "Simple average of operating income over the last 5 years. Smooths out one-off bumper or depressed years to get a representative 'steady-state' operating profit.",
                   },
                   {
-                    step: "6", label: "Normalized Tax Rate",
+                    step: "7", label: "Normalized Tax Rate",
                     value: pct(result.taxRate),
                     note: "5-year average effective tax rate (tax provision ÷ pre-tax income). Applied to EBIT to compute how much actually flows through to shareholders.",
                   },
                   {
-                    step: "7", label: "NOPAT (Net Operating Profit After Tax)",
+                    step: "8", label: "NOPAT (Net Operating Profit After Tax)",
                     value: fmtB(result.nopat ?? null),
                     note: `Normalized EBIT × (1 − Tax Rate). The after-tax operating profit the business generates before any financing decisions — a clean measure of operating value creation.`,
                   },
                   {
-                    step: "8", label: "Adjusted Earnings",
+                    step: "9", label: "Adjusted Earnings",
                     value: fmtB(result.adjustedEarnings ?? null),
                     note: `NOPAT + D&A (${fmtB(result.latestDep ?? null)}) − Maintenance CapEx (${fmtB(result.maintenanceCapex ?? null)}). This is the true distributable cash: we add back non-cash depreciation, then subtract only the real cash needed to maintain existing assets. This is the number that matters for valuation.`,
                   },
                   {
-                    step: "9", label: "WACC",
+                    step: "10", label: "WACC (Weighted Average Cost of Capital)",
                     value: pct(result.wacc),
-                    note: `Weighted Average Cost of Capital = Ke (${pct(result.ke)}) × equity weight (${(result.equityWeight * 100).toFixed(0)}%) + Kd (${pct(result.kd)}) × (1−tax) × debt weight (${(result.debtWeight * 100).toFixed(0)}%). Ke uses CAPM: ${rfRate}% risk-free + beta × ${erp}% ERP.`,
+                    note: `WACC = Cost of Equity (${pct(result.ke)}) × Equity Weight (${(result.equityWeight * 100).toFixed(0)}%) + after-tax Cost of Debt (${pct(result.kd)} × (1 − ${pct(result.taxRate)})) × Debt Weight (${(result.debtWeight * 100).toFixed(0)}%). The definitions and calculations for each input are shown in the WACC Calculation panel.`,
                   },
                   {
-                    step: "10", label: "EPV of Operations",
+                    step: "11", label: "Earnings Power Value of Operations",
                     value: fmtB(result.epvOperations ?? null),
                     note: "Adjusted Earnings ÷ WACC. A perpetuity: how much would you pay today for a stream of adjusted earnings forever at the required return? This is the no-growth intrinsic value of the operating business.",
                   },
                   {
-                    step: "11", label: "EPV of Equity",
+                    step: "12", label: "Earnings Power Value of Equity",
                     value: fmtB(result.epvEquity ?? null),
                     note: `EPV of Operations + Cash (${fmtB(data.currentCash ?? null)}) − Debt (${fmtB(data.currentDebt ?? null)}). What belongs to equity shareholders after accounting for the capital structure.`,
                   },
                   {
-                    step: "12", label: "EPV Per Share",
+                    step: "13", label: "Earnings Power Value Per Share",
                     value: fmt(result.epvPerShare),
                     note: `EPV of Equity ÷ ${data.sharesOutstanding != null ? (data.sharesOutstanding / 1e9).toFixed(2) + "B" : "N/A"} shares. The no-growth fair value per share — what the business is worth if it never grows again.`,
                   },
@@ -275,7 +283,7 @@ export default function EpvModel({ data, currentPrice }: Props) {
           {result.incalculable === false && (
             <Card className={`border-2 ${result.upside != null && result.upside > 0 ? "border-success/50 bg-success/5" : "border-destructive/30 bg-destructive/5"}`}>
               <CardContent className="pt-6 text-center space-y-2">
-                <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">EPV Verdict</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Earnings Power Value (EPV) Verdict</p>
                 <p className="text-3xl font-bold font-mono text-primary">{fmt(result.epvPerShare)}</p>
                 <p className="text-sm text-muted-foreground">No-Growth Fair Value / Share</p>
                 {currentPrice != null && (
@@ -305,7 +313,7 @@ export default function EpvModel({ data, currentPrice }: Props) {
           )}
 
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm">WACC Inputs</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-sm">WACC Calculation</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Risk-Free Rate (%)</Label>
@@ -318,11 +326,27 @@ export default function EpvModel({ data, currentPrice }: Props) {
                 <p className="text-xs text-muted-foreground">Additional return investors demand above the risk-free rate for owning equities. Damodaran's long-run estimate is 4.5%–5.5%. Default 5.0%.</p>
               </div>
               {result.incalculable === false && (
-                <div className="p-3 rounded-lg bg-muted/30 space-y-1 text-xs font-mono">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Beta</span><span>{(data.beta ?? 1.0).toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Cost of Equity (Ke)</span><span>{pct(result.ke)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Cost of Debt (Kd)</span><span>{pct(result.kd)}</span></div>
-                  <div className="flex justify-between font-semibold"><span className="text-muted-foreground">WACC</span><span className="text-primary">{pct(result.wacc)}</span></div>
+                <div className="p-3 rounded-lg bg-muted/30 space-y-3 text-xs">
+                  <div>
+                    <div className="flex justify-between font-medium"><span>Cost of Equity (Ke)</span><span className="font-mono">{pct(result.ke)}</span></div>
+                    <p className="text-muted-foreground mt-0.5">Required return for shareholders, calculated with CAPM: {rfRate.toFixed(1)}% risk-free rate + {(data.beta ?? 1.0).toFixed(2)} beta × {erp.toFixed(1)}% equity risk premium.</p>
+                  </div>
+                  <div>
+                    <div className="flex justify-between font-medium"><span>Pre-tax Cost of Debt (Kd)</span><span className="font-mono">{pct(result.kd)}</span></div>
+                    <p className="text-muted-foreground mt-0.5">Interest expense ÷ total debt, constrained to a reasonable 2%–15% range. A 5% fallback is used when debt data is unavailable.</p>
+                  </div>
+                  <div>
+                    <div className="flex justify-between font-medium"><span>Equity Weight</span><span className="font-mono">{pct(result.equityWeight, 0)}</span></div>
+                    <p className="text-muted-foreground mt-0.5">Market capitalization ÷ (market capitalization + total debt).</p>
+                  </div>
+                  <div>
+                    <div className="flex justify-between font-medium"><span>Debt Weight</span><span className="font-mono">{pct(result.debtWeight, 0)}</span></div>
+                    <p className="text-muted-foreground mt-0.5">Total debt ÷ (market capitalization + total debt), equivalent to 1 − Equity Weight.</p>
+                  </div>
+                  <div className="pt-2 border-t border-border">
+                    <div className="flex justify-between font-semibold"><span>WACC</span><span className="font-mono text-primary">{pct(result.wacc)}</span></div>
+                    <p className="text-muted-foreground mt-0.5">Blended required return: Ke × Equity Weight + Kd × (1 − tax rate) × Debt Weight.</p>
+                  </div>
                 </div>
               )}
             </CardContent>

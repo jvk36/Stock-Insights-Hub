@@ -1936,6 +1936,25 @@ components:
           nullable: true
       required: []
 
+    NavData:
+      type: object
+      properties:
+        propertyAssets:
+          type: ["number", "null"]
+        otherAssets:
+          type: ["number", "null"]
+        totalAssets:
+          type: ["number", "null"]
+        totalLiabilities:
+          type: ["number", "null"]
+        sharesOutstanding:
+          type: ["number", "null"]
+        currentPrice:
+          type: ["number", "null"]
+        dataYear:
+          type: ["string", "null"]
+      required: [propertyAssets, otherAssets, totalAssets, totalLiabilities, sharesOutstanding, currentPrice, dataYear]
+
     StockModels:
       type: object
       properties:
@@ -1953,6 +1972,8 @@ components:
           $ref: "#/components/schemas/OwnersEarningsData"
         riv:
           $ref: "#/components/schemas/RivData"
+        nav:
+          $ref: "#/components/schemas/NavData"
       required:
         - graham
         - evEbit
@@ -1961,6 +1982,7 @@ components:
         - epv
         - ownersEarnings
         - riv
+        - nav
 
     DcfInputs:
       type: object

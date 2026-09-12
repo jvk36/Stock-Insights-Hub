@@ -8,6 +8,7 @@ import KatsenelsonModel from "./models/KatsenelsonModel";
 import EpvModel from "./models/EpvModel";
 import OwnersEarningsModel from "./models/OwnersEarningsModel";
 import RivModel from "./models/RivModel";
+import NavModel from "./models/NavModel";
 
 interface Props {
   symbol: string;
@@ -40,6 +41,7 @@ export default function ModelsTab({ symbol }: Props) {
     { value: "epv", label: "EPV", suitableFor: "Mature businesses with stable recurring operating earnings whose current earnings power can be valued without assuming growth." },
     { value: "owners", label: "Owner's Earnings", suitableFor: "Cash-generative businesses where reported earnings differ from the cash owners can withdraw after required reinvestment." },
     { value: "riv", label: "Residual Income", suitableFor: "Financial institutions and other businesses where book value is meaningful and free cash flow is difficult to interpret." },
+    { value: "nav", label: "NAV", suitableFor: "REITs, investment funds, holding companies, natural-resource and royalty companies, companies in liquidation, and other asset-heavy businesses." },
     { value: "ddm", label: "Dividend Growth", suitableFor: "Mature dividend-paying companies with a consistent, sustainable record of dividend growth." },
   ];
   const activeSuitability = tabs.find((tab) => tab.value === activeModel)?.suitableFor;
@@ -81,6 +83,9 @@ export default function ModelsTab({ symbol }: Props) {
         </TabsContent>
         <TabsContent value="riv" className="mt-0">
           <RivModel data={data.riv} currentPrice={data.riv.currentPrice ?? null} />
+        </TabsContent>
+        <TabsContent value="nav" className="mt-0">
+          <NavModel data={data.nav} />
         </TabsContent>
         <TabsContent value="ddm" className="mt-0">
           <DdmModel data={data.ddm} currentPrice={data.ddm.currentPrice ?? null} />

@@ -523,6 +523,23 @@ export interface RivData {
   beta?: number | null;
 }
 
+export interface NavData {
+  /** @nullable */
+  propertyAssets: number | null;
+  /** @nullable */
+  otherAssets: number | null;
+  /** @nullable */
+  totalAssets: number | null;
+  /** @nullable */
+  totalLiabilities: number | null;
+  /** @nullable */
+  sharesOutstanding: number | null;
+  /** @nullable */
+  currentPrice: number | null;
+  /** @nullable */
+  dataYear: string | null;
+}
+
 export interface StockModels {
   graham: GrahamData;
   evEbit: EvEbitData;
@@ -531,6 +548,7 @@ export interface StockModels {
   epv: EpvData;
   ownersEarnings: OwnersEarningsData;
   riv: RivData;
+  nav: NavData;
 }
 
 export type DcfInputsValuationBasis =

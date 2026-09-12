@@ -675,6 +675,15 @@ export const GetStockModelsResponse = zod.object({
     sharesOutstanding: zod.number().nullish(),
     beta: zod.number().nullish(),
   }),
+  nav: zod.object({
+    propertyAssets: zod.number().nullable(),
+    otherAssets: zod.number().nullable(),
+    totalAssets: zod.number().nullable(),
+    totalLiabilities: zod.number().nullable(),
+    sharesOutstanding: zod.number().nullable(),
+    currentPrice: zod.number().nullable(),
+    dataYear: zod.string().nullable(),
+  }),
 });
 
 /**

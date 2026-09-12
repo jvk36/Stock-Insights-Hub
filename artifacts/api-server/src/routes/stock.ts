@@ -2672,6 +2672,35 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
       beta,
     };
 
+    // --- NAV: latest balance-sheet asset and liability bridge ---
+    const navTotalAssets =
+      (latestEpvBal["totalAssets"] as number | undefined) ?? null;
+    const navPropertyAssets =
+      (latestEpvBal["investmentProperties"] as number | undefined) ??
+      (latestEpvBal["investmentProperty"] as number | undefined) ??
+      (latestEpvBal["investmentsAndAdvances"] as number | undefined) ??
+      (latestEpvBal["netPPE"] as number | undefined) ??
+      null;
+    const navOtherAssets =
+      navTotalAssets != null && navPropertyAssets != null
+        ? Math.max(0, navTotalAssets - navPropertyAssets)
+        : navTotalAssets;
+    const navTotalLiabilities =
+      (latestEpvBal["totalLiabilitiesNetMinorityInterest"] as
+        | number
+        | undefined) ??
+      (latestEpvBal["totalLiabilities"] as number | undefined) ??
+      null;
+    const nav = {
+      propertyAssets: navPropertyAssets,
+      otherAssets: navOtherAssets,
+      totalAssets: navTotalAssets,
+      totalLiabilities: navTotalLiabilities,
+      sharesOutstanding: latestSharesForBv,
+      currentPrice,
+      dataYear: latestEpvYear || null,
+    };
+
     res.json({
       graham: {
         epsHistory,
@@ -2695,6 +2724,7 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
       epv,
       ownersEarnings,
       riv,
+      nav,
     });
   } catch (err: unknown) {
     req.log.error({ err, symbol }, "Failed to fetch models data");

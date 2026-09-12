@@ -76,6 +76,7 @@ export * from "./macroIndicator";
 export * from "./macroIndicatorsResponse";
 export * from "./marketCycle";
 export * from "./moatRow";
+export * from "./navData";
 export * from "./newsItem";
 export * from "./newsResponse";
 export * from "./ownersEarningsData";

@@ -10,6 +10,7 @@ import type { EpvData } from "./epvData";
 import type { EvEbitData } from "./evEbitData";
 import type { GrahamData } from "./grahamData";
 import type { KatsenelsonData } from "./katsenelsonData";
+import type { NavData } from "./navData";
 import type { OwnersEarningsData } from "./ownersEarningsData";
 import type { RivData } from "./rivData";
 
@@ -21,4 +22,5 @@ export interface StockModels {
   epv: EpvData;
   ownersEarnings: OwnersEarningsData;
   riv: RivData;
+  nav: NavData;
 }

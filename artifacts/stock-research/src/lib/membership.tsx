@@ -17,7 +17,7 @@ const MembershipContext = createContext<{
   refresh: () => Promise<unknown>;
 }>({ loading: true, authState: "unknown", refresh: async () => undefined });
 
-type MembershipResponse = { url?: string; error?: string; message?: string };
+type MembershipResponse = { error?: string; message?: string };
 
 async function readMembershipResponse(response: Response): Promise<MembershipResponse> {
   const raw = await response.text();
@@ -36,7 +36,7 @@ function membershipError(response: Response, data: MembershipResponse): string {
   if (response.status === 401) return "Your session expired. Sign in and retry.";
   if (response.status === 403) return "This request is not allowed from the current page.";
   if (response.status === 409) return "This account cannot be changed right now. Refresh and retry.";
-  if (response.status === 502 || response.status === 503) return "Billing is temporarily unavailable. Please retry shortly.";
+  if (response.status === 502 || response.status === 503) return "An account service is temporarily unavailable. Please retry shortly.";
   return `The request could not be completed (server returned ${response.status}).`;
 }
 
@@ -86,16 +86,4 @@ export function MembershipProvider({ children }: { children: React.ReactNode }) 
 
 export function useMembership() {
   return useContext(MembershipContext);
-}
-
-export async function postMembership(path: string, body: Record<string, unknown> = {}) {
-  const response = await fetch(`/api/membership/${path}`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const data = await readMembershipResponse(response);
-  if (!response.ok) throw new Error(membershipError(response, data));
-  return data;
 }

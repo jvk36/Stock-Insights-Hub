@@ -9,7 +9,8 @@
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:dcf": "node --experimental-strip-types src/lib/dcf-calculations.test.mjs",
-    "test:nav": "node --experimental-strip-types src/lib/nav-calculations.test.mjs"
+    "test:nav": "node --experimental-strip-types src/lib/nav-calculations.test.mjs",
+    "test:membership-state": "node --experimental-strip-types --test src/lib/membership-state.test.ts"
   },
   "devDependencies": {
     "@clerk/react": "^6.15.1",

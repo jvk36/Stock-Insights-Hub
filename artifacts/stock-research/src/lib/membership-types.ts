@@ -1,10 +1,5 @@
 export type Membership = {
   authenticated: boolean;
-  premium: boolean;
-  role: "free" | "paid" | "admin";
+  role: "free" | "admin";
   email?: string;
-  plan?: string | null;
-  subscriptionStatus?: string | null;
-  currentPeriodEnd?: string | null;
-  billingUnavailable?: boolean;
 };

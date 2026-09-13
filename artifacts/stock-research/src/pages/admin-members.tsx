@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
-type Member = { clerkUserId: string; email: string; role: string; plan?: string; subscriptionStatus?: string; currentPeriodEnd?: string; createdAt: string; deletionStartedAt?: string; hasBillingAccount: boolean; deletable: boolean };
-type DeleteResponse = { error?: string; deleted?: boolean; billingCleanup?: "deleted" | "not_required" };
+type Member = { clerkUserId: string; email: string; role: string; createdAt: string; deletionStartedAt?: string; deletable: boolean };
+type DeleteResponse = { error?: string; deleted?: boolean };
 
 async function readDeleteResponse(response: Response): Promise<DeleteResponse> {
   const text = await response.text();
@@ -56,9 +56,7 @@ export default function AdminMembers() {
       await query.refetch();
       toast({
         title: "User deleted",
-        description: payload.billingCleanup === "deleted"
-          ? `${user.email} was removed from sign-in, the app, and Stripe billing.`
-          : `${user.email} was removed from sign-in and the app. No billing account was attached.`,
+        description: `${user.email} was removed from sign-in and the app.`,
       });
     } catch (error) {
       toast({
@@ -75,10 +73,10 @@ export default function AdminMembers() {
       <main className="mx-auto max-w-6xl">
         <Link href="/account" className="text-sm font-medium text-primary">← Account</Link>
         <h1 className="mt-5 text-3xl font-bold">Members</h1>
-        <p className="mt-1 text-muted-foreground">Identity, role, and last known billing entitlement.</p>
+        <p className="mt-1 text-muted-foreground">Identity, role, and account status.</p>
         {query.isLoading && <p className="mt-8 text-muted-foreground">Loading members…</p>}
         {query.error && <p className="mt-8 text-destructive">{query.error.message}</p>}
-        {query.data && <div className="mt-7 overflow-x-auto rounded-xl border bg-card"><table className="w-full text-left text-sm"><thead className="border-b bg-muted/40"><tr>{["Email","Role","Plan","Status","Paid through","Joined","Actions"].map(h => <th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead><tbody>{query.data.users.map(u => <tr key={u.clerkUserId} className="border-b last:border-0"><td className="px-4 py-3 font-medium">{u.email}</td><td className="px-4 py-3 capitalize">{u.role}</td><td className="px-4 py-3 capitalize">{u.plan ?? "—"}</td><td className="px-4 py-3 capitalize">{u.deletionStartedAt ? "Deletion pending" : u.subscriptionStatus ?? "—"}</td><td className="px-4 py-3">{u.currentPeriodEnd ? new Date(u.currentPeriodEnd).toLocaleDateString() : "—"}</td><td className="px-4 py-3">{new Date(u.createdAt).toLocaleDateString()}</td><td className="px-4 py-3">{u.deletable ? <AlertDialog><AlertDialogTrigger asChild><button disabled={!!deletingId} className="inline-flex items-center gap-1.5 rounded-md border border-destructive/30 px-3 py-1.5 font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" />{deletingId === u.clerkUserId ? "Deleting…" : u.deletionStartedAt ? "Retry deletion" : "Delete"}</button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete {u.email}?</AlertDialogTitle><AlertDialogDescription>{u.hasBillingAccount ? "This permanently removes the user. Their Stripe billing account and subscriptions must be removed first, followed by their sign-in account and local membership. If Stripe is unavailable, deletion stays pending so you can retry safely." : "This permanently removes the user’s sign-in account and local membership. No billing account is attached to this member."} This cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Keep user</AlertDialogCancel><AlertDialogAction onClick={() => void deleteMember(u)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete user</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog> : <span className="text-xs text-muted-foreground">Current admin</span>}</td></tr>)}</tbody></table></div>}
+        {query.data && <div className="mt-7 overflow-x-auto rounded-xl border bg-card"><table className="w-full text-left text-sm"><thead className="border-b bg-muted/40"><tr>{["Email","Role","Status","Joined","Actions"].map(h => <th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead><tbody>{query.data.users.map(u => <tr key={u.clerkUserId} className="border-b last:border-0"><td className="px-4 py-3 font-medium">{u.email}</td><td className="px-4 py-3 capitalize">{u.role}</td><td className="px-4 py-3 capitalize">{u.deletionStartedAt ? "Deletion pending" : "Active"}</td><td className="px-4 py-3">{new Date(u.createdAt).toLocaleDateString()}</td><td className="px-4 py-3">{u.deletable ? <AlertDialog><AlertDialogTrigger asChild><button disabled={!!deletingId} className="inline-flex items-center gap-1.5 rounded-md border border-destructive/30 px-3 py-1.5 font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" />{deletingId === u.clerkUserId ? "Deleting…" : u.deletionStartedAt ? "Retry deletion" : "Delete"}</button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete {u.email}?</AlertDialogTitle><AlertDialogDescription>This permanently removes the user’s sign-in account and local membership. This cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Keep user</AlertDialogCancel><AlertDialogAction onClick={() => void deleteMember(u)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete user</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog> : <span className="text-xs text-muted-foreground">Current admin</span>}</td></tr>)}</tbody></table></div>}
       </main>
     </div>
   );

@@ -18,18 +18,18 @@ import { MembershipProvider, useMembership } from "@/lib/membership";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false, staleTime: 5 * 60 * 1000, retry: 1 } } });
 
+function PremiumRoute({ children }: { children: React.ReactNode }) {
+  const { membership, loading, authState } = useMembership();
+  if (authState === "unknown" || loading) return <div className="min-h-screen grid place-items-center bg-background text-muted-foreground">Checking membership…</div>;
+  if (authState === "signed-out") return <Redirect to="/pricing" />;
+  return membership?.premium ? children : <Redirect to="/pricing" />;
+}
+
 function SignedInRoute({ children }: { children: React.ReactNode }) {
   const { membership, loading, authState } = useMembership();
   if (authState === "unknown" || loading) return <div className="min-h-screen grid place-items-center bg-background text-muted-foreground">Checking account…</div>;
   if (authState === "signed-out") return <Redirect to="/sign-in" />;
   return membership?.authenticated ? children : <Redirect to="/sign-in" />;
-}
-
-function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { membership, loading, authState } = useMembership();
-  if (authState === "unknown" || loading) return <div className="min-h-screen grid place-items-center bg-background text-muted-foreground">Checking administrator access…</div>;
-  if (authState === "signed-out" || !membership?.authenticated) return <Redirect to="/sign-in" />;
-  return membership.role === "admin" ? children : <Redirect to="/account" />;
 }
 
 function AccountDock() {
@@ -39,7 +39,7 @@ function AccountDock() {
     <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full border bg-card/95 p-2 pl-3 shadow-lg backdrop-blur">
       {!signedIn && <a href={`${import.meta.env.BASE_URL}sign-in`} className="text-sm font-semibold text-primary">Sign in</a>}
       {signedIn && <>
-        <a href={`${import.meta.env.BASE_URL}account`} className="text-xs font-semibold text-muted-foreground hover:text-foreground">{membership?.role === "admin" ? "Admin" : membership ? "Member" : "Account"}</a>
+        <a href={`${import.meta.env.BASE_URL}account`} className="text-xs font-semibold text-muted-foreground hover:text-foreground">{membership?.role === "admin" ? "Admin" : membership?.premium ? "Premium" : membership ? "Free" : "Account"}</a>
         <UserButton />
       </>}
     </div>
@@ -116,10 +116,10 @@ function Routes() {
     <Route path="/sign-in/*?">{() => <AuthPage mode="sign-in" />}</Route>
     <Route path="/sign-up/*?">{() => <AuthPage mode="sign-up" />}</Route>
     <Route path="/account">{() => <SignedInRoute><Account /></SignedInRoute>}</Route>
-    <Route path="/admin/members">{() => <AdminRoute><AdminMembers /></AdminRoute>}</Route>
-    <Route path="/indexes" component={StockIndexes} />
-    <Route path="/stock" component={StockDetail} />
-    <Route path="/stock/:symbol" component={StockDetail} />
+    <Route path="/admin/members">{() => <PremiumRoute><AdminMembers /></PremiumRoute>}</Route>
+    <Route path="/indexes">{() => <PremiumRoute><StockIndexes /></PremiumRoute>}</Route>
+    <Route path="/stock">{() => <PremiumRoute><StockDetail /></PremiumRoute>}</Route>
+    <Route path="/stock/:symbol">{() => <PremiumRoute><StockDetail /></PremiumRoute>}</Route>
     <Route component={NotFound} />
   </Switch>;
 }

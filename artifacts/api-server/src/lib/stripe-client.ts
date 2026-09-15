@@ -1,0 +1,231 @@
+import { ReplitConnectors } from "@replit/connectors-sdk";
+import { db, membershipsTable, type Membership } from "@workspace/db";
+import { eq } from "drizzle-orm";
+
+const connectors = new ReplitConnectors();
+
+type StripeErrorPayload = { error?: { code?: string; message?: string; param?: string } };
+
+class StripeApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+    readonly param?: string,
+  ) {
+    super(message);
+    this.name = "StripeApiError";
+  }
+}
+
+export class StripeEnvironmentError extends Error {
+  constructor() {
+    super("Production Stripe checkout is still using test mode");
+    this.name = "StripeEnvironmentError";
+  }
+}
+
+async function readStripeResponse<T>(response: Response): Promise<T & StripeErrorPayload> {
+  const raw = await response.text();
+  if (!raw.trim()) {
+    throw new Error(`Stripe returned an empty response (${response.status})`);
+  }
+  try {
+    return JSON.parse(raw) as T & StripeErrorPayload;
+  } catch {
+    throw new Error(`Stripe returned an invalid response (${response.status})`);
+  }
+}
+
+async function stripeRequest<T>(path: string, method = "GET", fields?: Record<string, string>, idempotencyKey?: string) {
+  const response = await connectors.proxy("stripe", path, {
+    method,
+    headers: fields ? {
+      "Content-Type": "application/x-www-form-urlencoded",
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+    } : undefined,
+    body: fields ? new URLSearchParams(fields).toString() : undefined,
+  });
+  const payload = await readStripeResponse<T>(response);
+  if (!response.ok) {
+    throw new StripeApiError(
+      payload.error?.message ?? `Stripe request failed (${response.status})`,
+      response.status,
+      payload.error?.code,
+      payload.error?.param,
+    );
+  }
+  return payload;
+}
+
+async function deleteStripeResource(path: string) {
+  const response = await connectors.proxy("stripe", path, { method: "DELETE" });
+  if (response.status === 404) return;
+  const payload = await readStripeResponse<Record<string, unknown>>(response);
+  if (!response.ok) throw new Error(payload.error?.message ?? `Stripe request failed (${response.status})`);
+}
+
+type StripeProduct = { id: string };
+type StripePrice = { id: string; unit_amount: number; livemode?: boolean; metadata?: Record<string, string> };
+type StripeCustomer = { id: string; metadata?: Record<string, string> };
+type StripeSession = { url: string | null; livemode?: boolean };
+type StripeSubscription = {
+  id: string;
+  status: string;
+  current_period_end?: number;
+  metadata?: Record<string, string>;
+  items?: { data?: Array<{ current_period_end?: number; price?: { id?: string; metadata?: Record<string, string> } }> };
+};
+
+let priceCache: { monthly: string; annual: string; expiresAt: number } | undefined;
+
+export async function ensureMembershipPrices() {
+  if (priceCache && priceCache.expiresAt > Date.now()) {
+    return { monthly: priceCache.monthly, annual: priceCache.annual };
+  }
+  const found = await stripeRequest<{ data: StripeProduct[] }>(
+    `/v1/products/search?query=${encodeURIComponent("metadata['app_key']:'stock_research_membership'")}`,
+  );
+  const product = found.data[0] ?? await stripeRequest<StripeProduct>("/v1/products", "POST", {
+    name: "Stock Research Premium",
+    description: "Full access to Stock Screens and Stock Insights",
+    "metadata[app_key]": "stock_research_membership",
+  });
+  const listed = await stripeRequest<{ data: StripePrice[] }>(`/v1/prices?product=${product.id}&active=true&limit=100`);
+  let monthly = listed.data.find((p) => p.metadata?.plan === "monthly" && p.unit_amount === 1500);
+  let annual = listed.data.find((p) => p.metadata?.plan === "annual" && p.unit_amount === 15000);
+  monthly ??= await stripeRequest<StripePrice>("/v1/prices", "POST", {
+    product: product.id, currency: "usd", unit_amount: "1500",
+    "recurring[interval]": "month", "metadata[plan]": "monthly",
+  });
+  annual ??= await stripeRequest<StripePrice>("/v1/prices", "POST", {
+    product: product.id, currency: "usd", unit_amount: "15000",
+    "recurring[interval]": "year", "metadata[plan]": "annual",
+  });
+  if (process.env.NODE_ENV === "production" && (monthly.livemode !== true || annual.livemode !== true)) {
+    throw new StripeEnvironmentError();
+  }
+  priceCache = { monthly: monthly.id, annual: annual.id, expiresAt: Date.now() + 5 * 60_000 };
+  return { monthly: monthly.id, annual: annual.id };
+}
+
+export async function createStripeCustomer(email: string, clerkUserId: string) {
+  return stripeRequest<StripeCustomer>("/v1/customers", "POST", {
+    email, "metadata[clerkUserId]": clerkUserId,
+  });
+}
+
+export async function createCheckout(customerId: string, priceId: string, clerkUserId: string, plan: string, attemptId: string, successUrl: string, cancelUrl: string) {
+  const session = await stripeRequest<StripeSession>("/v1/checkout/sessions", "POST", {
+    customer: customerId, mode: "subscription",
+    "line_items[0][price]": priceId, "line_items[0][quantity]": "1",
+    success_url: successUrl, cancel_url: cancelUrl,
+    "subscription_data[metadata][clerkUserId]": clerkUserId,
+    "subscription_data[metadata][plan]": plan,
+  }, `membership-checkout-${clerkUserId}-${plan}-${attemptId}`);
+  if (process.env.NODE_ENV === "production" && session.livemode !== true) {
+    throw new StripeEnvironmentError();
+  }
+  return session;
+}
+
+export async function createBillingPortal(customerId: string, returnUrl: string) {
+  return stripeRequest<StripeSession>("/v1/billing_portal/sessions", "POST", {
+    customer: customerId, return_url: returnUrl,
+  });
+}
+
+export async function deleteStripeBillingAccount(customerId: string) {
+  // Deleting a Stripe customer immediately cancels all of that customer's
+  // active subscriptions and keeps the cancellation visible in Stripe history.
+  await deleteStripeResource(`/v1/customers/${encodeURIComponent(customerId)}`);
+}
+
+export async function deleteStripeBillingAccountsForUser(clerkUserId: string, knownCustomerId?: string | null) {
+  const [recent, found] = await Promise.all([
+    stripeRequest<{ data: StripeCustomer[] }>("/v1/customers?limit=100"),
+    stripeRequest<{ data: StripeCustomer[] }>(
+      `/v1/customers/search?query=${encodeURIComponent(`metadata['clerkUserId']:'${clerkUserId}'`)}`,
+    ),
+  ]);
+  const customerIds = new Set([
+    ...recent.data.filter((customer) => customer.metadata?.clerkUserId === clerkUserId).map((customer) => customer.id),
+    ...found.data.map((customer) => customer.id),
+  ]);
+  if (knownCustomerId) customerIds.add(knownCustomerId);
+  for (const customerId of customerIds) {
+    await deleteStripeBillingAccount(customerId);
+  }
+}
+
+export async function refreshStripeEntitlement(membership: Membership) {
+  if (membership.deletionStartedAt) return membership;
+  if (!membership.stripeCustomerId || membership.role === "admin") return membership;
+  const prices = await ensureMembershipPrices();
+  const allowedPriceIds = new Set([prices.monthly, prices.annual]);
+  let result: { data: StripeSubscription[] };
+  try {
+    result = await stripeRequest<{ data: StripeSubscription[] }>(
+      `/v1/subscriptions?customer=${membership.stripeCustomerId}&status=all&limit=20`,
+    );
+  } catch (error) {
+    const missingCustomer = error instanceof StripeApiError &&
+      error.status === 400 &&
+      error.code === "resource_missing" &&
+      error.param === "customer";
+    if (!missingCustomer || membership.role === "paid") throw error;
+    const [updated] = await db.update(membershipsTable).set({
+      role: "free",
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      subscriptionStatus: null,
+      currentPeriodEnd: null,
+      plan: null,
+      updatedAt: new Date(),
+    }).where(eq(membershipsTable.clerkUserId, membership.clerkUserId)).returning();
+    return updated ?? {
+      ...membership,
+      role: "free",
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      subscriptionStatus: null,
+      currentPeriodEnd: null,
+      plan: null,
+    };
+  }
+  const subscriptions = result.data.filter((subscription) => {
+    const item = subscription.items?.data?.[0];
+    const plan = subscription.metadata?.plan ?? item?.price?.metadata?.plan;
+    return subscription.metadata?.clerkUserId === membership.clerkUserId &&
+      (plan === "monthly" || plan === "annual") &&
+      !!item?.price?.id &&
+      allowedPriceIds.has(item.price.id);
+  }).sort((a, b) => {
+    const bEnd = b.current_period_end ?? b.items?.data?.[0]?.current_period_end ?? 0;
+    const aEnd = a.current_period_end ?? a.items?.data?.[0]?.current_period_end ?? 0;
+    return bEnd - aEnd;
+  });
+  const subscription = subscriptions.find((s) => ["active", "trialing"].includes(s.status)) ?? subscriptions[0];
+  if (!subscription) {
+    const [updated] = await db.update(membershipsTable).set({
+      role: "free", stripeSubscriptionId: null, subscriptionStatus: null,
+      currentPeriodEnd: null, plan: null, updatedAt: new Date(),
+    }).where(eq(membershipsTable.clerkUserId, membership.clerkUserId)).returning();
+    return updated ?? { ...membership, role: "free", stripeSubscriptionId: null, subscriptionStatus: null, currentPeriodEnd: null, plan: null };
+  }
+  const item = subscription.items?.data?.[0];
+  const unixEnd = subscription.current_period_end ?? item?.current_period_end;
+  const currentPeriodEnd = unixEnd ? new Date(unixEnd * 1000) : null;
+  const premium = ["active", "trialing"].includes(subscription.status) &&
+    !!currentPeriodEnd && currentPeriodEnd > new Date();
+  const plan = subscription.metadata?.plan ?? item?.price?.metadata?.plan ?? null;
+  const [updated] = await db.update(membershipsTable).set({
+    stripeSubscriptionId: subscription.id,
+    subscriptionStatus: subscription.status,
+    currentPeriodEnd,
+    plan,
+    role: premium ? "paid" : "free",
+    updatedAt: new Date(),
+  }).where(eq(membershipsTable.clerkUserId, membership.clerkUserId)).returning();
+  return updated ?? membership;
+}

@@ -7,5 +7,6 @@
 - [Multi-class share-count history](berkshire-share-count-history.md) — aggregate Company Facts may omit class-dimensioned counts; recover filing-level classes and archived submissions
 - [Split-adjusted EPS basis](split-adjusted-eps-basis.md) — normalize quarterly EPS before TTM; use filing dates to avoid re-adjusting restated comparatives
 - [Proxy governance parsing](proxy-governance-parsing.md) — distinguish proxy contests from shareholder proposals and support both table and director-card proxy layouts
+- [Stripe OAuth entitlement sync](stripe-oauth-entitlement-sync.md) — connected Stripe uses an OAuth proxy; verify subscription state live instead of expecting an exposed API key
 - [REIT non-GAAP filing sources](reit-non-gaap-filing-sources.md) — Company Facts often omits AFFO-family metrics; use annual 8-K exhibits and reject guidance rows
 - [NAV valuation inputs](nav-valuation-inputs.md) — prefill reported carrying values, but keep fair-market asset value an explicit editable assumption

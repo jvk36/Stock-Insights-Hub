@@ -13,6 +13,7 @@ export function getClerkAuthState(
 
 export const signedOutMembership: Membership = {
   authenticated: false,
+  premium: false,
   role: "free",
 };
 

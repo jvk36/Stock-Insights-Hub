@@ -9,11 +9,12 @@
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:affo": "node --experimental-strip-types src/lib/reit-affo.test.mjs",
-    "test:membership-role": "node --experimental-strip-types --test src/lib/membership-role.test.mjs"
+    "test:membership-entitlement": "node --experimental-strip-types src/lib/membership-entitlement.test.mjs"
   },
   "dependencies": {
     "@clerk/express": "^2.1.66",
     "@clerk/shared": "^4.31.0",
+    "@replit/connectors-sdk": "^0.4.3",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
     "cheerio": "^1.2.0",

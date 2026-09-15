@@ -4,11 +4,12 @@ import {
   getClerkAuthState,
   membershipForAuthState,
   signedOutMembership,
-} from "./membership-state.ts";
+} from "./membership-state";
 
-test("signed-in to signed-out transition cannot reuse administrator membership", () => {
+test("signed-in to signed-out transition cannot reuse premium membership", () => {
   const previousMembership = {
     authenticated: true,
+    premium: true,
     role: "admin" as const,
     email: "admin@example.com",
   };

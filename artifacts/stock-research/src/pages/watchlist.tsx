@@ -32,7 +32,7 @@ export default function Watchlist() {
   const [selectedTicker, setSelectedTicker] = useState<{ticker: string, name?: string | null} | null>(null);
 
   const { data: watchlist, isLoading: loadingWatchlist } = useListWatchlist();
-  const { data: metrics, isLoading: loadingMetrics } = useGetWatchlistMetrics({ query: { queryKey: getGetWatchlistMetricsQueryKey(), refetchInterval: 60000 } });
+  const { data: metrics, isLoading: loadingMetrics } = useGetWatchlistMetrics({ query: { queryKey: getGetWatchlistMetricsQueryKey(), refetchInterval: 20 * 60 * 1000 } });
 
   const addMutation = useAddToWatchlist({
     mutation: {

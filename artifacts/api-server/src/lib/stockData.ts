@@ -1,4 +1,5 @@
 import { yahooFetch } from "./yahooSession.ts";
+import YahooFinance from "yahoo-finance2";
 
 export interface StockMetrics {
   ticker: string; companyName: string | null; currentPrice: number | null;
@@ -11,6 +12,14 @@ export interface HistoricalDataPoint { date: string; price: number | null; ma50:
 export interface StockHistory { ticker: string; period: string; dataPoints: HistoricalDataPoint[] }
 type Chart = { chart?: { result?: Array<{ meta?: { regularMarketPrice?: number; longName?: string; shortName?: string }; timestamp?: number[]; indicators?: { quote?: Array<{ close?: (number | null)[]; volume?: (number | null)[] }> } }> } };
 type Summary = { quoteSummary?: { result?: Array<{ defaultKeyStatistics?: { forwardPE?: { raw?: number }; shortPercentOfFloat?: { raw?: number }; beta?: { raw?: number } }; financialData?: { debtToEquity?: { raw?: number }; earningsGrowth?: { raw?: number } } }> } };
+export const STOCK_METRICS_TTL_MS = 20 * 60_000;
+const yahooFinance = new YahooFinance({ suppressNotices: ["yahooSurvey", "ripHistorical"] });
+type StockMetricsProvider = {
+  fetchChart: (ticker: string) => Promise<Chart>;
+  fetchSummary: (ticker: string) => Promise<Summary>;
+  fetchOptions?: (ticker: string) => Promise<{ options?: Array<{ calls?: Array<{ openInterest?: number; impliedVolatility?: number }>; puts?: Array<{ openInterest?: number; impliedVolatility?: number }> }> }>;
+  now?: () => number;
+};
 
 function sma(values: (number | null)[], period: number, index: number) {
   const slice = values.slice(Math.max(0, index - period + 1), index + 1).filter((value): value is number => value != null);
@@ -30,32 +39,113 @@ export function normalizeTicker(ticker: string) {
   if (!/^[A-Z0-9^.-]{1,12}$/.test(value) || !/[A-Z0-9]/.test(value)) throw new Error("Invalid ticker symbol format");
   return value;
 }
-async function fetchChart(ticker: string, range: string) {
+async function fetchChart(ticker: string, range = "2y") {
   return yahooFetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=${range}&includePrePost=false`) as Promise<Chart>;
 }
-export async function getStockMetrics(ticker: string): Promise<StockMetrics> {
-  const symbol = normalizeTicker(ticker);
-  const [chartResponse, summaryResponse] = await Promise.all([
-    fetchChart(symbol, "2y"),
-    yahooFetch(`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=defaultKeyStatistics,financialData`) as Promise<Summary>,
-  ]);
-  const chart = chartResponse.chart?.result?.[0];
-  if (!chart) throw new Error(`Ticker ${symbol} not found`);
-  const closes = chart.indicators?.quote?.[0]?.close ?? [];
-  const latest = closes.length - 1;
-  const stats = summaryResponse.quoteSummary?.result?.[0];
-  return {
-    ticker: symbol, companyName: chart.meta?.longName ?? chart.meta?.shortName ?? null,
-    currentPrice: chart.meta?.regularMarketPrice ?? closes[latest] ?? null,
-    peRatioForward: stats?.defaultKeyStatistics?.forwardPE?.raw ?? null,
-    epsGrowthYoy: stats?.financialData?.earningsGrowth?.raw ?? null,
-    debtToEquity: stats?.financialData?.debtToEquity?.raw ?? null,
-    ma200: sma(closes, 200, latest), ma50: sma(closes, 50, latest), rsi: rsi(closes, latest),
-    shortInterestPct: stats?.defaultKeyStatistics?.shortPercentOfFloat?.raw ?? null,
-    putCallRatio: null, beta: stats?.defaultKeyStatistics?.beta?.raw ?? null,
-    impliedVolatility: null, lastUpdated: new Date().toISOString(),
+function emptyMetrics(ticker: string): StockMetrics {
+  return { ticker, companyName: null, currentPrice: null, peRatioForward: null, epsGrowthYoy: null, debtToEquity: null, ma200: null, ma50: null, rsi: null, shortInterestPct: null, putCallRatio: null, beta: null, impliedVolatility: null, lastUpdated: null };
+}
+
+export function createStockMetricsService(provider: StockMetricsProvider) {
+  const cache = new Map<string, { value: StockMetrics; fetchedAt: number }>();
+  const now = provider.now ?? Date.now;
+  return async function getMetrics(ticker: string): Promise<StockMetrics> {
+    const symbol = normalizeTicker(ticker);
+    const cached = cache.get(symbol);
+    if (cached && now() - cached.fetchedAt < STOCK_METRICS_TTL_MS) return cached.value;
+    const base = cached?.value ?? emptyMetrics(symbol);
+    const [chartResult, summaryResult, optionsResult] = await Promise.allSettled([
+      provider.fetchChart(symbol),
+      provider.fetchSummary(symbol),
+      provider.fetchOptions ? provider.fetchOptions(symbol) : Promise.resolve(null),
+    ]);
+    const next = { ...base, ticker: symbol };
+    let refreshed = false;
+    if (chartResult.status === "fulfilled") {
+      const chart = chartResult.value.chart?.result?.[0];
+      const closes = chart?.indicators?.quote?.[0]?.close ?? [];
+      const latest = closes.length - 1;
+      if (chart) {
+        next.companyName = chart.meta?.longName ?? chart.meta?.shortName ?? next.companyName;
+        next.currentPrice = chart.meta?.regularMarketPrice ?? closes[latest] ?? next.currentPrice;
+        next.ma200 = sma(closes, 200, latest);
+        next.ma50 = sma(closes, 50, latest);
+        next.rsi = rsi(closes, latest);
+        refreshed = true;
+      }
+    }
+    if (summaryResult.status === "fulfilled") {
+      const stats = summaryResult.value.quoteSummary?.result?.[0];
+      const keys = stats?.defaultKeyStatistics;
+      const financial = stats?.financialData;
+      if (stats) {
+        next.peRatioForward = keys?.forwardPE?.raw ?? next.peRatioForward;
+        next.epsGrowthYoy = financial?.earningsGrowth?.raw != null ? financial.earningsGrowth.raw * 100 : next.epsGrowthYoy;
+        next.debtToEquity = financial?.debtToEquity?.raw != null ? financial.debtToEquity.raw / 100 : next.debtToEquity;
+        next.shortInterestPct = keys?.shortPercentOfFloat?.raw != null ? keys.shortPercentOfFloat.raw * 100 : next.shortInterestPct;
+        next.beta = keys?.beta?.raw ?? next.beta;
+        refreshed = true;
+      }
+    }
+    if (optionsResult.status === "fulfilled" && optionsResult.value?.options?.[0]) {
+      const chain = optionsResult.value.options[0];
+      const calls = chain.calls ?? [];
+      const puts = chain.puts ?? [];
+      const callOpenInterest = calls.reduce((sum, option) => sum + (option.openInterest ?? 0), 0);
+      const putOpenInterest = puts.reduce((sum, option) => sum + (option.openInterest ?? 0), 0);
+      if (callOpenInterest > 0) next.putCallRatio = Number((putOpenInterest / callOpenInterest).toFixed(2));
+      const ivs = [...calls, ...puts].map((option) => option.impliedVolatility).filter((iv): iv is number => iv != null && iv > 0 && iv < 5);
+      if (ivs.length > 0) next.impliedVolatility = Number((ivs.reduce((sum, iv) => sum + iv, 0) / ivs.length * 100).toFixed(1));
+      refreshed = true;
+    }
+    if (!refreshed && !cached) throw new Error(`No market data available for ${symbol}`);
+    const value = refreshed ? { ...next, lastUpdated: new Date(now()).toISOString() } : base;
+    cache.set(symbol, { value, fetchedAt: refreshed ? now() : (cached?.fetchedAt ?? now()) });
+    return value;
   };
 }
+
+export const getStockMetrics = createStockMetricsService({
+  fetchChart: async (ticker) => {
+    const result = await yahooFinance.chart(ticker, {
+      period1: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000),
+      interval: "1d",
+    });
+    return {
+      chart: {
+        result: [{
+          meta: {
+            regularMarketPrice: result.meta?.regularMarketPrice,
+            longName: result.meta?.longName,
+            shortName: result.meta?.shortName,
+          },
+          indicators: { quote: [{ close: (result.quotes ?? []).map((quote) => quote.close ?? null) }] },
+        }],
+      },
+    };
+  },
+  fetchSummary: async (ticker) => {
+    const quote = await yahooFinance.quoteSummary(ticker, {
+      modules: ["defaultKeyStatistics", "financialData"],
+    });
+    return {
+      quoteSummary: {
+        result: [{
+          defaultKeyStatistics: {
+            forwardPE: quote.defaultKeyStatistics?.forwardPE == null ? undefined : { raw: quote.defaultKeyStatistics.forwardPE },
+            shortPercentOfFloat: quote.defaultKeyStatistics?.shortPercentOfFloat == null ? undefined : { raw: quote.defaultKeyStatistics.shortPercentOfFloat },
+            beta: quote.defaultKeyStatistics?.beta == null ? undefined : { raw: quote.defaultKeyStatistics.beta },
+          },
+          financialData: {
+            debtToEquity: quote.financialData?.debtToEquity == null ? undefined : { raw: quote.financialData.debtToEquity },
+            earningsGrowth: quote.financialData?.earningsGrowth == null ? undefined : { raw: quote.financialData.earningsGrowth },
+          },
+        }],
+      },
+    };
+  },
+  fetchOptions: (ticker) => yahooFinance.options(ticker) as Promise<{ options?: Array<{ calls?: Array<{ openInterest?: number; impliedVolatility?: number }>; puts?: Array<{ openInterest?: number; impliedVolatility?: number }> }> }>,
+});
 export async function getStockHistory(ticker: string, period = "6mo"): Promise<StockHistory> {
   const symbol = normalizeTicker(ticker);
   const response = await fetchChart(symbol, period);

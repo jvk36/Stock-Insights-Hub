@@ -38,3 +38,10 @@ const CURL_BIN = (() => {
 - `slickcharts.com` — Cloudflare; blocks undici and Node.js https; curl passes with browser headers
 - `api.nasdaq.com` — ETIMEDOUT (TCP-level block of Replit IP range from undici)
 - `stockanalysis.com` — 404/blocked
+
+## Validate scraped table semantics before caching
+Never fall back to an arbitrary first table when a named financial-constituent table disappears.
+
+**Why:** Wikipedia removed the Dow components table from the served markup; the first remaining table contained annual performance, so numeric changes were cached as ticker symbols and sectors.
+
+**How to apply:** Validate expected row counts, ticker syntax, and textual category fields before caching. Use a maintained canonical roster when no valid live table is available.

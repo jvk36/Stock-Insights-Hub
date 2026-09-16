@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { execFile, execSync } from "node:child_process";
 import * as cheerio from "cheerio";
 import YahooFinance from "yahoo-finance2";
-import { logger } from "../lib/logger";
+import { logger } from "../lib/logger.ts";
 
 /**
  * Absolute path to curl, resolved once at startup via the shell (which has the
@@ -64,6 +64,33 @@ interface IndexCache {
   revalidating: boolean;
 }
 
+export const DJIA_SEED: IndexStock[] = [
+  ["MMM", "3M", "Industrials"], ["AMZN", "Amazon", "Consumer Discretionary"],
+  ["AXP", "American Express", "Financials"], ["AMGN", "Amgen", "Health Care"],
+  ["AAPL", "Apple", "Information Technology"], ["BA", "Boeing", "Industrials"],
+  ["CAT", "Caterpillar", "Industrials"], ["CVX", "Chevron", "Energy"],
+  ["CSCO", "Cisco Systems", "Information Technology"], ["KO", "Coca-Cola", "Consumer Staples"],
+  ["DIS", "Walt Disney", "Communication Services"], ["GS", "Goldman Sachs", "Financials"],
+  ["HD", "Home Depot", "Consumer Discretionary"], ["HON", "Honeywell", "Industrials"],
+  ["IBM", "IBM", "Information Technology"], ["JNJ", "Johnson & Johnson", "Health Care"],
+  ["JPM", "JPMorgan Chase", "Financials"], ["MCD", "McDonald's", "Consumer Discretionary"],
+  ["MRK", "Merck", "Health Care"], ["MSFT", "Microsoft", "Information Technology"],
+  ["NKE", "Nike", "Consumer Discretionary"], ["NVDA", "NVIDIA", "Information Technology"],
+  ["PG", "Procter & Gamble", "Consumer Staples"], ["CRM", "Salesforce", "Information Technology"],
+  ["SHW", "Sherwin-Williams", "Materials"], ["TRV", "Travelers", "Financials"],
+  ["UNH", "UnitedHealth Group", "Health Care"], ["VZ", "Verizon", "Communication Services"],
+  ["V", "Visa", "Financials"], ["WMT", "Walmart", "Consumer Staples"],
+].map(([symbol, name, sector]) => ({ symbol, name, sector }));
+
+export function isValidDjiaRoster(stocks: IndexStock[]) {
+  return stocks.length === 30 && stocks.every((stock) =>
+    /^[A-Z][A-Z0-9.-]{0,5}$/.test(stock.symbol)
+    && /[A-Za-z]/.test(stock.name)
+    && /[A-Za-z]/.test(stock.sector)
+    && !/^[-+]?[\d.,\s%−]+$/.test(stock.symbol)
+    && !/^[-+]?[\d.,\s%−]+$/.test(stock.sector));
+}
+
 const CACHE_TTL_MS    = 10 * 24 * 60 * 60 * 1000;     // 10 d — in-memory stock list TTL (aligned with metrics)
 const METRICS_TTL_MS  = 10 * 24 * 60 * 60 * 1000;    // 10 d — screener metrics
 
@@ -89,6 +116,10 @@ async function tryLoadFromDisk(indexId: string): Promise<void> {
     const filePath = join(METRICS_CACHE_DIR, `metrics-${indexId}.json`);
     const raw      = await readFile(filePath, "utf8");
     const entry    = JSON.parse(raw) as MetricsCacheEntry;
+    if (indexId === "djia" && (!entry.stocks || !isValidDjiaRoster(entry.stocks))) {
+      logger.warn("Rejected invalid DJIA disk cache; using canonical roster");
+      return;
+    }
     const ageMin   = Math.round((Date.now() - entry.fetchedAt) / 60_000);
     const mc       = indexMetricsCache[indexId];
     mc.data  = entry;
@@ -444,21 +475,9 @@ router.get("/indexes/sp600", makeRoute(sp600Cache, scrapeSp600, "S&P SmallCap 60
 const djiaCache: IndexCache = { data: null, revalidating: false };
 
 async function scrapeDjia(): Promise<IndexStock[]> {
-  const $ = await fetchWikiHtml("https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average");
-  const stocks: IndexStock[] = [];
-  const $table = tableAfterHeading($, "Components") ?? $(".wikitable").first();
-  // Row structure: <th>Company</th> <td>Exchange</td> <td>Symbol</td> <td>Sector</td> <td>Date</td>
-  // Company is in a th element; find("td") gives: Exchange[0] | Symbol[1] | Sector[2] | Date[3]
-  $table.find("tbody tr").each((_, row) => {
-    const $row  = $(row);
-    const cells = $row.find("td");
-    if (cells.length < 2) return;
-    const name   = $row.find("th").first().text().trim();
-    const symbol = $(cells[1]).text().trim().replace(/\s+/g, "");
-    const sector = cells.length >= 3 ? $(cells[2]).text().trim() : "";
-    if (symbol && name) stocks.push({ symbol, name, sector });
-  });
-  return stocks;
+  // Wikipedia no longer has a stable Components table. Use the validated seed
+  // rather than risking annual-performance rows becoming constituents.
+  return DJIA_SEED;
 }
 
 router.get("/indexes/djia", makeRoute(djiaCache, scrapeDjia, "DJIA"));

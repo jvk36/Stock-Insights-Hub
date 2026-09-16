@@ -10,6 +10,8 @@ import NotFound from "@/pages/not-found";
 import StockDetail from "@/pages/stock";
 import MacroSummary from "@/pages/macro";
 import StockIndexes from "@/pages/indexes";
+import Watchlist from "@/pages/watchlist";
+
 import ThirteenFInsights from "@/pages/thirteen-f";
 import Pricing from "@/pages/pricing";
 import Account from "@/pages/account";
@@ -118,6 +120,8 @@ function Routes() {
     <Route path="/account">{() => <SignedInRoute><Account /></SignedInRoute>}</Route>
     <Route path="/admin/members">{() => <PremiumRoute><AdminMembers /></PremiumRoute>}</Route>
     <Route path="/indexes">{() => <PremiumRoute><StockIndexes /></PremiumRoute>}</Route>
+    <Route path="/watchlist">{() => <PremiumRoute><Watchlist /></PremiumRoute>}</Route>
+
     <Route path="/stock">{() => <PremiumRoute><StockDetail /></PremiumRoute>}</Route>
     <Route path="/stock/:symbol">{() => <PremiumRoute><StockDetail /></PremiumRoute>}</Route>
     <Route component={NotFound} />

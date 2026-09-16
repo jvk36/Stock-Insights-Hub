@@ -16,6 +16,8 @@ tags:
     description: Macroeconomic indicator operations
   - name: indexes
     description: Market index constituent operations
+  - name: watchlist
+    description: Premium personal watchlist operations
 paths:
   /healthz:
     get:
@@ -30,6 +32,71 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /watchlist:
+    get:
+      operationId: listWatchlist
+      tags: [watchlist]
+      responses:
+        "200":
+          description: Current user's watchlist
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/WatchlistEntry" }
+  /watchlist/add:
+    post:
+      operationId: addToWatchlist
+      tags: [watchlist]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ticker]
+              properties:
+                ticker: { type: string }
+      responses:
+        "201":
+          description: Added entry
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WatchlistEntry" }
+  /watchlist/{id}:
+    delete:
+      operationId: removeFromWatchlist
+      tags: [watchlist]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Removed }
+  /watchlist/bulk-metrics:
+    get:
+      operationId: getWatchlistMetrics
+      tags: [watchlist]
+      responses:
+        "200":
+          description: Latest metrics for each watchlist symbol
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/WatchlistMetrics" }
+  /stocks/{ticker}/history:
+    get:
+      operationId: getWatchlistStockHistory
+      tags: [watchlist]
+      parameters:
+        - { name: ticker, in: path, required: true, schema: { type: string } }
+        - { name: period, in: query, required: false, schema: { type: string, enum: [1mo, 3mo, 6mo, 1y, 2y], default: 6mo } }
+      responses:
+        "200":
+          description: Historical metrics
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StockHistory" }
 
   /stock/{symbol}/quote:
     get:
@@ -777,6 +844,49 @@ paths:
 
 components:
   schemas:
+    WatchlistEntry:
+      type: object
+      required: [id, ticker, addedAt]
+      properties:
+        id: { type: string }
+        ticker: { type: string }
+        addedAt: { type: string, format: date-time }
+    WatchlistMetrics:
+      type: object
+      required: [ticker]
+      properties:
+        ticker: { type: string }
+        companyName: { type: string, nullable: true }
+        currentPrice: { type: number, nullable: true }
+        peRatioForward: { type: number, nullable: true }
+        epsGrowthYoy: { type: number, nullable: true }
+        debtToEquity: { type: number, nullable: true }
+        ma200: { type: number, nullable: true }
+        ma50: { type: number, nullable: true }
+        rsi: { type: number, nullable: true }
+        shortInterestPct: { type: number, nullable: true }
+        putCallRatio: { type: number, nullable: true }
+        beta: { type: number, nullable: true }
+        impliedVolatility: { type: number, nullable: true }
+        lastUpdated: { type: string, format: date-time, nullable: true }
+    StockHistory:
+      type: object
+      required: [ticker, period, dataPoints]
+      properties:
+        ticker: { type: string }
+        period: { type: string }
+        dataPoints:
+          type: array
+          items:
+            type: object
+            required: [date]
+            properties:
+              date: { type: string, format: date-time }
+              price: { type: number, nullable: true }
+              ma50: { type: number, nullable: true }
+              ma200: { type: number, nullable: true }
+              rsi: { type: number, nullable: true }
+              volume: { type: number, nullable: true }
     HealthStatus:
       type: object
       properties:

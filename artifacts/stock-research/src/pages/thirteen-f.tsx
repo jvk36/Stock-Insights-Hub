@@ -1013,6 +1013,12 @@ export default function ThirteenFInsights() {
             >
               Stock Insights
             </Link>
+            <Link
+              href="/watchlist"
+              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
+            >
+              Stock Watch
+            </Link>
           </nav>
 
           <div className="flex-1" />

@@ -2,7 +2,6 @@ import type { NextFunction, Request, Response } from "express";
 import { clerkClient, getAuth } from "@clerk/express";
 import { db, membershipDeletionsTable, membershipsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
-import { refreshStripeEntitlement } from "./stripe-client";
 import { hasStoredPremiumAccess } from "./membership-entitlement";
 
 export async function getMembership(req: Request) {
@@ -43,19 +42,6 @@ export async function requirePremium(req: Request, res: Response, next: NextFunc
   try {
     let membership = await getMembership(req);
     if (!membership) return res.status(401).json({ error: "Sign in required" });
-    try {
-      membership = await refreshStripeEntitlement(membership);
-    } catch (error) {
-      req.log.warn(
-        { err: error, clerkUserId: membership.clerkUserId },
-        "Stripe entitlement refresh failed during premium authorization",
-      );
-      if (!hasPremiumAccess(membership)) {
-        return res.status(503).json({
-          error: "Unable to verify Premium membership while billing is unavailable",
-        });
-      }
-    }
     if (!hasPremiumAccess(membership)) return res.status(403).json({ error: "Premium membership required" });
     res.locals.membership = membership;
     return next();

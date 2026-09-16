@@ -15,6 +15,68 @@ export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
 
+export const ListWatchlistResponseItem = zod.object({
+  id: zod.string(),
+  ticker: zod.string(),
+  addedAt: zod.coerce.date(),
+});
+export const ListWatchlistResponse = zod.array(ListWatchlistResponseItem);
+
+export const AddToWatchlistBody = zod.object({
+  ticker: zod.string(),
+});
+
+export const RemoveFromWatchlistParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetWatchlistMetricsResponseItem = zod.object({
+  ticker: zod.string(),
+  companyName: zod.string().nullish(),
+  currentPrice: zod.number().nullish(),
+  peRatioForward: zod.number().nullish(),
+  epsGrowthYoy: zod.number().nullish(),
+  debtToEquity: zod.number().nullish(),
+  ma200: zod.number().nullish(),
+  ma50: zod.number().nullish(),
+  rsi: zod.number().nullish(),
+  shortInterestPct: zod.number().nullish(),
+  putCallRatio: zod.number().nullish(),
+  beta: zod.number().nullish(),
+  impliedVolatility: zod.number().nullish(),
+  lastUpdated: zod.coerce.date().nullish(),
+});
+export const GetWatchlistMetricsResponse = zod.array(
+  GetWatchlistMetricsResponseItem,
+);
+
+export const GetWatchlistStockHistoryParams = zod.object({
+  ticker: zod.coerce.string(),
+});
+
+export const getWatchlistStockHistoryQueryPeriodDefault = `6mo`;
+
+export const GetWatchlistStockHistoryQueryParams = zod.object({
+  period: zod
+    .enum(["1mo", "3mo", "6mo", "1y", "2y"])
+    .default(getWatchlistStockHistoryQueryPeriodDefault),
+});
+
+export const GetWatchlistStockHistoryResponse = zod.object({
+  ticker: zod.string(),
+  period: zod.string(),
+  dataPoints: zod.array(
+    zod.object({
+      date: zod.coerce.date(),
+      price: zod.number().nullish(),
+      ma50: zod.number().nullish(),
+      ma200: zod.number().nullish(),
+      rsi: zod.number().nullish(),
+      volume: zod.number().nullish(),
+    }),
+  ),
+});
+
 /**
  * @summary Get stock quote and summary stats
  */

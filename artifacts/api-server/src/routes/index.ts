@@ -6,6 +6,7 @@ import indexesRouter from "./indexes";
 import thirteenFRouter from "./thirteen-f";
 import membershipRouter from "./membership";
 import { requirePremium } from "../lib/membership-auth";
+import watchlistRouter from "./watchlist";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(thirteenFRouter);
 router.use(requirePremium);
 router.use(stockRouter);
 router.use(indexesRouter);
+router.use(watchlistRouter);
 
 export default router;

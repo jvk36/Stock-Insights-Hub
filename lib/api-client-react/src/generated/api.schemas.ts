@@ -5,6 +5,44 @@
  * Stock Research Platform API
  * OpenAPI spec version: 0.1.0
  */
+export interface WatchlistEntry {
+  id: string;
+  ticker: string;
+  addedAt: string;
+}
+
+export interface WatchlistMetrics {
+  ticker: string;
+  companyName?: string | null;
+  currentPrice?: number | null;
+  peRatioForward?: number | null;
+  epsGrowthYoy?: number | null;
+  debtToEquity?: number | null;
+  ma200?: number | null;
+  ma50?: number | null;
+  rsi?: number | null;
+  shortInterestPct?: number | null;
+  putCallRatio?: number | null;
+  beta?: number | null;
+  impliedVolatility?: number | null;
+  lastUpdated?: string | null;
+}
+
+export type StockHistoryDataPointsItem = {
+  date: string;
+  price?: number | null;
+  ma50?: number | null;
+  ma200?: number | null;
+  rsi?: number | null;
+  volume?: number | null;
+};
+
+export interface StockHistory {
+  ticker: string;
+  period: string;
+  dataPoints: StockHistoryDataPointsItem[];
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -911,6 +949,25 @@ export interface ThirteenFHoldingsResponse {
   seedingInProgress: boolean;
   holdings: ThirteenFHoldingRow[];
 }
+
+export type AddToWatchlistBody = {
+  ticker: string;
+};
+
+export type GetWatchlistStockHistoryParams = {
+  period?: GetWatchlistStockHistoryPeriod;
+};
+
+export type GetWatchlistStockHistoryPeriod =
+  (typeof GetWatchlistStockHistoryPeriod)[keyof typeof GetWatchlistStockHistoryPeriod];
+
+export const GetWatchlistStockHistoryPeriod = {
+  "1mo": "1mo",
+  "3mo": "3mo",
+  "6mo": "6mo",
+  "1y": "1y",
+  "2y": "2y",
+} as const;
 
 export type GetStockChartParams = {
   range?: GetStockChartRange;

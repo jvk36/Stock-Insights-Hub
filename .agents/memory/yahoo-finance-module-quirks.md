@@ -57,6 +57,13 @@ Yahoo Finance search sometimes ranks foreign listings above US tickers. Prefer i
 2. `quoteType === 'EQUITY'` AND symbol has no `.` (US tickers rarely contain dots)
 3. Any equity (fallback)
 
+## Ticker validation must not depend on Yahoo availability
+Validate ticker syntax locally when saving user watchlists; do not classify a symbol as invalid because a live Yahoo request failed.
+
+**Why:** Yahoo can return HTTP 429 or temporary schema/session failures for valid symbols. Treating those failures as validation results prevents users from saving valid tickers.
+
+**How to apply:** Accept normalized symbols that match the supported syntax, persist them under the authenticated user, and let quote/history refreshes report temporary data unavailability separately.
+
 ## SEC 13F name normalisation before YF search
 SEC 13F names use abbreviations that break Yahoo Finance search. Always normalise before searching:
 - `PETE` → `Petroleum`, `FINL` → `Financial`, `HLDGS` → `Holdings`, `AMER` → `American`, `CENTY` → `Century`

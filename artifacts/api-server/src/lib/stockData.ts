@@ -1,4 +1,4 @@
-import { yahooFetch } from "./yahooSession";
+import { yahooFetch } from "./yahooSession.ts";
 
 export interface StockMetrics {
   ticker: string; companyName: string | null; currentPrice: number | null;
@@ -25,16 +25,16 @@ function rsi(values: (number | null)[], index: number, period = 14) {
   }
   return losses === 0 ? 100 : 100 - 100 / (1 + gains / losses);
 }
-function normalize(ticker: string) {
+export function normalizeTicker(ticker: string) {
   const value = ticker.trim().toUpperCase();
-  if (!/^[A-Z0-9^.-]{1,12}$/.test(value)) throw new Error("Invalid ticker");
+  if (!/^[A-Z0-9^.-]{1,12}$/.test(value) || !/[A-Z0-9]/.test(value)) throw new Error("Invalid ticker symbol format");
   return value;
 }
 async function fetchChart(ticker: string, range: string) {
   return yahooFetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=${range}&includePrePost=false`) as Promise<Chart>;
 }
 export async function getStockMetrics(ticker: string): Promise<StockMetrics> {
-  const symbol = normalize(ticker);
+  const symbol = normalizeTicker(ticker);
   const [chartResponse, summaryResponse] = await Promise.all([
     fetchChart(symbol, "2y"),
     yahooFetch(`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=defaultKeyStatistics,financialData`) as Promise<Summary>,
@@ -57,7 +57,7 @@ export async function getStockMetrics(ticker: string): Promise<StockMetrics> {
   };
 }
 export async function getStockHistory(ticker: string, period = "6mo"): Promise<StockHistory> {
-  const symbol = normalize(ticker);
+  const symbol = normalizeTicker(ticker);
   const response = await fetchChart(symbol, period);
   const chart = response.chart?.result?.[0];
   if (!chart?.timestamp) throw new Error(`Historical data unavailable for ${symbol}`);
@@ -72,6 +72,16 @@ export async function getStockHistory(ticker: string, period = "6mo"): Promise<S
     })),
   };
 }
-export async function validateTicker(ticker: string) {
-  try { await getStockMetrics(ticker); return true; } catch { return false; }
+/**
+ * Validate only the symbol syntax. External quote availability is intentionally
+ * not checked here: Yahoo can be rate-limited or temporarily unavailable, and
+ * that must not prevent a user from saving a valid symbol for a later refresh.
+ */
+export function isValidTickerSymbol(ticker: string) {
+  try {
+    normalizeTicker(ticker);
+    return true;
+  } catch {
+    return false;
+  }
 }

@@ -1,8 +1,9 @@
-import type { NextFunction, Request, Response } from "express";
+import type { Request } from "express";
 import { clerkClient, getAuth } from "@clerk/express";
 import { db, membershipDeletionsTable, membershipsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { hasStoredPremiumAccess } from "./membership-entitlement";
+import { createRequirePremium } from "./premium-middleware";
 
 export async function getMembership(req: Request) {
   const { userId } = getAuth(req);
@@ -38,15 +39,4 @@ export function hasPremiumAccess(membership: Awaited<ReturnType<typeof getMember
   return hasStoredPremiumAccess(membership);
 }
 
-export async function requirePremium(req: Request, res: Response, next: NextFunction) {
-  try {
-    let membership = await getMembership(req);
-    if (!membership) return res.status(401).json({ error: "Sign in required" });
-    if (!hasPremiumAccess(membership)) return res.status(403).json({ error: "Premium membership required" });
-    res.locals.membership = membership;
-    return next();
-  } catch (error) {
-    req.log.error({ err: error }, "Membership authorization failed");
-    return res.status(500).json({ error: "Unable to verify membership" });
-  }
-}
+export const requirePremium = createRequirePremium(getMembership);

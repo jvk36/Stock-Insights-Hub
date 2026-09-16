@@ -1,4 +1,4 @@
-import { logger } from "./logger";
+import { logger } from "./logger.ts";
 
 type YahooSession = { cookie: string; expiresAt: number };
 let cachedSession: YahooSession | null = null;

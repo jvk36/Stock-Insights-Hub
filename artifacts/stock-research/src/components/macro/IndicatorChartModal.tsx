@@ -128,6 +128,20 @@ export default function IndicatorChartModal({
       .map((d) => d.date);
   }, [chartData]);
 
+  const chartSummary = useMemo(() => {
+    if (chartData.length === 0) return "";
+
+    const first = chartData[0];
+    const last = chartData[chartData.length - 1];
+    const values = chartData.map((point) => point.value as number);
+    const minimum = Math.min(...values);
+    const maximum = Math.max(...values);
+    const change = (last.value as number) - (first.value as number);
+    const direction = change > 0 ? "increased" : change < 0 ? "decreased" : "was unchanged";
+
+    return `${title} ${direction} from ${formatValue(first.value, unitsLabel)} ${unitsLabel} on ${formatDate(first.date)} to ${formatValue(last.value, unitsLabel)} ${unitsLabel} on ${formatDate(last.date)}. The minimum was ${formatValue(minimum, unitsLabel)} ${unitsLabel}, and the maximum was ${formatValue(maximum, unitsLabel)} ${unitsLabel}, across ${chartData.length} data points.`;
+  }, [chartData, title, unitsLabel]);
+
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-3xl w-full">
@@ -175,8 +189,18 @@ export default function IndicatorChartModal({
             </div>
           )}
           {!isLoading && !isError && chartData.length > 0 && (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 4, right: 12, left: 4, bottom: 4 }}>
+            <>
+              <p id="macro-chart-summary" className="sr-only">
+                {chartSummary}
+              </p>
+              <div
+                role="img"
+                aria-label={`${title} historical trend chart`}
+                aria-describedby="macro-chart-summary"
+                className="h-full"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 4, right: 12, left: 4, bottom: 4 }}>
                 <defs>
                   <linearGradient id="macroGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
@@ -222,8 +246,10 @@ export default function IndicatorChartModal({
                   dot={false}
                   activeDot={{ r: 3 }}
                 />
-              </AreaChart>
-            </ResponsiveContainer>
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </>
           )}
         </div>
       </DialogContent>

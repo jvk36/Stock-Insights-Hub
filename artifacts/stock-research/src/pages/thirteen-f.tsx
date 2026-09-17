@@ -1024,8 +1024,9 @@ export default function ThirteenFInsights() {
           <div className="flex-1" />
 
           <form onSubmit={handleSearch} className="relative w-44">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <Search aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
+              aria-label="Search by stock symbol"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value.toUpperCase())}
               placeholder="Symbol…"

@@ -117,9 +117,9 @@ export default function MacroDiyGuideTab() {
     <div className="space-y-8">
       {/* a) How to Read Each Indicator */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           How To Read Each Indicator
-        </h3>
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {GUIDE_CARDS.map((card) => (
             <Card key={card.title} className="flex flex-col">
@@ -148,9 +148,9 @@ export default function MacroDiyGuideTab() {
 
       {/* b) Data Release Calendar */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           Data Release Calendar
-        </h3>
+        </h2>
         <div className="rounded-lg border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>

@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
+import Seo from "@/components/Seo";
 import {
   useList13fFunds,
   getList13fFundsQueryKey,
@@ -908,9 +909,9 @@ function FundListCard({
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
         Top Hedge Funds
-      </h3>
+      </h2>
       {isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -924,9 +925,14 @@ function FundListCard({
       ) : (
         <div className="space-y-1.5">
           {funds.map((fund: HedgeFund) => (
-            <button
+            <a
               key={fund.cik}
-              onClick={() => onSelectFund(fund)}
+              href={`/13f/${fund.slug}`}
+              onClick={(event) => {
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                onSelectFund(fund);
+              }}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-border/60 bg-background hover:bg-muted hover:border-border transition-all text-left group"
             >
               <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -942,7 +948,7 @@ function FundListCard({
                 <p className="text-xs text-muted-foreground">CIK {fund.cik}</p>
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary transition-colors shrink-0" />
-            </button>
+            </a>
           ))}
         </div>
       )}
@@ -981,8 +987,33 @@ export default function ThirteenFInsights() {
     }
   };
 
+  const fundLabel = selectedFund?.name ?? (slug ? slug.split("-").map((part) => part[0]?.toUpperCase() + part.slice(1)).join(" ") : null);
+  const seoTitle = fundLabel ? `${fundLabel} 13F Holdings & Portfolio` : "Hedge Fund 13F Holdings Tracker";
+  const seoDescription = fundLabel
+    ? `Explore ${fundLabel}'s latest SEC 13F holdings, portfolio changes, new positions, exits, and quarterly institutional investment activity.`
+    : "Explore quarterly SEC 13F holdings, portfolio changes, new positions, exits, and top investments from leading hedge funds and investors.";
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <Seo
+        title={seoTitle}
+        description={seoDescription}
+        path={slug ? `/13f/${slug}` : "/13f"}
+        type={slug ? "article" : "website"}
+        schema={{
+          "@type": slug ? "CollectionPage" : "WebPage",
+          name: seoTitle,
+          description: seoDescription,
+          isPartOf: { "@id": "https://diyabsolutereturns.com/#website" },
+          ...(slug ? { breadcrumb: {
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "13F Holdings", item: "https://diyabsolutereturns.com/13f" },
+              { "@type": "ListItem", position: 2, name: fundLabel },
+            ],
+          } } : {}),
+        }}
+      />
       {/* Ribbon */}
       <header className="border-b border-border bg-card sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-6">

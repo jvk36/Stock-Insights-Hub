@@ -95,9 +95,9 @@ export default function MacroLaborTab({ indicators }: Props) {
     <div className="space-y-8">
       {/* a) Labor Market Health Cards */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           Labor Market Health
-        </h3>
+        </h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {healthCards.map((ind) => (
             <Card
@@ -140,9 +140,9 @@ export default function MacroLaborTab({ indicators }: Props) {
 
       {/* b) Full Labor Data Suite */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           Full Labor Data Suite
-        </h3>
+        </h2>
         <div className="rounded-lg border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>

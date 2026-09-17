@@ -111,9 +111,9 @@ export default function MacroGdpTab({ indicators, marketCycle }: Props) {
 
       {/* a) Cycle Phase Indicator */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           Cycle Phase Indicator
-        </h3>
+        </h2>
         <div className="rounded-lg border border-border bg-card p-4">
           <div className="flex rounded-md overflow-hidden border border-border mb-3">
             {CYCLE_PHASES.map((phase, i) => {
@@ -144,9 +144,9 @@ export default function MacroGdpTab({ indicators, marketCycle }: Props) {
 
       {/* b) GDP Activity & Indicators */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           GDP Activity &amp; Indicators
-        </h3>
+        </h2>
         <div className="rounded-lg border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>

@@ -17,6 +17,7 @@ import MacroLaborTab from "@/components/macro/MacroLaborTab";
 import MacroFinancialConditionsTab from "@/components/macro/MacroFinancialConditionsTab";
 import MacroGlobalTab from "@/components/macro/MacroGlobalTab";
 import MacroDiyGuideTab from "@/components/macro/MacroDiyGuideTab";
+import Seo from "@/components/Seo";
 
 export default function MacroSummary() {
   const [, setLocation] = useLocation();
@@ -51,6 +52,17 @@ export default function MacroSummary() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <Seo
+        title="US Macro Dashboard & Economic Indicators"
+        description="Track GDP, inflation, labor, financial conditions, global markets, and the US economic cycle with current Federal Reserve and FRED data."
+        path="/macro"
+        schema={{
+          "@type": "WebPage",
+          name: "US Macro Dashboard and Economic Indicators",
+          description: "Current macroeconomic indicators and market-cycle analysis for long-term investors.",
+          isPartOf: { "@id": "https://diyabsolutereturns.com/#website" },
+        }}
+      />
       {/* Ribbon */}
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-6">

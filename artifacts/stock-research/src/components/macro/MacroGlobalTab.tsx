@@ -79,6 +79,9 @@ export default function MacroGlobalTab({ indicators }: Props) {
 
   return (
     <div className="space-y-4">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        Global Economic Indicators
+      </h2>
       <p className="text-sm text-muted-foreground">
         Central bank rates, inflation, and FX indicators. Click any row to view the historical chart.
         Data sources: ECB, BoE, Eurostat, MIC Japan, ONS, NBS, EIA, Federal Reserve, PBoC.

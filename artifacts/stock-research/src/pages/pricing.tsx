@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@clerk/react";
 import { useState } from "react";
 import { postMembership, useMembership } from "@/lib/membership";
+import Seo from "@/components/Seo";
 
 const features = ["Stock screens across major indexes", "Complete company research and filings", "Valuation models and analyst insights", "Board, buyback, and insider intelligence"];
 
@@ -29,6 +30,17 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Seo
+        title="Stock Research Platform Pricing"
+        description="Compare monthly and annual access to stock screens, company filings, valuation models, analyst insights, and investor intelligence."
+        path="/pricing"
+        schema={{
+          "@type": "WebPage",
+          name: "Stock Research Platform Pricing",
+          description: "Subscription options for the DIY Absolute Returns stock research platform.",
+          isPartOf: { "@id": "https://diyabsolutereturns.com/#website" },
+        }}
+      />
       <header className="border-b bg-card">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <Link href="/13f" className="flex items-center gap-2 font-bold"><TrendingUp className="h-5 w-5 text-primary" /> Terminal</Link>

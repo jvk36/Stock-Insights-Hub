@@ -83,9 +83,9 @@ export default function MacroInflationTab({ indicators }: Props) {
     <div className="space-y-8">
       {/* a) Headline Readings */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           Headline Readings
-        </h3>
+        </h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {headline.map((ind) => {
             const v = ind.value;
@@ -136,9 +136,9 @@ export default function MacroInflationTab({ indicators }: Props) {
 
       {/* b) CPI Component Breakdown */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           CPI Component Breakdown — YoY %
-        </h3>
+        </h2>
         <div className="rounded-lg border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -178,9 +178,9 @@ export default function MacroInflationTab({ indicators }: Props) {
 
       {/* c) Full Inflation Data Suite */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           Full Inflation Data Suite
-        </h3>
+        </h2>
         <div className="rounded-lg border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>

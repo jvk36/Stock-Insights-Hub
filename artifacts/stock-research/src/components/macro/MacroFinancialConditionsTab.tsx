@@ -103,9 +103,9 @@ export default function MacroFinancialConditionsTab({ indicators }: Props) {
     <div className="space-y-8">
       {/* a) Fed & Interest Rates Cards */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           Fed &amp; Interest Rates
-        </h3>
+        </h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {rateCards.map((ind) => (
             <Card
@@ -146,9 +146,9 @@ export default function MacroFinancialConditionsTab({ indicators }: Props) {
 
       {/* b) Financial Conditions Indicators */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           Financial Conditions Indicators
-        </h3>
+        </h2>
         <div className="rounded-lg border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>

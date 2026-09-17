@@ -265,9 +265,9 @@ export default function MacroOverviewTab({ indicators, marketCycle }: Props) {
 
       {/* a) Latest Key Readings */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           Latest Key Readings At A Glance
-        </h3>
+        </h2>
         <div className="rounded-lg border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -314,9 +314,9 @@ export default function MacroOverviewTab({ indicators, marketCycle }: Props) {
 
       {/* b) Signal Dashboard */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           Signal Dashboard
-        </h3>
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {signalCards.map((ind) => (
             <Card
@@ -362,9 +362,9 @@ export default function MacroOverviewTab({ indicators, marketCycle }: Props) {
 
       {/* c) Regime & Risk Gauges */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           Regime &amp; Risk Gauges
-        </h3>
+        </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
             <CardHeader className="pb-2 pt-4 px-4">
@@ -427,9 +427,9 @@ export default function MacroOverviewTab({ indicators, marketCycle }: Props) {
 
       {/* d) Asset Class Compass */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
           Asset Class Compass
-        </h3>
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {([
             { label: "Equities",     sig: equitiesSignal, bases: "Earnings resiliency · Valuations · Quality/Dividend tilt" },

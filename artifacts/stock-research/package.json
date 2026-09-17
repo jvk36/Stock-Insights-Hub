@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
-    "build": "vite build --config vite.config.ts",
+    "build": "vite build --config vite.config.ts && node scripts/generate-public-pages.mjs",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:seo": "node scripts/test-public-pages.mjs",
     "test:dcf": "node --experimental-strip-types src/lib/dcf-calculations.test.mjs",
     "test:nav": "node --experimental-strip-types src/lib/nav-calculations.test.mjs"
   },

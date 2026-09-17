@@ -23,6 +23,174 @@ publicDir = "artifacts/stock-research/dist/public"
 serve = "static"
 
 [[services.production.rewrites]]
+from = "/macro"
+to = "/macro/index.html"
+
+[[services.production.rewrites]]
+from = "/13f"
+to = "/13f/index.html"
+
+[[services.production.rewrites]]
+from = "/pricing"
+to = "/pricing/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/berkshire-hathaway"
+to = "/13f/berkshire-hathaway/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/pershing-square"
+to = "/13f/pershing-square/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/himalaya-capital"
+to = "/13f/himalaya-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/rv-capital"
+to = "/13f/rv-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/cas-investment-partners"
+to = "/13f/cas-investment-partners/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/dorsey-asset-management"
+to = "/13f/dorsey-asset-management/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/yacktman-asset-management"
+to = "/13f/yacktman-asset-management/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/tweedy-browne"
+to = "/13f/tweedy-browne/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/davis-selected-advisers"
+to = "/13f/davis-selected-advisers/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/abrams-capital"
+to = "/13f/abrams-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/baupost-group"
+to = "/13f/baupost-group/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/generation-investment"
+to = "/13f/generation-investment/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/akre-capital"
+to = "/13f/akre-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/appaloosa"
+to = "/13f/appaloosa/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/ruane-cunniff"
+to = "/13f/ruane-cunniff/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/fundsmith"
+to = "/13f/fundsmith/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/tci-fund-management"
+to = "/13f/tci-fund-management/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/tiger-global"
+to = "/13f/tiger-global/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/fairfax-financial"
+to = "/13f/fairfax-financial/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/duquesne-family-office"
+to = "/13f/duquesne-family-office/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/third-point"
+to = "/13f/third-point/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/icahn-capital"
+to = "/13f/icahn-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/public-investment-fund"
+to = "/13f/public-investment-fund/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/baker-bros-advisors"
+to = "/13f/baker-bros-advisors/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/fairholme-capital"
+to = "/13f/fairholme-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/greenlight-capital"
+to = "/13f/greenlight-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/paulson"
+to = "/13f/paulson/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/viking-global"
+to = "/13f/viking-global/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/coatue"
+to = "/13f/coatue/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/lone-pine-capital"
+to = "/13f/lone-pine-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/joho-capital"
+to = "/13f/joho-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/trian-fund-management"
+to = "/13f/trian-fund-management/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/brave-warrior-advisors"
+to = "/13f/brave-warrior-advisors/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/egerton-capital"
+to = "/13f/egerton-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/polen-capital"
+to = "/13f/polen-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/aquamarine-capital"
+to = "/13f/aquamarine-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/semper-augustus"
+to = "/13f/semper-augustus/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/southernsun"
+to = "/13f/southernsun/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/vulcan-value-partners"
+to = "/13f/vulcan-value-partners/index.html"
+
+[[services.production.rewrites]]
 from = "/*"
 to = "/index.html"
 

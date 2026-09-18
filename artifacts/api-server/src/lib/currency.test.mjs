@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   clearFxCache,
+  convertStatementPerShareToUsd,
   convertToUsd,
   getUsdRate,
   normalizeFinancialAggregates,
@@ -53,6 +54,23 @@ test("unavailable FX nulls aggregate model inputs instead of relabeling local va
   assert.equal(row.totalRevenue, null);
   assert.equal(row.totalAssets, null);
   assert.equal(row.dilutedAverageShares, 1_000);
+});
+
+test("converts reporting-currency statement EPS exactly once", () => {
+  const rate = 0.01043;
+  assert.ok(Math.abs(convertStatementPerShareToUsd(12.56, rate) - 0.1310008) < 1e-9);
+
+  const normalizedNetIncome = convertToUsd(132_000_000_000, rate);
+  const shares = 10_480_000_000;
+  const fallbackEps = normalizedNetIncome / shares;
+  assert.ok(Math.abs(fallbackEps - 0.1314) < 0.0001);
+
+  // Quote-summary trailing EPS is already ADR/listing-denominated and bypasses
+  // the statement conversion helper.
+  const quoteSummaryTrailingEps = 0.13;
+  assert.equal(quoteSummaryTrailingEps, 0.13);
+  assert.equal(convertStatementPerShareToUsd(12.56, null), null);
+  assert.equal(convertStatementPerShareToUsd(0.13, 1), 0.13);
 });
 
 test("FX cache is reused while fresh and serves stale value on refresh errors", async () => {

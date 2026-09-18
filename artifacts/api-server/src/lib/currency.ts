@@ -16,7 +16,7 @@ const rateCache = new Map<string, CacheEntry>();
 /** Prefer Yahoo's explicit financial reporting currency; USD is only a fallback. */
 export function resolveFinancialCurrency(
   financialData: { financialCurrency?: string | null } | null | undefined,
-  fallbackCurrency = "USD",
+  fallbackCurrency: string | null = "USD",
 ): string | null {
   const explicit = financialData?.financialCurrency;
   if (typeof explicit === "string" && explicit.trim()) return explicit.trim().toUpperCase();
@@ -34,7 +34,9 @@ export function convertToUsd(value: number | null | undefined, rate: number | nu
 /** Statement totals that are reported in the issuer's financial currency.
  * Per-share values, shares, and ratios are deliberately excluded. */
 export const MONETARY_AGGREGATE_KEYS = new Set([
-  "totalRevenue", "revenue", "grossProfit", "operatingIncome", "operatingIncomeAsReported",
+  "totalRevenue", "revenue", "reconciledCostOfRevenue", "grossProfit", "operatingIncome",
+  "operatingIncomeAsReported", "totalOperatingIncomeAsReported", "EBITDA", "EBIT",
+  "normalizedEBITDA", "researchAndDevelopment",
   "netIncome", "netIncomeCommonStockholders", "taxProvision", "pretaxIncome",
   "interestExpense", "interestExpenseNonOperating", "totalDebt", "longTermDebt",
   "currentDebt", "cashAndCashEquivalents", "cashCashEquivalentsAndShortTermInvestments",
@@ -44,8 +46,12 @@ export const MONETARY_AGGREGATE_KEYS = new Set([
   "totalLiabilities", "capitalExpenditure", "capitalExpenditures", "depreciation",
   "depreciationAndAmortization", "depreciationAmortizationDepletion", "deferredTax",
   "deferredIncomeTax", "deferredTaxAssetsLiabilities",
-  "workingCapital", "changeInWorkingCapital", "operatingCashFlow", "freeCashFlow",
+  "inventory", "accountsReceivable", "currentAssets", "currentLiabilities",
+  "retainedEarnings", "workingCapital", "changeInWorkingCapital", "operatingCashFlow",
+  "freeCashFlow",
   "investingCashFlow", "financingCashFlow", "netDebt", "enterpriseValue",
+  "stockBasedCompensation", "repurchaseOfCapitalStock", "commonStockDividendPaid",
+  "netIssuancePaymentsOfDebt", "changesInCash",
 ]);
 
 /** Normalize only explicit aggregate monetary inputs, leaving all other fields intact. */
@@ -62,6 +68,17 @@ export function normalizeFinancialAggregates<T extends Record<string, unknown>>(
       typeof value === "number" ? convertToUsd(value, usdRate) : null;
   }
   return normalized;
+}
+
+/**
+ * fundamentalsTimeSeries EPS is denominated in the statement reporting
+ * currency. Quote-summary ADR EPS is listing-denominated and must not use this.
+ */
+export function convertStatementPerShareToUsd(
+  value: number | null | undefined,
+  usdRate: number | null | undefined,
+): number | null {
+  return convertToUsd(value, usdRate);
 }
 
 /** Return the USD rate for a currency, retaining a last successful value on errors. */

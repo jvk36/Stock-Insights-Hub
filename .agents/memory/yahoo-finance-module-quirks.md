@@ -17,7 +17,7 @@ Yahoo ADR prices and market caps are usually USD, but `financialData.freeCashflo
 
 **Why:** Treating WIT's INR financial values as dollars inflated FCF and net debt by roughly the USD/INR exchange-rate inverse and broke DCF and FCF-yield calculations.
 
-**How to apply:** Convert aggregate statement and enterprise-value fields with the live `[CCY]USD=X` rate before combining them with USD ADR price/market cap. Do not convert shares, ratios, ADR price, or Yahoo's ADR-aligned per-share EPS/dividend fields. Cache FX rates, retain last good rates on failure, and return unavailable rather than relabeling local values as USD.
+**How to apply:** Convert aggregate statement and enterprise-value fields with the live `[CCY]USD=X` rate before combining them with USD ADR price/market cap. Also convert `fundamentalsTimeSeries` EPS because it uses statement currency. Do not convert shares, ratios, ADR price, or quote-summary ADR EPS/dividend fields, which are listing-denominated. Cache FX rates, retain last good rates on failure, and return unavailable rather than relabeling local values as USD.
 
 ## Field availability
 - `incomeStatementHistory` module: has `totalRevenue`, `netIncome`, `grossProfit` but NOT `dilutedEps`. Do not use for EPS growth calculation.

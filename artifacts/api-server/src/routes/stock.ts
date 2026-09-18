@@ -31,6 +31,7 @@ import {
   getReportedAffo,
 } from "../lib/reit-affo";
 import {
+  convertStatementPerShareToUsd,
   convertToUsd,
   getUsdRate,
   normalizeFinancialAggregates,
@@ -535,22 +536,37 @@ router.get("/stock/:symbol/financials", async (req, res): Promise<void> => {
   try {
     // Use fundamentalsTimeSeries — the quoteSummary statement modules have been
     // mostly empty since late 2024 per yahoo-finance2 changelog.
-    const [incomeRaw, balanceRaw, cashRaw] = await Promise.all([
+    const [incomeRaw, balanceRaw, cashRaw, quote] = await Promise.all([
       yahooFinance.fundamentalsTimeSeries(symbol, { type: tsType, module: "financials", period1 }),
       yahooFinance.fundamentalsTimeSeries(symbol, { type: tsType, module: "balance-sheet", period1 }),
       yahooFinance.fundamentalsTimeSeries(symbol, { type: tsType, module: "cash-flow", period1 }),
+      yahooFinance.quoteSummary(symbol, { modules: ["financialData", "price"] }),
     ]);
 
     // Sort descending (most recent first) and limit to 8 periods
     const toDate = (item: { date?: Date | string }) =>
       item.date instanceof Date ? item.date.toISOString().split("T")[0] : String(item.date ?? "");
 
+    const rawCurrency = (row: unknown): string | null => {
+      const value = (row as Record<string, unknown>)?.currencyCode;
+      return typeof value === "string" && value.trim() ? value.trim().toUpperCase() : null;
+    };
+    const reportingCurrency =
+      resolveFinancialCurrency(quote.financialData, null) ??
+      rawCurrency(incomeRaw[0]) ??
+      rawCurrency(balanceRaw[0]) ??
+      rawCurrency(cashRaw[0]) ??
+      (quote.price?.currency ?? null);
+    const usdRate = await getUsdRate(reportingCurrency);
+    const normalized = (row: unknown) =>
+      normalizeFinancialAggregates(row as Record<string, unknown>, usdRate);
+
     const incomeStatement = [...incomeRaw]
       .sort((a, b) => toDate(b).localeCompare(toDate(a)))
       .slice(0, 8)
       .map((item) => ({
         date: toDate(item),
-        data: mapKeys(item as unknown as Record<string, unknown>, incomeStatementKeyMap),
+        data: mapKeys(normalized(item), incomeStatementKeyMap),
       }));
 
     const balanceSheet = [...balanceRaw]
@@ -558,7 +574,7 @@ router.get("/stock/:symbol/financials", async (req, res): Promise<void> => {
       .slice(0, 8)
       .map((item) => ({
         date: toDate(item),
-        data: mapKeys(item as unknown as Record<string, unknown>, balanceSheetKeyMap),
+        data: mapKeys(normalized(item), balanceSheetKeyMap),
       }));
 
     const cashFlow = [...cashRaw]
@@ -566,16 +582,12 @@ router.get("/stock/:symbol/financials", async (req, res): Promise<void> => {
       .slice(0, 8)
       .map((item) => ({
         date: toDate(item),
-        data: mapKeys(item as unknown as Record<string, unknown>, cashFlowKeyMap),
+        data: mapKeys(normalized(item), cashFlowKeyMap),
       }));
 
-    const financialCurrency =
-      incomeRaw.length > 0
-        ? (
-            (incomeRaw[0] as unknown as Record<string, unknown>)
-              ?.currencyCode as string | undefined
-          ) ?? null
-        : null;
+    // Only label values as USD when conversion was successful. Keeping the
+    // reporting currency on an unavailable-FX response avoids relabeling INR.
+    const financialCurrency = usdRate != null ? "USD" : reportingCurrency;
 
     res.json({ symbol, period, financialCurrency, incomeStatement, balanceSheet, cashFlow });
   } catch (err: unknown) {
@@ -2292,10 +2304,16 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
     // Yahoo reports statement totals in financialData.financialCurrency (for
     // example INR for WIT), while listing prices and shares remain security
     // denominated. Normalize only the explicit aggregate allowlist once.
-    const reportingCurrency = resolveFinancialCurrency(
-      summary.financialData,
-      summary.price?.currency ?? "USD",
-    );
+    const rowCurrency = (row: unknown): string | null => {
+      const value = (row as Record<string, unknown>)?.currencyCode;
+      return typeof value === "string" && value.trim() ? value.trim().toUpperCase() : null;
+    };
+    const reportingCurrency =
+      resolveFinancialCurrency(summary.financialData, null) ??
+      rowCurrency(income10yrRaw[0]) ??
+      rowCurrency(balance5yrRaw[0]) ??
+      rowCurrency(cashflow5yrRaw[0]) ??
+      (summary.price?.currency ?? null);
     const usdRate = await getUsdRate(reportingCurrency);
     const income10yr = income10yrRaw.map((row) =>
       normalizeFinancialAggregates(row as unknown as Record<string, unknown>, usdRate),
@@ -2366,7 +2384,7 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
         const dilutedAvgShares =
           (raw["dilutedAverageShares"] as number | undefined) ?? null;
         const eps =
-          dilutedEPS ??
+          convertStatementPerShareToUsd(dilutedEPS, usdRate) ??
           (netIncome != null
             ? (() => {
                 const s = dilutedAvgShares ?? sharesOutstanding;
@@ -2437,7 +2455,7 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
       const dilutedEPS = (raw["dilutedEPS"] as number | undefined) ?? null;
       const netIncome = (raw["netIncome"] as number | undefined) ?? null;
       epsMap[y] =
-        dilutedEPS ??
+        convertStatementPerShareToUsd(dilutedEPS, usdRate) ??
         (netIncome != null && sharesOutstanding != null && sharesOutstanding > 0
           ? netIncome / sharesOutstanding
           : null);

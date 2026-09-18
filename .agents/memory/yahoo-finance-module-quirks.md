@@ -12,6 +12,13 @@ description: Field name gotchas, unit conventions, and data availability for yah
 - `summaryDetail.fiveYearAvgDividendYield` — already a percentage (e.g. 0.5 for 0.5%). No multiplication.
 - Options chain `.impliedVolatility` — decimal (0.25 = 25%). Multiply by 100. Filter out values > 5.0 as bad data.
 
+## ADR financial values use reporting currency
+Yahoo ADR prices and market caps are usually USD, but `financialData.freeCashflow`, `totalDebt`, `totalCash`, and enterprise value can be in `financialData.financialCurrency`.
+
+**Why:** Treating WIT's INR financial values as dollars inflated FCF and net debt by roughly the USD/INR exchange-rate inverse and broke DCF and FCF-yield calculations.
+
+**How to apply:** Convert monetary financial fields with the live `[CCY]USD=X` rate before combining them with USD ADR price/market cap. Cache FX rates, retain last good rates on failure, and return unavailable rather than relabeling local values as USD.
+
 ## Field availability
 - `incomeStatementHistory` module: has `totalRevenue`, `netIncome`, `grossProfit` but NOT `dilutedEps`. Do not use for EPS growth calculation.
 - `earnings` module via quoteSummary: `earningsChart.yearly` and `financialsChart.yearly` are often null/unavailable for specific stocks. Use as best-effort only; handle null gracefully.

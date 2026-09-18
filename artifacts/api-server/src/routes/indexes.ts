@@ -5,6 +5,7 @@ import { execFile, execSync } from "node:child_process";
 import * as cheerio from "cheerio";
 import YahooFinance from "yahoo-finance2";
 import { logger } from "../lib/logger.ts";
+import { convertToUsd, getUsdRate, resolveFinancialCurrency } from "../lib/currency.ts";
 
 /**
  * Absolute path to curl, resolved once at startup via the shell (which has the
@@ -93,6 +94,7 @@ export function isValidDjiaRoster(stocks: IndexStock[]) {
 
 const CACHE_TTL_MS    = 10 * 24 * 60 * 60 * 1000;     // 10 d — in-memory stock list TTL (aligned with metrics)
 const METRICS_TTL_MS  = 10 * 24 * 60 * 60 * 1000;    // 10 d — screener metrics
+const ADR_METRICS_CACHE_VERSION = 2;
 
 // ─── Metrics disk-cache helpers ───────────────────────────────────────────────
 
@@ -116,6 +118,10 @@ async function tryLoadFromDisk(indexId: string): Promise<void> {
     const filePath = join(METRICS_CACHE_DIR, `metrics-${indexId}.json`);
     const raw      = await readFile(filePath, "utf8");
     const entry    = JSON.parse(raw) as MetricsCacheEntry;
+    if (indexId === "adrs" && entry.cacheVersion !== ADR_METRICS_CACHE_VERSION) {
+      logger.info("Ignoring pre-currency-correction ADR metrics cache");
+      return;
+    }
     if (indexId === "djia" && (!entry.stocks || !isValidDjiaRoster(entry.stocks))) {
       logger.warn("Rejected invalid DJIA disk cache; using canonical roster");
       return;
@@ -562,7 +568,7 @@ export interface StockMetrics {
   trailingPE: number;
   priceToBook: number;
   evEbitda: number;
-  fcfYield: number;
+  fcfYield: number | null;
   return52w: number;
   returnVsSp: number;
   return3m: number;
@@ -589,7 +595,7 @@ const NULL_METRICS: StockMetrics = {
   trailingPE: 999,
   priceToBook: 999,
   evEbitda: 999,
-  fcfYield: 0,
+  fcfYield: null,
   return52w: 0,
   returnVsSp: 0,
   return3m: 0,
@@ -607,6 +613,7 @@ interface MetricsCacheEntry {
   metrics:  Record<string, StockMetrics>;
   stocks?:  IndexStock[];   // constituent snapshot saved alongside metrics for disk persistence
   fetchedAt: number;
+  cacheVersion?: number;
 }
 
 interface MetricsCache {
@@ -650,7 +657,10 @@ async function inBatches<T>(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractMetrics(quote: any): StockMetrics {
+export function extractMetrics(
+  quote: any,
+  context: { financialToUsdRate?: number | null } = {},
+): StockMetrics {
   const price   = quote?.price          ?? {};
   const summary = quote?.summaryDetail  ?? {};
   const fin     = quote?.financialData  ?? {};
@@ -678,10 +688,13 @@ function extractMetrics(quote: any): StockMetrics {
     : 0;
 
   const mktCap  = price.marketCap ?? null;
-  const fcf     = fin.freeCashflow ?? null;
-  const fcfYieldRaw = fcf != null && mktCap != null && mktCap > 0
+  const conversionRate = context.financialToUsdRate === undefined
+    ? 1
+    : context.financialToUsdRate;
+  const fcf     = convertToUsd(fin.freeCashflow ?? null, conversionRate);
+  const fcfYieldRaw: number | null = fcf != null && mktCap != null && mktCap > 0
     ? (fcf / mktCap) * 100
-    : 0;
+    : null;
 
   const mktPrice = price.regularMarketPrice ?? null;
   const hiVal    = summary.fiftyTwoWeekHigh ?? null;
@@ -724,7 +737,7 @@ function extractMetrics(quote: any): StockMetrics {
     trailingPE:      summary.trailingPE       != null ? fp(Number(summary.trailingPE), 1) : 999,
     priceToBook:     ks.priceToBook           != null ? fp(Number(ks.priceToBook), 2) : 999,
     evEbitda:        ks.enterpriseToEbitda    != null ? fp(Number(ks.enterpriseToEbitda), 1) : 999,
-    fcfYield:        fp(fcfYieldRaw, 2),
+    fcfYield:        fcfYieldRaw == null ? null : fp(fcfYieldRaw, 2),
     return52w:       fp(return52wRaw, 2),
     returnVsSp:      fp(return52wRaw - spReturnRaw, 2),
     return3m:        fp(return3mRaw, 2),
@@ -754,7 +767,14 @@ async function enrichIndexMetrics(indexId: string, symbols: string[]): Promise<v
         const result = await yahooFinance.quoteSummary(symbol, {
           modules: ["price", "summaryDetail", "financialData", "defaultKeyStatistics", "earningsTrend"] as any,
         });
-        metricsMap[symbol] = extractMetrics(result);
+        const priceCurrency = typeof result?.price?.currency === "string"
+          ? result.price.currency : "USD";
+        const financialCurrency = resolveFinancialCurrency(result?.financialData, priceCurrency);
+        // ADR reporting values can be non-USD while the listing market cap is USD.
+        const fxRate = indexId === "adrs"
+          ? await getUsdRate(financialCurrency)
+          : 1;
+        metricsMap[symbol] = extractMetrics(result, { financialToUsdRate: fxRate });
       } catch {
         metricsMap[symbol] = { ...NULL_METRICS };
       }
@@ -766,6 +786,7 @@ async function enrichIndexMetrics(indexId: string, symbols: string[]): Promise<v
       metrics:  metricsMap,
       stocks:   sc?.data?.stocks ?? [],
       fetchedAt: Date.now(),
+      ...(indexId === "adrs" ? { cacheVersion: ADR_METRICS_CACHE_VERSION } : {}),
     };
     mc.ready = true;
     logger.info(`Metrics enrichment complete for ${indexId}`);

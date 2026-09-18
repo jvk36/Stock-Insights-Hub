@@ -30,6 +30,7 @@ import {
   defaultValuationBasis,
   getReportedAffo,
 } from "../lib/reit-affo";
+import { convertToUsd, getUsdRate, resolveFinancialCurrency } from "../lib/currency";
 
 const router: IRouter = Router();
 const yahooFinance = new YahooFinance();
@@ -224,9 +225,16 @@ router.get("/stock/:symbol/quote", async (req, res): Promise<void> => {
       : null;
     const changePercent = price.regularMarketChangePercent ?? null;
 
+    const financialCurrency = resolveFinancialCurrency(financial, price.currency ?? "USD");
+    // Quote financial amounts are converted only for USD listings. For other
+    // listings the endpoint preserves Yahoo's explicitly reported currency.
+    const fxRate = price.currency?.toUpperCase() === "USD"
+      ? await getUsdRate(financialCurrency)
+      : 1;
+    const toUsd = (value: number | null | undefined) => convertToUsd(value, fxRate);
     const netDebt = (() => {
-      const totalDebt = financial?.totalDebt ?? null;
-      const totalCash = financial?.totalCash ?? null;
+      const totalDebt = toUsd(financial?.totalDebt);
+      const totalCash = toUsd(financial?.totalCash);
       if (totalDebt != null && totalCash != null) {
         return totalDebt - totalCash;
       }
@@ -247,15 +255,15 @@ router.get("/stock/:symbol/quote", async (req, res): Promise<void> => {
       volume: price.regularMarketVolume ?? null,
       averageVolume: summary?.averageVolume ?? null,
       marketCap: price.marketCap ?? null,
-      enterpriseValue: keyStats?.enterpriseValue ?? null,
+      enterpriseValue: toUsd(keyStats?.enterpriseValue),
       trailingPE: summary?.trailingPE ?? null,
       forwardPE: summary?.forwardPE ?? null,
       dividendYield: summary?.dividendYield ?? null,
       beta: summary?.beta ?? null,
       priceToBook: keyStats?.priceToBook ?? null,
       netDebt,
-      totalDebt: financial?.totalDebt ?? null,
-      totalCash: financial?.totalCash ?? null,
+      totalDebt: toUsd(financial?.totalDebt),
+      totalCash: toUsd(financial?.totalCash),
       revenueGrowth: financial?.revenueGrowth ?? null,
       earningsGrowth: financial?.earningsGrowth ?? null,
       profitMargins: financial?.profitMargins ?? null,
@@ -2194,10 +2202,12 @@ router.get("/stock/:symbol/analysis", async (req, res): Promise<void> => {
     const price = summary.price;
 
     const mostRecentYear = years[years.length - 1] ?? "";
-    const fcf = financial?.freeCashflow ?? null;
+    const financialCurrency = resolveFinancialCurrency(financial, price?.currency ?? "USD");
+    const fxRate = await getUsdRate(financialCurrency);
+    const fcf = convertToUsd(financial?.freeCashflow, fxRate);
     const sharesOutstanding = keyStats?.sharesOutstanding ?? null;
-    const totalDebt = financial?.totalDebt ?? null;
-    const totalCash = financial?.totalCash ?? null;
+    const totalDebt = convertToUsd(financial?.totalDebt, fxRate);
+    const totalCash = convertToUsd(financial?.totalCash, fxRate);
     const netDebt =
       totalDebt != null && totalCash != null ? totalDebt - totalCash : null;
     const currentPrice = price?.regularMarketPrice ?? null;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DJIA_SEED, isValidDjiaRoster } from "./indexes.ts";
+import { DJIA_SEED, extractMetrics, isValidDjiaRoster } from "./indexes.ts";
 
 test("rejects annual performance rows as a DJIA roster", () => {
   const annualRows = Array.from({ length: 30 }, (_, i) => ({
@@ -24,4 +24,20 @@ test("canonical Dow seed is a valid 30-company roster", () => {
   assert.equal(DJIA_SEED.length, 30);
   assert.equal(isValidDjiaRoster(DJIA_SEED), true);
   assert.ok(DJIA_SEED.every((stock) => stock.sector.length > 0));
+});
+
+test("ADR FCF yield compares USD-converted INR FCF with USD market cap", () => {
+  const metrics = extractMetrics({
+    price: { marketCap: 10_000_000_000 },
+    financialData: { freeCashflow: 108_508_127_232 },
+  }, { financialToUsdRate: 0.01043 });
+  assert.equal(metrics.fcfYield, 11.32);
+});
+
+test("ADR FCF yield is unavailable when FX is unavailable", () => {
+  const metrics = extractMetrics({
+    price: { marketCap: 10_000_000_000 },
+    financialData: { freeCashflow: 108_508_127_232 },
+  }, { financialToUsdRate: null });
+  assert.equal(metrics.fcfYield, null);
 });

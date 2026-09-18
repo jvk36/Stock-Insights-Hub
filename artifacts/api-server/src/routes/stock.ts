@@ -30,7 +30,12 @@ import {
   defaultValuationBasis,
   getReportedAffo,
 } from "../lib/reit-affo";
-import { convertToUsd, getUsdRate, resolveFinancialCurrency } from "../lib/currency";
+import {
+  convertToUsd,
+  getUsdRate,
+  normalizeFinancialAggregates,
+  resolveFinancialCurrency,
+} from "../lib/currency";
 
 const router: IRouter = Router();
 const yahooFinance = new YahooFinance();
@@ -226,11 +231,9 @@ router.get("/stock/:symbol/quote", async (req, res): Promise<void> => {
     const changePercent = price.regularMarketChangePercent ?? null;
 
     const financialCurrency = resolveFinancialCurrency(financial, price.currency ?? "USD");
-    // Quote financial amounts are converted only for USD listings. For other
-    // listings the endpoint preserves Yahoo's explicitly reported currency.
-    const fxRate = price.currency?.toUpperCase() === "USD"
-      ? await getUsdRate(financialCurrency)
-      : 1;
+    // Financial aggregates use reporting currency regardless of listing
+    // currency; market price and market cap remain listing-currency values.
+    const fxRate = await getUsdRate(financialCurrency);
     const toUsd = (value: number | null | undefined) => convertToUsd(value, fxRate);
     const netDebt = (() => {
       const totalDebt = toUsd(financial?.totalDebt);
@@ -2250,7 +2253,7 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
     const sevenYearsAgo = new Date();
     sevenYearsAgo.setFullYear(sevenYearsAgo.getFullYear() - 7);
 
-    const [income10yr, balance5yr, balance10yr, cashflow5yr, chartData, summary] = await Promise.all([
+    const [income10yrRaw, balance5yrRaw, balance10yrRaw, cashflow5yrRaw, chartData, summary] = await Promise.all([
       yahooFinance.fundamentalsTimeSeries(symbol, {
         type: "annual",
         module: "financials",
@@ -2285,6 +2288,27 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
         modules: ["financialData", "defaultKeyStatistics", "summaryDetail", "price"],
       }),
     ]);
+
+    // Yahoo reports statement totals in financialData.financialCurrency (for
+    // example INR for WIT), while listing prices and shares remain security
+    // denominated. Normalize only the explicit aggregate allowlist once.
+    const reportingCurrency = resolveFinancialCurrency(
+      summary.financialData,
+      summary.price?.currency ?? "USD",
+    );
+    const usdRate = await getUsdRate(reportingCurrency);
+    const income10yr = income10yrRaw.map((row) =>
+      normalizeFinancialAggregates(row as unknown as Record<string, unknown>, usdRate),
+    );
+    const balance5yr = balance5yrRaw.map((row) =>
+      normalizeFinancialAggregates(row as unknown as Record<string, unknown>, usdRate),
+    );
+    const balance10yr = balance10yrRaw.map((row) =>
+      normalizeFinancialAggregates(row as unknown as Record<string, unknown>, usdRate),
+    );
+    const cashflow5yr = cashflow5yrRaw.map((row: unknown) =>
+      normalizeFinancialAggregates(row as unknown as Record<string, unknown>, usdRate),
+    );
 
     function yearOf(item: Record<string, unknown>): string | null {
       const d = item["date"] ?? item["asOfDate"];
@@ -2399,10 +2423,10 @@ router.get("/stock/:symbol/models", async (req, res): Promise<void> => {
         ev: historicalEv,
       };
     });
-    const currentEv =
-      (summary.defaultKeyStatistics?.enterpriseValue ?? null) as
-        | number
-        | null;
+    const currentEv = convertToUsd(
+      (summary.defaultKeyStatistics?.enterpriseValue ?? null) as number | null,
+      usdRate,
+    );
 
     // --- DDM: dividend history grouped by year ---
     const epsMap: Record<string, number | null> = {};

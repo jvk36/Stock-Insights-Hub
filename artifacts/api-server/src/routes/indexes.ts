@@ -95,6 +95,7 @@ export function isValidDjiaRoster(stocks: IndexStock[]) {
 const CACHE_TTL_MS    = 10 * 24 * 60 * 60 * 1000;     // 10 d — in-memory stock list TTL (aligned with metrics)
 const METRICS_TTL_MS  = 10 * 24 * 60 * 60 * 1000;    // 10 d — screener metrics
 const ADR_METRICS_CACHE_VERSION = 2;
+const NASDAQ100_METRICS_CACHE_VERSION = 2;
 
 // ─── Metrics disk-cache helpers ───────────────────────────────────────────────
 
@@ -120,6 +121,17 @@ async function tryLoadFromDisk(indexId: string): Promise<void> {
     const entry    = JSON.parse(raw) as MetricsCacheEntry;
     if (indexId === "adrs" && entry.cacheVersion !== ADR_METRICS_CACHE_VERSION) {
       logger.info("Ignoring pre-currency-correction ADR metrics cache");
+      return;
+    }
+    if (
+      indexId === "nasdaq100"
+      && (
+        entry.cacheVersion !== NASDAQ100_METRICS_CACHE_VERSION
+        || !entry.stocks?.length
+        || entry.stocks.some((stock) => !stock.sector)
+      )
+    ) {
+      logger.info("Ignoring pre-sector-enrichment Nasdaq-100 metrics cache");
       return;
     }
     if (indexId === "djia" && (!entry.stocks || !isValidDjiaRoster(entry.stocks))) {
@@ -291,7 +303,7 @@ router.get("/indexes/sp500", makeRoute(sp500Cache, scrapeSp500, "S&P 500"));
 // api.nasdaq.com times out via ETIMEDOUT from Replit's network.
 //
 // Seed last updated: 2026-08-12. Refresh quarterly when the index reconstitutes.
-const NASDAQ100_SEED: IndexStock[] = [
+const NASDAQ100_SEED_RAW: IndexStock[] = [
   {"symbol":"NVDA","name":"Nvidia Corp","sector":""},
   {"symbol":"AAPL","name":"Apple Inc.","sector":""},
   {"symbol":"MSFT","name":"Microsoft Corp","sector":""},
@@ -396,6 +408,33 @@ const NASDAQ100_SEED: IndexStock[] = [
   {"symbol":"CPRT","name":"Copart Inc","sector":""},
 ];
 
+/** Canonical GICS sectors for the current Nasdaq-100 fallback roster. */
+const NASDAQ100_GICS_BY_SYMBOL: Record<string, string> = Object.fromEntries([
+  [["GOOGL", "GOOG", "META", "NFLX", "TMUS", "CMCSA", "WBD", "TTWO"], "Communication Services"],
+  [["AMZN", "TSLA", "BKNG", "SBUX", "ABNB", "APP", "MELI", "DASH", "MAR", "ORLY", "ROST", "SHOP"], "Consumer Discretionary"],
+  [["WMT", "COST", "PEP", "MNST", "MDLZ", "KDP", "KHC", "CCEP"], "Consumer Staples"],
+  [["FANG", "BKR"], "Energy"],
+  [["PYPL", "MSTR"], "Financials"],
+  [["AMGN", "GILD", "VRTX", "REGN", "IDXX", "DXCM", "GEHC", "ALNY", "ISRG"], "Health Care"],
+  [["LIN", "HON", "CSX", "CTAS", "PCAR", "FAST", "FER", "ODFL", "ROP", "CPRT", "HONA", "ADP", "TRI", "SPCX"], "Industrials"],
+  [["NVDA", "AAPL", "MSFT", "AVGO", "MU", "AMD", "ASML", "INTC", "CSCO", "AMAT", "PLTR", "LRCX", "PANW", "ARM", "KLAC", "TXN", "CRWD", "MRVL", "STX", "SNDK", "ADI", "QCOM", "WDC", "FTNT", "ADBE", "INTU", "DDOG", "CDNS", "SNPS", "MPWR", "LITE", "TER", "NXPI", "CRWV", "NBIS", "ALAB", "ADSK", "AXON", "RKLB", "MCHP", "WDAY", "PAYX"], "Information Technology"],
+  [["CEG", "XEL", "EXC", "AEP"], "Utilities"],
+  [["PDD"], "Consumer Discretionary"],
+].flatMap(([symbols, sector]) => (symbols as string[]).map((symbol) => [symbol, sector] as [string, string])));
+
+/**
+ * Apply canonical GICS labels without mutating source rows.  A future symbol
+ * not present in the mapping retains its supplied sector (or remains neutral).
+ */
+export function normalizeNasdaq100Stocks(stocks: IndexStock[]): IndexStock[] {
+  return stocks.map((stock) => ({
+    ...stock,
+    sector: NASDAQ100_GICS_BY_SYMBOL[stock.symbol.toUpperCase()] ?? stock.sector,
+  }));
+}
+
+export const NASDAQ100_SEED: IndexStock[] = normalizeNasdaq100Stocks(NASDAQ100_SEED_RAW);
+
 const nasdaq100Cache: IndexCache = { data: null, revalidating: false };
 
 async function scrapeNasdaq100(): Promise<IndexStock[]> {
@@ -416,7 +455,7 @@ async function scrapeNasdaq100(): Promise<IndexStock[]> {
     });
     if (stocks.length >= 50) {
       logger.info(`Nasdaq-100 scraped live from slickcharts (${stocks.length} stocks)`);
-      return stocks;
+      return normalizeNasdaq100Stocks(stocks);
     }
     logger.warn(`Slickcharts returned ${stocks.length} rows — falling back to seed list`);
   } catch (err) {
@@ -786,7 +825,11 @@ async function enrichIndexMetrics(indexId: string, symbols: string[]): Promise<v
       metrics:  metricsMap,
       stocks:   sc?.data?.stocks ?? [],
       fetchedAt: Date.now(),
-      ...(indexId === "adrs" ? { cacheVersion: ADR_METRICS_CACHE_VERSION } : {}),
+      ...(indexId === "adrs"
+        ? { cacheVersion: ADR_METRICS_CACHE_VERSION }
+        : indexId === "nasdaq100"
+          ? { cacheVersion: NASDAQ100_METRICS_CACHE_VERSION }
+          : {}),
     };
     mc.ready = true;
     logger.info(`Metrics enrichment complete for ${indexId}`);

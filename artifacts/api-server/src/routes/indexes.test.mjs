@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DJIA_SEED, extractMetrics, isValidDjiaRoster } from "./indexes.ts";
+import {
+  DJIA_SEED,
+  NASDAQ100_SEED,
+  extractMetrics,
+  isValidDjiaRoster,
+  normalizeNasdaq100Stocks,
+} from "./indexes.ts";
 
 test("rejects annual performance rows as a DJIA roster", () => {
   const annualRows = Array.from({ length: 30 }, (_, i) => ({
@@ -24,6 +30,26 @@ test("canonical Dow seed is a valid 30-company roster", () => {
   assert.equal(DJIA_SEED.length, 30);
   assert.equal(isValidDjiaRoster(DJIA_SEED), true);
   assert.ok(DJIA_SEED.every((stock) => stock.sector.length > 0));
+});
+
+test("canonical Nasdaq-100 fallback has a GICS sector for every record", () => {
+  assert.ok(NASDAQ100_SEED.length >= 100);
+  assert.ok(NASDAQ100_SEED.every((stock) => stock.sector.length > 0));
+});
+
+test("Nasdaq-100 normalizer applies representative GICS sectors", () => {
+  const rows = normalizeNasdaq100Stocks([
+    { symbol: "NVDA", name: "NVIDIA", sector: "" },
+    { symbol: "AMZN", name: "Amazon", sector: "" },
+    { symbol: "GOOGL", name: "Alphabet", sector: "" },
+    { symbol: "WMT", name: "Walmart", sector: "" },
+  ]);
+  assert.deepEqual(rows.map((row) => row.sector), [
+    "Information Technology",
+    "Consumer Discretionary",
+    "Communication Services",
+    "Consumer Staples",
+  ]);
 });
 
 test("ADR FCF yield compares USD-converted INR FCF with USD market cap", () => {

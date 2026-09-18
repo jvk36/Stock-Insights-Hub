@@ -31,6 +31,39 @@ export function convertToUsd(value: number | null | undefined, rate: number | nu
   return value * rate;
 }
 
+/** Statement totals that are reported in the issuer's financial currency.
+ * Per-share values, shares, and ratios are deliberately excluded. */
+export const MONETARY_AGGREGATE_KEYS = new Set([
+  "totalRevenue", "revenue", "grossProfit", "operatingIncome", "operatingIncomeAsReported",
+  "netIncome", "netIncomeCommonStockholders", "taxProvision", "pretaxIncome",
+  "interestExpense", "interestExpenseNonOperating", "totalDebt", "longTermDebt",
+  "currentDebt", "cashAndCashEquivalents", "cashCashEquivalentsAndShortTermInvestments",
+  "minorityInterest", "minorityInterestAndOther", "commonStockEquity", "stockholdersEquity",
+  "grossPPE", "grossPropertyPlantEquipment", "netPPE", "investmentProperties",
+  "investmentProperty", "investmentsAndAdvances", "totalAssets", "totalLiabilitiesNetMinorityInterest",
+  "totalLiabilities", "capitalExpenditure", "capitalExpenditures", "depreciation",
+  "depreciationAndAmortization", "depreciationAmortizationDepletion", "deferredTax",
+  "deferredIncomeTax", "deferredTaxAssetsLiabilities",
+  "workingCapital", "changeInWorkingCapital", "operatingCashFlow", "freeCashFlow",
+  "investingCashFlow", "financingCashFlow", "netDebt", "enterpriseValue",
+]);
+
+/** Normalize only explicit aggregate monetary inputs, leaving all other fields intact. */
+export function normalizeFinancialAggregates<T extends Record<string, unknown>>(
+  row: T,
+  usdRate: number | null | undefined,
+): T {
+  const normalized = { ...row };
+  for (const key of MONETARY_AGGREGATE_KEYS) {
+    if (!(key in normalized)) continue;
+    const value = normalized[key];
+    if (value == null) continue;
+    (normalized as Record<string, unknown>)[key] =
+      typeof value === "number" ? convertToUsd(value, usdRate) : null;
+  }
+  return normalized;
+}
+
 /** Return the USD rate for a currency, retaining a last successful value on errors. */
 export async function getUsdRate(
   currency: string | null | undefined,

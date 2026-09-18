@@ -317,7 +317,9 @@ function IndexTabContent({
         });
       }
     }
-    return list;
+    // Keep the presentation deterministic regardless of API/source ordering.
+    // slice() makes this a non-mutating stable sort (modern JS sort stability).
+    return list.slice().sort((a, b) => a.symbol.localeCompare(b.symbol));
   }, [stocks, activeSector, filterText, openPanel, screenerValues, metricsData]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────

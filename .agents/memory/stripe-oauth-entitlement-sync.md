@@ -9,8 +9,8 @@ Treat a Replit-connected Stripe account as OAuth-proxied unless the connection e
 
 **How to apply:** Use the connector's supported proxy or managed facilities. Prefer a direct authoritative Stripe lookup. If Stripe is temporarily unavailable, honor only a previously verified active/trialing entitlement through its stored paid-through date; fail closed after expiry or for any non-active state.
 
-Verify that the connected Stripe account and mode match the stored live subscriptions before using lookup failures to change access. A missing customer or subscription is not evidence of cancellation.
+Do not infer that a live subscriber is canceled or that the connection is broken when their IDs are missing from the development Stripe account.
 
-**Why:** A working sandbox connection could not retrieve existing production billing records, even though authentication succeeded.
+**Why:** Replit's Stripe workspace connection can be sandbox-only while the published app uses live billing credentials. Production subscribers were not retrievable from the sandbox, even though the proxy was working.
 
-**How to apply:** Check the account identity when existing IDs return `resource_missing`; resolve the account/mode mismatch rather than clearing membership or guessing a renewal date.
+**How to apply:** Verify billing in the running environment and check account/mode before interpreting `resource_missing`. Never clear stored access or guess a new expiry from a missing-resource response; retain the existing expiry and report verification unavailable.

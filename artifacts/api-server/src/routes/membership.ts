@@ -27,7 +27,7 @@ router.get("/membership/me", async (req, res) => {
     authenticated: true, premium: hasPremiumAccess(membership), role: membership.role,
     email: membership.email, plan: membership.plan, subscriptionStatus: membership.subscriptionStatus,
     currentPeriodEnd: membership.currentPeriodEnd,
-    billingUnavailable: false,
+    billingUnavailable: membership.billingUnavailable,
   });
 });
 

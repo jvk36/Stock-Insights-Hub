@@ -3,6 +3,7 @@ import { logger } from "./lib/logger";
 import { primeMacroCache, warmMacroCache } from "./routes/macro";
 import { warmIndexMetricsCache } from "./routes/indexes";
 import { initEdgarFetcher } from "./lib/edgar-fetcher";
+import { startModelPortfolioScheduler } from "./lib/model-portfolio-service";
 
 const rawPort = process.env["PORT"];
 
@@ -28,6 +29,7 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  startModelPortfolioScheduler();
 
   // Pre-warm macro indicators cache in background so first user request is fast
   warmMacroCache().catch(() => { /* non-fatal */ });

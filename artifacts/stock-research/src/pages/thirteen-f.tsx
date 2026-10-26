@@ -1022,7 +1022,7 @@ export default function ThirteenFInsights() {
             <span className="font-bold text-foreground tracking-tight">Terminal</span>
           </div>
 
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-1 min-w-0 overflow-x-auto [scrollbar-width:none]">
             <Link
               href="/macro"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
@@ -1049,6 +1049,13 @@ export default function ThirteenFInsights() {
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
             >
               Stock Watch
+            </Link>
+            <Link
+              href="/model-portfolios"
+              data-testid="link-nav-model-portfolios"
+              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap shrink-0"
+            >
+              Model Portfolios
             </Link>
           </nav>
 

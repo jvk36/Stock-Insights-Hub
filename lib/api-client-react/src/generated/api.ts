@@ -19,6 +19,7 @@ import type {
 import type {
   AddToWatchlistBody,
   ApiError,
+  BlindTrustPortfolio,
   BoardLeadershipResponse,
   BuybackHistoryResponse,
   ChartData,
@@ -63,6 +64,82 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+/**
+ * @summary Shared Blind Trust strategy, holdings and performance (Premium)
+ */
+export const getGetBlindTrustPortfolioUrl = () => {
+  return `/api/model-portfolios/blind-trust`;
+};
+
+export const getBlindTrustPortfolio = async (
+  options?: RequestInit,
+): Promise<BlindTrustPortfolio> => {
+  return customFetch<BlindTrustPortfolio>(getGetBlindTrustPortfolioUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetBlindTrustPortfolioQueryKey = () => {
+  return [`/api/model-portfolios/blind-trust`] as const;
+};
+
+export const getGetBlindTrustPortfolioQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBlindTrustPortfolio>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getBlindTrustPortfolio>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetBlindTrustPortfolioQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getBlindTrustPortfolio>>
+  > = ({ signal }) => getBlindTrustPortfolio({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBlindTrustPortfolio>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBlindTrustPortfolioQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBlindTrustPortfolio>>
+>;
+export type GetBlindTrustPortfolioQueryError = ErrorType<void>;
+
+/**
+ * @summary Shared Blind Trust strategy, holdings and performance (Premium)
+ */
+
+export function useGetBlindTrustPortfolio<
+  TData = Awaited<ReturnType<typeof getBlindTrustPortfolio>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getBlindTrustPortfolio>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBlindTrustPortfolioQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * Returns server health status

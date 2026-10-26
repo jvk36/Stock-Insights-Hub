@@ -5,6 +5,133 @@
  * Stock Research Platform API
  * OpenAPI spec version: 0.1.0
  */
+export type BlindTrustCandidateStatus =
+  (typeof BlindTrustCandidateStatus)[keyof typeof BlindTrustCandidateStatus];
+
+export const BlindTrustCandidateStatus = {
+  eligible: "eligible",
+  ineligible: "ineligible",
+  unavailable: "unavailable",
+  temporary_error: "temporary_error",
+} as const;
+
+export interface BlindTrustCandidate {
+  ticker: string;
+  name: string;
+  providerSymbol: string;
+  /** @nullable */
+  price: number | null;
+  /** @nullable */
+  bookValue: number | null;
+  /** @nullable */
+  priceToBook: number | null;
+  /** @nullable */
+  priceDate: string | null;
+  /** @nullable */
+  bookDate: string | null;
+  observedAt: string;
+  status: BlindTrustCandidateStatus;
+  /** @nullable */
+  reason: string | null;
+  /** @nullable */
+  rank: number | null;
+  selected: boolean;
+}
+
+export interface BlindTrustHolding {
+  ticker: string;
+  name: string;
+  entryDate: string;
+  entryPrice: number;
+  shares: number;
+  costBasis: number;
+  allocationPb: number;
+  /** @nullable */
+  currentPrice: number | null;
+  /** @nullable */
+  priceDate: string | null;
+  /** @nullable */
+  currentValue: number | null;
+  /** @nullable */
+  weight: number | null;
+  /** @nullable */
+  gain: number | null;
+  /** @nullable */
+  gainPercent: number | null;
+  stale: boolean;
+}
+
+export interface BlindTrustPerformance {
+  date: string;
+  value: number;
+  returnPercent: number;
+  cash: number;
+}
+
+export interface BlindTrustAllocation {
+  id: string;
+  date: string;
+  scheduledDate: string;
+  type: string;
+  equity: number;
+  amountPerPosition: number;
+  tickers: string[];
+  /** @nullable */
+  note: string | null;
+}
+
+export interface BlindTrustLedgerEvent {
+  id: string;
+  date: string;
+  type: string;
+  /** @nullable */
+  ticker: string | null;
+  shares: number;
+  price: number;
+  cashChange: number;
+}
+
+export type BlindTrustPortfolioStatus =
+  (typeof BlindTrustPortfolioStatus)[keyof typeof BlindTrustPortfolioStatus];
+
+export const BlindTrustPortfolioStatus = {
+  pending: "pending",
+  active: "active",
+  stale: "stale",
+} as const;
+
+export interface BlindTrustPortfolio {
+  slug: string;
+  title: string;
+  currency: string;
+  status: BlindTrustPortfolioStatus;
+  /** @nullable */
+  message: string | null;
+  /** @nullable */
+  inceptionDate: string | null;
+  initialCapital: number;
+  /** @nullable */
+  currentValue: number | null;
+  cash: number;
+  /** @nullable */
+  gain: number | null;
+  /** @nullable */
+  returnPercent: number | null;
+  /** @nullable */
+  lastRebalanceDate: string | null;
+  /** @nullable */
+  nextRebalanceDate: string | null;
+  /** @nullable */
+  valuedAt: string | null;
+  /** @nullable */
+  refreshedAt: string | null;
+  candidates: BlindTrustCandidate[];
+  holdings: BlindTrustHolding[];
+  performance: BlindTrustPerformance[];
+  allocations: BlindTrustAllocation[];
+  ledger: BlindTrustLedgerEvent[];
+}
+
 export interface WatchlistEntry {
   id: string;
   ticker: string;

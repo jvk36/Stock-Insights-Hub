@@ -16,6 +16,7 @@ import ThirteenFInsights from "@/pages/thirteen-f";
 import Pricing from "@/pages/pricing";
 import Account from "@/pages/account";
 import AdminMembers from "@/pages/admin-members";
+import ModelPortfolios from "@/pages/model-portfolios";
 import { MembershipProvider, useMembership } from "@/lib/membership";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false, staleTime: 5 * 60 * 1000, retry: 1 } } });
@@ -122,6 +123,8 @@ function Routes() {
     <Route path="/indexes">{() => <PremiumRoute><StockIndexes /></PremiumRoute>}</Route>
     <Route path="/watchlist">{() => <PremiumRoute><Watchlist /></PremiumRoute>}</Route>
 
+    <Route path="/model-portfolios">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>
+    <Route path="/model-portfolios/blind-trust">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>
     <Route path="/stock">{() => <PremiumRoute><StockDetail /></PremiumRoute>}</Route>
     <Route path="/stock/:symbol">{() => <PremiumRoute><StockDetail /></PremiumRoute>}</Route>
     <Route component={NotFound} />

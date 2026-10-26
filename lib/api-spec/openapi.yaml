@@ -19,6 +19,22 @@ tags:
   - name: watchlist
     description: Premium personal watchlist operations
 paths:
+  /model-portfolios/blind-trust:
+    get:
+      operationId: getBlindTrustPortfolio
+      tags: [ModelPortfolios]
+      summary: Shared Blind Trust strategy, holdings and performance (Premium)
+      responses:
+        "200":
+          description: Persisted model portfolio and current candidate ranking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlindTrustPortfolio"
+        "401":
+          description: Sign in required
+        "403":
+          description: Premium required
   /healthz:
     get:
       operationId: healthCheck
@@ -844,6 +860,108 @@ paths:
 
 components:
   schemas:
+    BlindTrustCandidate:
+      type: object
+      required: [ticker, name, providerSymbol, price, bookValue, priceToBook, priceDate, bookDate, observedAt, status, reason, rank, selected]
+      properties:
+        ticker: { type: string }
+        name: { type: string }
+        providerSymbol: { type: string }
+        price: { type: [number, "null"] }
+        bookValue: { type: [number, "null"] }
+        priceToBook: { type: [number, "null"] }
+        priceDate: { type: [string, "null"] }
+        bookDate: { type: [string, "null"] }
+        observedAt: { type: string }
+        status: { type: string, enum: [eligible, ineligible, unavailable, temporary_error] }
+        reason: { type: [string, "null"] }
+        rank: { type: [integer, "null"] }
+        selected: { type: boolean }
+    BlindTrustHolding:
+      type: object
+      required: [ticker, name, entryDate, entryPrice, shares, costBasis, allocationPb, currentPrice, priceDate, currentValue, weight, gain, gainPercent, stale]
+      properties:
+        ticker: { type: string }
+        name: { type: string }
+        entryDate: { type: string }
+        entryPrice: { type: number }
+        shares: { type: number }
+        costBasis: { type: number }
+        allocationPb: { type: number }
+        currentPrice: { type: [number, "null"] }
+        priceDate: { type: [string, "null"] }
+        currentValue: { type: [number, "null"] }
+        weight: { type: [number, "null"] }
+        gain: { type: [number, "null"] }
+        gainPercent: { type: [number, "null"] }
+        stale: { type: boolean }
+    BlindTrustPerformance:
+      type: object
+      required: [date, value, returnPercent, cash]
+      properties:
+        date: { type: string }
+        value: { type: number }
+        returnPercent: { type: number }
+        cash: { type: number }
+    BlindTrustAllocation:
+      type: object
+      required: [id, date, scheduledDate, type, equity, amountPerPosition, tickers, note]
+      properties:
+        id: { type: string }
+        date: { type: string }
+        scheduledDate: { type: string }
+        type: { type: string }
+        equity: { type: number }
+        amountPerPosition: { type: number }
+        tickers:
+          type: array
+          items: { type: string }
+        note: { type: [string, "null"] }
+    BlindTrustLedgerEvent:
+      type: object
+      required: [id, date, type, ticker, shares, price, cashChange]
+      properties:
+        id: { type: string }
+        date: { type: string }
+        type: { type: string }
+        ticker: { type: [string, "null"] }
+        shares: { type: number }
+        price: { type: number }
+        cashChange: { type: number }
+    BlindTrustPortfolio:
+      type: object
+      required: [slug, title, currency, status, message, inceptionDate, initialCapital, currentValue, cash, gain, returnPercent, lastRebalanceDate, nextRebalanceDate, valuedAt, refreshedAt, candidates, holdings, performance, allocations, ledger]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        currency: { type: string }
+        status: { type: string, enum: [pending, active, stale] }
+        message: { type: [string, "null"] }
+        inceptionDate: { type: [string, "null"] }
+        initialCapital: { type: number }
+        currentValue: { type: [number, "null"] }
+        cash: { type: number }
+        gain: { type: [number, "null"] }
+        returnPercent: { type: [number, "null"] }
+        lastRebalanceDate: { type: [string, "null"] }
+        nextRebalanceDate: { type: [string, "null"] }
+        valuedAt: { type: [string, "null"] }
+        refreshedAt: { type: [string, "null"] }
+        candidates:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustCandidate" }
+        holdings:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustHolding" }
+        performance:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustPerformance" }
+        allocations:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustAllocation" }
+        ledger:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustLedgerEvent" }
     WatchlistEntry:
       type: object
       required: [id, ticker, addedAt]

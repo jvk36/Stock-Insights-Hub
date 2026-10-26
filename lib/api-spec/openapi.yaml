@@ -19,6 +19,24 @@ tags:
   - name: watchlist
     description: Premium personal watchlist operations
 paths:
+  /model-portfolios/lazy:
+    get:
+      operationId: getLazyPortfolio
+      tags: [ModelPortfolios]
+      summary: Shared quarterly fixed-weight Swensen-inspired ETF model (Premium)
+      responses:
+        "200":
+          description: Persisted Lazy strategy, holdings and performance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LazyPortfolio"
+        "401":
+          description: Sign in required
+        "403":
+          description: Premium required
+        "503":
+          description: Portfolio temporarily unavailable
   /model-portfolios/momentum:
     get:
       operationId: getMomentumPortfolio
@@ -932,7 +950,10 @@ components:
         scheduledDate: { type: string }
         type: { type: string }
         equity: { type: number }
-        amountPerPosition: { type: number }
+        amountPerPosition: { type: [number, "null"] }
+        targetWeights:
+          type: object
+          additionalProperties: { type: number }
         tickers:
           type: array
           items: { type: string }
@@ -975,6 +996,70 @@ components:
         holdings:
           type: array
           items: { $ref: "#/components/schemas/BlindTrustHolding" }
+        performance:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustPerformance" }
+        allocations:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustAllocation" }
+        ledger:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustLedgerEvent" }
+    LazyAsset:
+      type: object
+      required: [ticker, name, assetClass, targetWeight, price, priceDate]
+      properties:
+        ticker: { type: string }
+        name: { type: string }
+        assetClass: { type: string }
+        targetWeight: { type: number }
+        price: { type: [number, "null"] }
+        priceDate: { type: [string, "null"] }
+    LazyHolding:
+      type: object
+      required: [ticker, name, targetWeight, entryDate, entryPrice, shares, costBasis, currentPrice, priceDate, currentValue, weight, gain, gainPercent, stale]
+      properties:
+        ticker: { type: string }
+        name: { type: string }
+        targetWeight: { type: number }
+        entryDate: { type: string }
+        entryPrice: { type: number }
+        shares: { type: number }
+        costBasis: { type: number }
+        currentPrice: { type: [number, "null"] }
+        priceDate: { type: [string, "null"] }
+        currentValue: { type: [number, "null"] }
+        weight: { type: [number, "null"] }
+        gain: { type: [number, "null"] }
+        gainPercent: { type: [number, "null"] }
+        stale: { type: boolean }
+    LazyPortfolio:
+      type: object
+      required: [slug, title, currency, status, message, inceptionDate, inceptionAt, initialCapital, currentValue, cash, gain, returnPercent, lastRebalanceDate, nextRebalanceDate, valuedAt, valuationBasis, refreshedAt, assets, holdings, performance, allocations, ledger]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        currency: { type: string }
+        status: { type: string, enum: [pending, active, stale] }
+        message: { type: [string, "null"] }
+        inceptionDate: { type: [string, "null"] }
+        inceptionAt: { type: [string, "null"] }
+        initialCapital: { type: number }
+        currentValue: { type: [number, "null"] }
+        cash: { type: number }
+        gain: { type: [number, "null"] }
+        returnPercent: { type: [number, "null"] }
+        lastRebalanceDate: { type: [string, "null"] }
+        nextRebalanceDate: { type: [string, "null"] }
+        valuedAt: { type: [string, "null"] }
+        valuationBasis: { type: string, enum: [quote, close] }
+        refreshedAt: { type: [string, "null"] }
+        assets:
+          type: array
+          items: { $ref: "#/components/schemas/LazyAsset" }
+        holdings:
+          type: array
+          items: { $ref: "#/components/schemas/LazyHolding" }
         performance:
           type: array
           items: { $ref: "#/components/schemas/BlindTrustPerformance" }

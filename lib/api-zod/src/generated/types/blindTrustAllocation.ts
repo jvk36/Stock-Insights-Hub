@@ -5,6 +5,7 @@
  * Stock Research Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { BlindTrustAllocationTargetWeights } from "./blindTrustAllocationTargetWeights";
 
 export interface BlindTrustAllocation {
   id: string;
@@ -12,7 +13,9 @@ export interface BlindTrustAllocation {
   scheduledDate: string;
   type: string;
   equity: number;
-  amountPerPosition: number;
+  /** @nullable */
+  amountPerPosition: number | null;
+  targetWeights?: BlindTrustAllocationTargetWeights;
   tickers: string[];
   /** @nullable */
   note: string | null;

@@ -5,15 +5,18 @@ import type { Action } from "./model-portfolio-engine";
 import { logger } from "./logger";
 
 const yahoo = new YahooFinance({ suppressNotices: ["yahooSurvey", "ripHistorical"] });
-export async function fetchMomentumMarket(since: string, now = new Date()): Promise<MomentumMarket> {
+export async function fetchMomentumMarket(
+  since: string, now = new Date(),
+  universe: readonly { ticker: string }[] = ETF_UNIVERSE,
+): Promise<MomentumMarket> {
   const market: MomentumMarket = {
     observedAt: now.toISOString(), targetDate: completedThrough(now), prices: {}, adjusted: {}, actions: [], live: {},
   };
   // Retain inception warmup as well as all post-launch sessions, so missed
   // quarterly decisions can be replayed using only information available then.
   const start = new Date(Date.parse(`${since}T00:00:00Z`) - 420 * 864e5);
-  for (let i = 0; i < ETF_UNIVERSE.length; i += 3) {
-    await Promise.all(ETF_UNIVERSE.slice(i, i + 3).map(async ({ ticker }) => {
+  for (let i = 0; i < universe.length; i += 3) {
+    await Promise.all(universe.slice(i, i + 3).map(async ({ ticker }) => {
       const [chartResult, quoteResult] = await Promise.allSettled([
         yahoo.chart(ticker, { period1: start, interval: "1d", events: "div,splits" }), yahoo.quote(ticker),
       ]);
@@ -24,7 +27,7 @@ export async function fetchMomentumMarket(since: string, now = new Date()): Prom
         }
       }
       if (chartResult.status === "rejected") {
-        logger.warn({ ticker }, "Momentum ETF price history unavailable; preserving existing holdings");
+        logger.warn({ ticker }, "ETF price history unavailable; preserving existing holdings");
         return;
       }
       const chart = chartResult.value;

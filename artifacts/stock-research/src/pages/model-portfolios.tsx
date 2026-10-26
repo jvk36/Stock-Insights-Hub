@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { MomentumView } from "@/components/momentum-portfolio";
+import { LazyView } from "@/components/lazy-portfolio";
 import { TrendingUp, Briefcase, RefreshCw, AlertTriangle, Clock } from "lucide-react";
 import { NA, usd, num, pct, signedUsd, date, dateTime, tone, label, Stat, SectionTitle, PerformanceChart, History, th, thr, td, tdr } from "@/components/model-portfolio-shared";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,6 +12,8 @@ import {
   type BlindTrustCandidate,
   useGetMomentumPortfolio,
   getGetMomentumPortfolioQueryKey,
+  useGetLazyPortfolio,
+  getGetLazyPortfolioQueryKey,
 } from "@workspace/api-client-react";
 
 const STATUS_STYLE: Record<BlindTrustCandidate["status"], string> = {
@@ -154,14 +157,15 @@ function ModelPortfolio({ p }: { p: BlindTrustPortfolio }) {
 
 export default function ModelPortfolios() {
   const [location] = useLocation();
-  const tab = location.startsWith("/model-portfolios/momentum") ? "momentum" : "blind-trust";
+  const tab = location.startsWith("/model-portfolios/momentum") ? "momentum" : location.startsWith("/model-portfolios/lazy") ? "lazy" : "blind-trust";
   const live = { staleTime: 60_000, refetchInterval: 5 * 60_000, refetchIntervalInBackground: false };
   const q = useGetBlindTrustPortfolio({ query: { queryKey: getGetBlindTrustPortfolioQueryKey(), enabled: tab === "blind-trust", ...live } });
   const mq = useGetMomentumPortfolio({ query: { queryKey: getGetMomentumPortfolioQueryKey(), enabled: tab === "momentum", ...live } });
+  const lq = useGetLazyPortfolio({ query: { queryKey: getGetLazyPortfolioQueryKey(), enabled: tab === "lazy", ...live } });
   const p = q.data;
   useEffect(() => {
-    const t = tab === "momentum" ? "Momentum Model Portfolio | Terminal" : "Blind Trust Model Portfolio | Terminal";
-    const d = tab === "momentum" ? "Quarterly 200-day SMA trend model across six Vanguard and iShares ETFs: signals, holdings, ledger and performance since inception." : "Blind Trust: an annual price-to-book model portfolio of permanent-capital businesses, with holdings, ledger and performance.";
+    const t = tab === "lazy" ? "Lazy Model Portfolio | Terminal" : tab === "momentum" ? "Momentum Model Portfolio | Terminal" : "Blind Trust Model Portfolio | Terminal";
+    const d = tab === "lazy" ? "Lazy: a Swensen-inspired fixed-weight six-ETF model, rebalanced quarterly, with target vs current weights, ledger and performance since inception." : tab === "momentum" ? "Quarterly 200-day SMA trend model across six Vanguard and iShares ETFs: signals, holdings, ledger and performance since inception." : "Blind Trust: an annual price-to-book model portfolio of permanent-capital businesses, with holdings, ledger and performance.";
     document.title = t;
     let m = document.querySelector('meta[name="description"]');
     if (!m) { m = document.createElement("meta"); m.setAttribute("name", "description"); document.head.appendChild(m); }
@@ -178,10 +182,11 @@ export default function ModelPortfolios() {
           <div className="mt-4 flex gap-1 overflow-x-auto border-b border-border" role="tablist">
             <Link href="/model-portfolios/blind-trust" role="tab" aria-selected={tab === "blind-trust"} data-testid="tab-blind-trust" className={tabCls(tab === "blind-trust")}>Blind Trust</Link>
             <Link href="/model-portfolios/momentum" role="tab" aria-selected={tab === "momentum"} data-testid="tab-momentum" className={tabCls(tab === "momentum")}>Momentum</Link>
+            <Link href="/model-portfolios/lazy" role="tab" aria-selected={tab === "lazy"} data-testid="tab-lazy" className={tabCls(tab === "lazy")}>Lazy</Link>
           </div>
         </div>
 
-        {tab === "momentum" ? <MomentumView q={mq} /> : q.isLoading ? (
+        {tab === "lazy" ? <LazyView q={lq} /> : tab === "momentum" ? <MomentumView q={mq} /> : q.isLoading ? (
           <div className="space-y-4"><Skeleton className="h-40 w-full" /><div className="grid grid-cols-2 lg:grid-cols-6 gap-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20" />)}</div><Skeleton className="h-64 w-full" /></div>
         ) : q.isError || !p ? (
           <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-sm" data-testid="status-error">

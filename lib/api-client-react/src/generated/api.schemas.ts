@@ -72,13 +72,17 @@ export interface BlindTrustPerformance {
   cash: number;
 }
 
+export type BlindTrustAllocationTargetWeights = { [key: string]: number };
+
 export interface BlindTrustAllocation {
   id: string;
   date: string;
   scheduledDate: string;
   type: string;
   equity: number;
-  amountPerPosition: number;
+  /** @nullable */
+  amountPerPosition: number | null;
+  targetWeights?: BlindTrustAllocationTargetWeights;
   tickers: string[];
   /** @nullable */
   note: string | null;
@@ -149,6 +153,92 @@ export interface BlindTrustPortfolio {
   refreshedAt: string | null;
   candidates: BlindTrustCandidate[];
   holdings: BlindTrustHolding[];
+  performance: BlindTrustPerformance[];
+  allocations: BlindTrustAllocation[];
+  ledger: BlindTrustLedgerEvent[];
+}
+
+export interface LazyAsset {
+  ticker: string;
+  name: string;
+  assetClass: string;
+  targetWeight: number;
+  /** @nullable */
+  price: number | null;
+  /** @nullable */
+  priceDate: string | null;
+}
+
+export interface LazyHolding {
+  ticker: string;
+  name: string;
+  targetWeight: number;
+  entryDate: string;
+  entryPrice: number;
+  shares: number;
+  costBasis: number;
+  /** @nullable */
+  currentPrice: number | null;
+  /** @nullable */
+  priceDate: string | null;
+  /** @nullable */
+  currentValue: number | null;
+  /** @nullable */
+  weight: number | null;
+  /** @nullable */
+  gain: number | null;
+  /** @nullable */
+  gainPercent: number | null;
+  stale: boolean;
+}
+
+export type LazyPortfolioStatus =
+  (typeof LazyPortfolioStatus)[keyof typeof LazyPortfolioStatus];
+
+export const LazyPortfolioStatus = {
+  pending: "pending",
+  active: "active",
+  stale: "stale",
+} as const;
+
+export type LazyPortfolioValuationBasis =
+  (typeof LazyPortfolioValuationBasis)[keyof typeof LazyPortfolioValuationBasis];
+
+export const LazyPortfolioValuationBasis = {
+  quote: "quote",
+  close: "close",
+} as const;
+
+export interface LazyPortfolio {
+  slug: string;
+  title: string;
+  currency: string;
+  status: LazyPortfolioStatus;
+  /** @nullable */
+  message: string | null;
+  /** @nullable */
+  inceptionDate: string | null;
+  /** @nullable */
+  inceptionAt: string | null;
+  initialCapital: number;
+  /** @nullable */
+  currentValue: number | null;
+  cash: number;
+  /** @nullable */
+  gain: number | null;
+  /** @nullable */
+  returnPercent: number | null;
+  /** @nullable */
+  lastRebalanceDate: string | null;
+  /** @nullable */
+  nextRebalanceDate: string | null;
+  /** @nullable */
+  valuedAt: string | null;
+  valuationBasis: LazyPortfolioValuationBasis;
+  /** @nullable */
+  refreshedAt: string | null;
+  assets: LazyAsset[];
+  holdings: LazyHolding[];
   performance: BlindTrustPerformance[];
   allocations: BlindTrustAllocation[];
   ledger: BlindTrustLedgerEvent[];

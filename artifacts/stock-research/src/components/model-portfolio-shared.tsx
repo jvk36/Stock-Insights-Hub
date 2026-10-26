@@ -81,7 +81,7 @@ export function History({ p }: { p: { allocations: BlindTrustAllocation[]; ledge
                 <span className="font-semibold capitalize">{label(a.type)} · {date(a.date)}</span>
                 <span className="text-xs text-muted-foreground">scheduled {date(a.scheduledDate)}</span>
               </div>
-              <div className="mt-1 font-mono text-xs">Equity {usd(a.equity)} · {usd(a.amountPerPosition)} each → {a.tickers.join(", ") || "Cash"}</div>
+              <div className="mt-1 font-mono text-xs">Equity {usd(a.equity)} · {a.amountPerPosition == null ? "target-weight allocation" : `${usd(a.amountPerPosition)} each`} → {a.tickers.join(", ") || "Cash"}</div>
               {a.note && <p className="mt-1 text-xs text-muted-foreground">{a.note}</p>}
             </div>
           ))}

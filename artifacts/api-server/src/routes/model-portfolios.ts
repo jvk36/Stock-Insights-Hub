@@ -1,10 +1,20 @@
 import { Router, type IRouter } from "express";
 import { getModelPortfolio } from "../lib/model-portfolio-service";
 import { getMomentumPortfolio } from "../lib/momentum-service";
-import { GetMomentumPortfolioResponse } from "@workspace/api-zod";
+import { getLazyPortfolio } from "../lib/lazy-service";
+import { GetMomentumPortfolioResponse, GetLazyPortfolioResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 // Mounted after requirePremium in the shared router.
+router.get("/model-portfolios/lazy", async (req, res): Promise<void> => {
+  res.set("Cache-Control", "private, no-store");
+  try {
+    res.json(GetLazyPortfolioResponse.parse(await getLazyPortfolio()));
+  } catch (error) {
+    req.log.error({ err: error }, "Unable to read Lazy model portfolio");
+    res.status(503).json({ error: "Lazy portfolio is temporarily unavailable. Please retry." });
+  }
+});
 router.get("/model-portfolios/momentum", async (req, res): Promise<void> => {
   res.set("Cache-Control", "private, no-store");
   try {

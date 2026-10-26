@@ -5,6 +5,7 @@ import { warmIndexMetricsCache } from "./routes/indexes";
 import { initEdgarFetcher } from "./lib/edgar-fetcher";
 import { startModelPortfolioScheduler } from "./lib/model-portfolio-service";
 import { startMomentumScheduler } from "./lib/momentum-service";
+import { startLazyScheduler } from "./lib/lazy-service";
 
 const rawPort = process.env["PORT"];
 
@@ -32,6 +33,7 @@ app.listen(port, (err) => {
   logger.info({ port }, "Server listening");
   startModelPortfolioScheduler();
   startMomentumScheduler();
+  startLazyScheduler();
 
   // Pre-warm macro indicators cache in background so first user request is fast
   warmMacroCache().catch(() => { /* non-fatal */ });

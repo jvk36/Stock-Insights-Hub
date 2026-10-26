@@ -6,6 +6,8 @@ import { LAZY_UNIVERSE } from "./lazy-engine";
 import { fetchMomentumMarket } from "./momentum-market";
 import { BACKTEST_START, runPortfolioBacktest, type BacktestStrategy } from "./portfolio-backtest-engine";
 import { logger } from "./logger";
+import { fetchBlindTrustBooks } from "./blind-trust-history";
+import { fetchBlindTrustPriceHistory, runBlindTrustBacktest } from "./blind-trust-backtest";
 
 // A separately namespaced historical cache, never a live strategy/ledger.
 const VERSION = 1;
@@ -36,7 +38,11 @@ export function getPortfolioBacktest(strategy: BacktestStrategy): Promise<ModelP
     const freshMs = previous?.status === "complete" ? CACHE_MS : 15 * 60_000;
     if (previous && Date.now() - Date.parse(previous.refreshedAt) < freshMs) return previous;
     try {
-      const result = GetModelPortfolioBacktestResponse.parse(runPortfolioBacktest(strategy, await fetchHistory()));
+      const raw = strategy === "blind-trust" ? await (async () => {
+        const [market, fundamentals] = await Promise.all([fetchBlindTrustPriceHistory(), fetchBlindTrustBooks()]);
+        return runBlindTrustBacktest(market, fundamentals.books, fundamentals.issues);
+      })() : runPortfolioBacktest(strategy, await fetchHistory());
+      const result = GetModelPortfolioBacktestResponse.parse(raw);
       if (result.status !== "complete" && previous?.status === "complete") {
         return { ...previous, status: "partial" as const,
           message: "Historical data refresh is incomplete. Showing the previous verified simulation; its data timestamp is unchanged." };

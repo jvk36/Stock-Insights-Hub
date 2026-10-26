@@ -283,7 +283,7 @@ function isAdjacentFiscalQuarter(previousKey: string, currentKey: string): boole
   );
 }
 
-function zipDocumentContainingFact(
+export function zipDocumentContainingFact(
   archive: Buffer,
   factName: string,
 ): string | null {

@@ -4,12 +4,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useGetModelPortfolioBacktest, getGetModelPortfolioBacktestQueryKey, type ModelPortfolioBacktest, type BacktestAllocation } from "@workspace/api-client-react";
 import { NA, usd, num, pct, signedUsd, date, dateTime, tone, Stat, SectionTitle, PerformanceChart, th, thr, td, tdr } from "@/components/model-portfolio-shared";
 
-type Strategy = "momentum" | "lazy";
+type Strategy = "momentum" | "lazy" | "blind-trust";
 
 function Rebalance({ a, i, strategy }: { a: BacktestAllocation; i: number; strategy: Strategy }) {
   const cashW = a.equity ? (a.cash / a.equity) * 100 : null;
   const sma = strategy === "momentum";
-  const cols = sma ? 7 : 6;
+  const book = strategy === "blind-trust";
+  const cols = book ? 8 : sma ? 7 : 6;
   return (
     <tbody data-testid={`group-backtest-rebalance-${a.date}`}>
       <tr className="border-t-2 border-foreground/30 bg-muted/40">
@@ -26,18 +27,21 @@ function Rebalance({ a, i, strategy }: { a: BacktestAllocation; i: number; strat
           {sma && <td className={td}>{p.selected
             ? <span className="rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-800">Above SMA</span>
             : <span className="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">{p.sma200 == null ? "No SMA" : "At / below"}</span>}</td>}
+          {book && <td className={tdr}>{usd(p.bookValue)}</td>}
+          {book && <td className={tdr}>{p.priceToBook == null ? NA : `${num(p.priceToBook, 3)}×`}{p.selected && <div className="text-[11px] text-primary">Selected</div>}</td>}
+          {book && <td className={`${td} text-[11px]`}>Period {date(p.bookDate)}<br />Filed {date(p.filedOn)}{p.bookSource && <><br /><a href={p.bookSource} target="_blank" rel="noreferrer" className="underline text-primary">Original filing</a></>}{p.reason && <div className="max-w-[200px] whitespace-normal text-muted-foreground">{p.reason}</div>}</td>}
           <td className={tdr}>{usd(p.price)}</td>
           <td className={tdr}>{num(p.shares, 8)}</td>
           <td className={tdr}>{usd(p.value)}</td>
           <td className={tdr}>{num(p.weight, 1)}%</td>
-          {!sma && <td className={td} />}
+          {!sma && !book && <td className={td} />}
         </tr>
       ))}
       <tr className="border-t border-border bg-muted/20" data-testid={`row-backtest-${a.date}-cash`}>
-        <td className={`${td} font-semibold`} colSpan={sma ? cols - 2 : cols - 3}>Cash</td>
+        <td className={`${td} font-semibold`} colSpan={sma || book ? cols - 2 : cols - 3}>Cash</td>
         <td className={tdr}>{usd(a.cash)}</td>
         <td className={tdr}>{cashW == null ? NA : `${num(cashW, 1)}%`}</td>
-        {!sma && <td className={td} />}
+        {!sma && !book && <td className={td} />}
       </tr>
     </tbody>
   );
@@ -48,6 +52,7 @@ function Body({ b, strategy }: { b: ModelPortfolioBacktest; strategy: Strategy }
   const [year, setYear] = useState("all");
   const rows = useMemo(() => b.allocations.map((a, i) => ({ a, i })).filter(({ a }) => year === "all" || a.date.startsWith(year)), [b.allocations, year]);
   const sma = strategy === "momentum";
+  const book = strategy === "blind-trust";
   const shortEnd = b.actualEndDate != null && b.actualEndDate < b.endDateExclusive;
   return (
     <>
@@ -66,7 +71,7 @@ function Body({ b, strategy }: { b: ModelPortfolioBacktest; strategy: Strategy }
       <div className="mt-6 mb-2 flex flex-wrap items-end justify-between gap-2">
         <div>
           <h3 className="text-sm font-semibold">Holdings after every rebalance ({b.allocations.length})</h3>
-          <p className="text-xs text-muted-foreground">Every ETF is listed at each rebalance; {sma ? "unselected funds show zero weight." : "weights reflect the fixed targets at execution."} Values at the execution close.</p>
+          <p className="text-xs text-muted-foreground">{book ? "All eight businesses are listed, including exclusions, with historical P/B inputs and original filing dates." : `Every ETF is listed at each rebalance; ${sma ? "unselected funds show zero weight." : "weights reflect the fixed targets at execution."}`} Values at the execution close.</p>
         </div>
         {years.length > 1 && (
           <label className="flex items-center gap-2 text-xs text-muted-foreground">Year
@@ -81,16 +86,17 @@ function Body({ b, strategy }: { b: ModelPortfolioBacktest; strategy: Strategy }
         <table className="w-full min-w-[720px] text-sm" data-testid="table-backtest-rebalances">
           <caption className="sr-only">Simulated holdings, cash and equity after each rebalance</caption>
           <thead className="bg-muted sticky top-0 z-[1]"><tr>
-            <th className={th}>ETF</th>{sma && <th className={thr}>200-day SMA</th>}{sma && <th className={th}>Signal</th>}
-            <th className={thr}>Price</th><th className={thr}>Shares</th><th className={thr}>Value</th><th className={thr}>Weight</th>{!sma && <th className={th} />}
+            <th className={th}>{book ? "Business" : "ETF"}</th>{sma && <th className={thr}>200-day SMA</th>}{sma && <th className={th}>Signal</th>}
+            {book && <><th className={thr}>Book / share</th><th className={thr}>P/B</th><th className={th}>Historical source</th></>}
+            <th className={thr}>Price</th><th className={thr}>Shares</th><th className={thr}>Value</th><th className={thr}>Weight</th>{!sma && !book && <th className={th} />}
           </tr></thead>
           {rows.map(({ a, i }) => <Rebalance key={a.date} a={a} i={i} strategy={strategy} />)}
-          {rows.length === 0 && <tbody><tr><td colSpan={sma ? 7 : 6} className="px-3 py-8 text-center text-muted-foreground">No rebalances in this range.</td></tr></tbody>}
+          {rows.length === 0 && <tbody><tr><td colSpan={book ? 8 : sma ? 7 : 6} className="px-3 py-8 text-center text-muted-foreground">No rebalances in this range.</td></tr></tbody>}
         </table>
       </div>
 
       {b.omittedDates.length > 0 && (
-        <p className="mt-3 text-xs text-amber-800" data-testid="text-backtest-omitted">Omitted rebalance dates (insufficient data): {b.omittedDates.map(date).join(", ")}.</p>
+        <p className="mt-3 text-xs text-amber-800" data-testid="text-backtest-omitted">Omitted valuation sessions (insufficient data): {b.omittedDates.map(date).join(", ")}.</p>
       )}
       {b.assumptions.length > 0 && (
         <div className="mt-5">

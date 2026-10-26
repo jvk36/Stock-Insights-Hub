@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { MomentumView } from "@/components/momentum-portfolio";
 import { LazyView } from "@/components/lazy-portfolio";
+import { PortfolioBacktest } from "@/components/portfolio-backtest";
 import { TrendingUp, Briefcase, RefreshCw, AlertTriangle, Clock } from "lucide-react";
 import { NA, usd, num, pct, signedUsd, date, dateTime, tone, label, Stat, SectionTitle, PerformanceChart, History, th, thr, td, tdr } from "@/components/model-portfolio-shared";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -224,6 +225,7 @@ export default function ModelPortfolios() {
                 <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No inception date, holdings, or returns yet. Original capital will be {usd(p.initialCapital, 0)}. Nothing here is estimated in the meantime.</div>
               </section>
             ) : <ModelPortfolio p={p} />}
+            <PortfolioBacktest strategy="blind-trust" />
             <p className="text-xs leading-5 text-muted-foreground border-t border-border pt-4">Hypothetical, concentrated three-stock model for education only. Not investment advice and not a guarantee of future results. Excludes taxes, commissions, and slippage. Past and simulated performance can differ materially from real-world outcomes.</p>
           </>
         )}

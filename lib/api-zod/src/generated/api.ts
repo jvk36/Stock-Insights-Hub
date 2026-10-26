@@ -11,11 +11,11 @@ import * as zod from "zod";
  * @summary Ten-year pre-inception ETF strategy backtest (Premium)
  */
 export const GetModelPortfolioBacktestParams = zod.object({
-  strategy: zod.enum(["momentum", "lazy"]),
+  strategy: zod.enum(["momentum", "lazy", "blind-trust"]),
 });
 
 export const GetModelPortfolioBacktestResponse = zod.object({
-  strategy: zod.enum(["momentum", "lazy"]),
+  strategy: zod.enum(["momentum", "lazy", "blind-trust"]),
   status: zod.enum(["complete", "partial", "unavailable"]),
   message: zod.string().nullable(),
   startDate: zod.string(),
@@ -46,12 +46,18 @@ export const GetModelPortfolioBacktestResponse = zod.object({
         zod.object({
           ticker: zod.string(),
           name: zod.string(),
-          price: zod.number(),
+          price: zod.number().nullable(),
           shares: zod.number(),
           value: zod.number(),
           weight: zod.number(),
           sma200: zod.number().nullable(),
           selected: zod.boolean(),
+          bookValue: zod.number().nullish(),
+          priceToBook: zod.number().nullish(),
+          bookDate: zod.string().nullish(),
+          filedOn: zod.string().nullish(),
+          bookSource: zod.string().nullish(),
+          reason: zod.string().nullish(),
         }),
       ),
     }),

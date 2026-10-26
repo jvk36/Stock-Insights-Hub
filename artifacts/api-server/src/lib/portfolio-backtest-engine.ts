@@ -5,11 +5,11 @@ import { LAZY_UNIVERSE } from "./lazy-engine";
 export const BACKTEST_START = "2016-10-26";
 export const BACKTEST_END_EXCLUSIVE = "2026-10-26";
 export const BACKTEST_CAPITAL = 30_000;
-export type BacktestStrategy = "momentum" | "lazy";
+export type BacktestStrategy = "momentum" | "lazy" | "blind-trust";
 type Position = { ticker: string; shares: number };
 
 // Pure historical accounting. This never invokes or writes a live strategy.
-export function runPortfolioBacktest(strategy: BacktestStrategy, market: MomentumMarket): ModelPortfolioBacktest {
+export function runPortfolioBacktest(strategy: Exclude<BacktestStrategy, "blind-trust">, market: MomentumMarket): ModelPortfolioBacktest {
   const universe = strategy === "momentum" ? ETF_UNIVERSE : LAZY_UNIVERSE;
   const performance: ModelPortfolioBacktest["performance"] = [];
   const allocations: BacktestAllocation[] = [];

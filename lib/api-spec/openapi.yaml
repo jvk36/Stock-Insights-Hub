@@ -28,7 +28,7 @@ paths:
         - in: path
           name: strategy
           required: true
-          schema: { type: string, enum: [momentum, lazy] }
+          schema: { type: string, enum: [momentum, lazy, blind-trust] }
       responses:
         "200":
           description: Historical simulation, performance and every rebalance allocation
@@ -1034,12 +1034,18 @@ components:
       properties:
         ticker: { type: string }
         name: { type: string }
-        price: { type: number }
+        price: { type: [number, "null"] }
         shares: { type: number }
         value: { type: number }
         weight: { type: number }
         sma200: { type: [number, "null"] }
         selected: { type: boolean }
+        bookValue: { type: [number, "null"] }
+        priceToBook: { type: [number, "null"] }
+        bookDate: { type: [string, "null"] }
+        filedOn: { type: [string, "null"] }
+        bookSource: { type: [string, "null"] }
+        reason: { type: [string, "null"] }
     BacktestAllocation:
       type: object
       required: [date, scheduledDate, equity, cash, positions]
@@ -1055,7 +1061,7 @@ components:
       type: object
       required: [strategy, status, message, startDate, endDateExclusive, actualStartDate, actualEndDate, initialCapital, finalValue, gain, returnPercent, refreshedAt, assumptions, performance, allocations, omittedDates]
       properties:
-        strategy: { type: string, enum: [momentum, lazy] }
+        strategy: { type: string, enum: [momentum, lazy, blind-trust] }
         status: { type: string, enum: [complete, partial, unavailable] }
         message: { type: [string, "null"] }
         startDate: { type: string }

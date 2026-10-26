@@ -12,4 +12,5 @@ export type ModelPortfolioBacktestStrategy =
 export const ModelPortfolioBacktestStrategy = {
   momentum: "momentum",
   lazy: "lazy",
+  "blind-trust": "blind-trust",
 } as const;

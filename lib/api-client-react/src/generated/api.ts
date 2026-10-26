@@ -72,13 +72,13 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
  * @summary Ten-year pre-inception ETF strategy backtest (Premium)
  */
 export const getGetModelPortfolioBacktestUrl = (
-  strategy: "momentum" | "lazy",
+  strategy: "momentum" | "lazy" | "blind-trust",
 ) => {
   return `/api/model-portfolios/${strategy}/backtest`;
 };
 
 export const getModelPortfolioBacktest = async (
-  strategy: "momentum" | "lazy",
+  strategy: "momentum" | "lazy" | "blind-trust",
   options?: RequestInit,
 ): Promise<ModelPortfolioBacktest> => {
   return customFetch<ModelPortfolioBacktest>(
@@ -91,7 +91,7 @@ export const getModelPortfolioBacktest = async (
 };
 
 export const getGetModelPortfolioBacktestQueryKey = (
-  strategy: "momentum" | "lazy",
+  strategy: "momentum" | "lazy" | "blind-trust",
 ) => {
   return [`/api/model-portfolios/${strategy}/backtest`] as const;
 };
@@ -100,7 +100,7 @@ export const getGetModelPortfolioBacktestQueryOptions = <
   TData = Awaited<ReturnType<typeof getModelPortfolioBacktest>>,
   TError = ErrorType<void>,
 >(
-  strategy: "momentum" | "lazy",
+  strategy: "momentum" | "lazy" | "blind-trust",
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getModelPortfolioBacktest>>,
@@ -145,7 +145,7 @@ export function useGetModelPortfolioBacktest<
   TData = Awaited<ReturnType<typeof getModelPortfolioBacktest>>,
   TError = ErrorType<void>,
 >(
-  strategy: "momentum" | "lazy",
+  strategy: "momentum" | "lazy" | "blind-trust",
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getModelPortfolioBacktest>>,

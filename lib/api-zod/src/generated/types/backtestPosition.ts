@@ -9,11 +9,24 @@
 export interface BacktestPosition {
   ticker: string;
   name: string;
-  price: number;
+  /** @nullable */
+  price: number | null;
   shares: number;
   value: number;
   weight: number;
   /** @nullable */
   sma200: number | null;
   selected: boolean;
+  /** @nullable */
+  bookValue?: number | null;
+  /** @nullable */
+  priceToBook?: number | null;
+  /** @nullable */
+  bookDate?: string | null;
+  /** @nullable */
+  filedOn?: string | null;
+  /** @nullable */
+  bookSource?: string | null;
+  /** @nullable */
+  reason?: string | null;
 }

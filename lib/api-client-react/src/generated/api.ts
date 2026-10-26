@@ -41,6 +41,7 @@ import type {
   IndexMetricsResponse,
   InsiderTransactionsResponse,
   MacroIndicatorsResponse,
+  MomentumPortfolio,
   NewsResponse,
   ScreenerData,
   SecFilingsResponse,
@@ -64,6 +65,81 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+/**
+ * @summary Shared quarterly 200-day SMA ETF model (Premium)
+ */
+export const getGetMomentumPortfolioUrl = () => {
+  return `/api/model-portfolios/momentum`;
+};
+
+export const getMomentumPortfolio = async (
+  options?: RequestInit,
+): Promise<MomentumPortfolio> => {
+  return customFetch<MomentumPortfolio>(getGetMomentumPortfolioUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMomentumPortfolioQueryKey = () => {
+  return [`/api/model-portfolios/momentum`] as const;
+};
+
+export const getGetMomentumPortfolioQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMomentumPortfolio>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMomentumPortfolio>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMomentumPortfolioQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMomentumPortfolio>>
+  > = ({ signal }) => getMomentumPortfolio({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMomentumPortfolio>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMomentumPortfolioQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMomentumPortfolio>>
+>;
+export type GetMomentumPortfolioQueryError = ErrorType<void>;
+
+/**
+ * @summary Shared quarterly 200-day SMA ETF model (Premium)
+ */
+
+export function useGetMomentumPortfolio<
+  TData = Awaited<ReturnType<typeof getMomentumPortfolio>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMomentumPortfolio>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMomentumPortfolioQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Shared Blind Trust strategy, holdings and performance (Premium)

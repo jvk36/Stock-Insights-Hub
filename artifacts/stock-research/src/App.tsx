@@ -125,6 +125,7 @@ function Routes() {
 
     <Route path="/model-portfolios">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>
     <Route path="/model-portfolios/blind-trust">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>
+    <Route path="/model-portfolios/momentum">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>
     <Route path="/stock">{() => <PremiumRoute><StockDetail /></PremiumRoute>}</Route>
     <Route path="/stock/:symbol">{() => <PremiumRoute><StockDetail /></PremiumRoute>}</Route>
     <Route component={NotFound} />

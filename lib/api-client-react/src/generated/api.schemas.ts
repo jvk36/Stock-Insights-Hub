@@ -154,6 +154,110 @@ export interface BlindTrustPortfolio {
   ledger: BlindTrustLedgerEvent[];
 }
 
+export type MomentumCandidateStatus =
+  (typeof MomentumCandidateStatus)[keyof typeof MomentumCandidateStatus];
+
+export const MomentumCandidateStatus = {
+  ready: "ready",
+  temporary_error: "temporary_error",
+} as const;
+
+export interface MomentumCandidate {
+  ticker: string;
+  name: string;
+  assetClass: string;
+  /** @nullable */
+  price: number | null;
+  /** @nullable */
+  priceDate: string | null;
+  /** @nullable */
+  sma200: number | null;
+  /** @nullable */
+  smaDate: string | null;
+  sessions: number;
+  aboveSma: boolean;
+  /** @nullable */
+  distancePercent: number | null;
+  status: MomentumCandidateStatus;
+  /** @nullable */
+  reason: string | null;
+}
+
+export interface MomentumHolding {
+  ticker: string;
+  name: string;
+  entryDate: string;
+  entryPrice: number;
+  entrySma: number;
+  shares: number;
+  costBasis: number;
+  /** @nullable */
+  currentPrice: number | null;
+  /** @nullable */
+  priceDate: string | null;
+  /** @nullable */
+  currentValue: number | null;
+  /** @nullable */
+  weight: number | null;
+  /** @nullable */
+  gain: number | null;
+  /** @nullable */
+  gainPercent: number | null;
+  stale: boolean;
+}
+
+export type MomentumPortfolioStatus =
+  (typeof MomentumPortfolioStatus)[keyof typeof MomentumPortfolioStatus];
+
+export const MomentumPortfolioStatus = {
+  pending: "pending",
+  active: "active",
+  stale: "stale",
+} as const;
+
+export type MomentumPortfolioValuationBasis =
+  (typeof MomentumPortfolioValuationBasis)[keyof typeof MomentumPortfolioValuationBasis];
+
+export const MomentumPortfolioValuationBasis = {
+  quote: "quote",
+  close: "close",
+} as const;
+
+export interface MomentumPortfolio {
+  slug: string;
+  title: string;
+  currency: string;
+  status: MomentumPortfolioStatus;
+  /** @nullable */
+  message: string | null;
+  /** @nullable */
+  inceptionDate: string | null;
+  /** @nullable */
+  inceptionAt: string | null;
+  initialCapital: number;
+  /** @nullable */
+  currentValue: number | null;
+  cash: number;
+  /** @nullable */
+  gain: number | null;
+  /** @nullable */
+  returnPercent: number | null;
+  /** @nullable */
+  lastRebalanceDate: string | null;
+  /** @nullable */
+  nextRebalanceDate: string | null;
+  /** @nullable */
+  valuedAt: string | null;
+  valuationBasis: MomentumPortfolioValuationBasis;
+  /** @nullable */
+  refreshedAt: string | null;
+  candidates: MomentumCandidate[];
+  holdings: MomentumHolding[];
+  performance: BlindTrustPerformance[];
+  allocations: BlindTrustAllocation[];
+  ledger: BlindTrustLedgerEvent[];
+}
+
 export interface WatchlistEntry {
   id: string;
   ticker: string;

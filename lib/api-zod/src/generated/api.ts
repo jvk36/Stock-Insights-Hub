@@ -8,6 +8,94 @@
 import * as zod from "zod";
 
 /**
+ * @summary Shared quarterly 200-day SMA ETF model (Premium)
+ */
+export const GetMomentumPortfolioResponse = zod.object({
+  slug: zod.string(),
+  title: zod.string(),
+  currency: zod.string(),
+  status: zod.enum(["pending", "active", "stale"]),
+  message: zod.string().nullable(),
+  inceptionDate: zod.string().nullable(),
+  inceptionAt: zod.string().nullable(),
+  initialCapital: zod.number(),
+  currentValue: zod.number().nullable(),
+  cash: zod.number(),
+  gain: zod.number().nullable(),
+  returnPercent: zod.number().nullable(),
+  lastRebalanceDate: zod.string().nullable(),
+  nextRebalanceDate: zod.string().nullable(),
+  valuedAt: zod.string().nullable(),
+  valuationBasis: zod.enum(["quote", "close"]),
+  refreshedAt: zod.string().nullable(),
+  candidates: zod.array(
+    zod.object({
+      ticker: zod.string(),
+      name: zod.string(),
+      assetClass: zod.string(),
+      price: zod.number().nullable(),
+      priceDate: zod.string().nullable(),
+      sma200: zod.number().nullable(),
+      smaDate: zod.string().nullable(),
+      sessions: zod.number(),
+      aboveSma: zod.boolean(),
+      distancePercent: zod.number().nullable(),
+      status: zod.enum(["ready", "temporary_error"]),
+      reason: zod.string().nullable(),
+    }),
+  ),
+  holdings: zod.array(
+    zod.object({
+      ticker: zod.string(),
+      name: zod.string(),
+      entryDate: zod.string(),
+      entryPrice: zod.number(),
+      entrySma: zod.number(),
+      shares: zod.number(),
+      costBasis: zod.number(),
+      currentPrice: zod.number().nullable(),
+      priceDate: zod.string().nullable(),
+      currentValue: zod.number().nullable(),
+      weight: zod.number().nullable(),
+      gain: zod.number().nullable(),
+      gainPercent: zod.number().nullable(),
+      stale: zod.boolean(),
+    }),
+  ),
+  performance: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+      returnPercent: zod.number(),
+      cash: zod.number(),
+    }),
+  ),
+  allocations: zod.array(
+    zod.object({
+      id: zod.string(),
+      date: zod.string(),
+      scheduledDate: zod.string(),
+      type: zod.string(),
+      equity: zod.number(),
+      amountPerPosition: zod.number(),
+      tickers: zod.array(zod.string()),
+      note: zod.string().nullable(),
+    }),
+  ),
+  ledger: zod.array(
+    zod.object({
+      id: zod.string(),
+      date: zod.string(),
+      type: zod.string(),
+      ticker: zod.string().nullable(),
+      shares: zod.number(),
+      price: zod.number(),
+      cashChange: zod.number(),
+    }),
+  ),
+});
+
+/**
  * @summary Shared Blind Trust strategy, holdings and performance (Premium)
  */
 export const GetBlindTrustPortfolioResponse = zod.object({

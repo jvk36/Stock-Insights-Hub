@@ -19,6 +19,24 @@ tags:
   - name: watchlist
     description: Premium personal watchlist operations
 paths:
+  /model-portfolios/momentum:
+    get:
+      operationId: getMomentumPortfolio
+      tags: [ModelPortfolios]
+      summary: Shared quarterly 200-day SMA ETF model (Premium)
+      responses:
+        "200":
+          description: Persisted Momentum strategy and current signals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MomentumPortfolio"
+        "401":
+          description: Sign in required
+        "403":
+          description: Premium required
+        "503":
+          description: Portfolio temporarily unavailable
   /model-portfolios/blind-trust:
     get:
       operationId: getBlindTrustPortfolio
@@ -957,6 +975,76 @@ components:
         holdings:
           type: array
           items: { $ref: "#/components/schemas/BlindTrustHolding" }
+        performance:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustPerformance" }
+        allocations:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustAllocation" }
+        ledger:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustLedgerEvent" }
+    MomentumCandidate:
+      type: object
+      required: [ticker, name, assetClass, price, priceDate, sma200, smaDate, sessions, aboveSma, distancePercent, status, reason]
+      properties:
+        ticker: { type: string }
+        name: { type: string }
+        assetClass: { type: string }
+        price: { type: [number, "null"] }
+        priceDate: { type: [string, "null"] }
+        sma200: { type: [number, "null"] }
+        smaDate: { type: [string, "null"] }
+        sessions: { type: integer }
+        aboveSma: { type: boolean }
+        distancePercent: { type: [number, "null"] }
+        status: { type: string, enum: [ready, temporary_error] }
+        reason: { type: [string, "null"] }
+    MomentumHolding:
+      type: object
+      required: [ticker, name, entryDate, entryPrice, entrySma, shares, costBasis, currentPrice, priceDate, currentValue, weight, gain, gainPercent, stale]
+      properties:
+        ticker: { type: string }
+        name: { type: string }
+        entryDate: { type: string }
+        entryPrice: { type: number }
+        entrySma: { type: number }
+        shares: { type: number }
+        costBasis: { type: number }
+        currentPrice: { type: [number, "null"] }
+        priceDate: { type: [string, "null"] }
+        currentValue: { type: [number, "null"] }
+        weight: { type: [number, "null"] }
+        gain: { type: [number, "null"] }
+        gainPercent: { type: [number, "null"] }
+        stale: { type: boolean }
+    MomentumPortfolio:
+      type: object
+      required: [slug, title, currency, status, message, inceptionDate, inceptionAt, initialCapital, currentValue, cash, gain, returnPercent, lastRebalanceDate, nextRebalanceDate, valuedAt, valuationBasis, refreshedAt, candidates, holdings, performance, allocations, ledger]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        currency: { type: string }
+        status: { type: string, enum: [pending, active, stale] }
+        message: { type: [string, "null"] }
+        inceptionDate: { type: [string, "null"] }
+        inceptionAt: { type: [string, "null"] }
+        initialCapital: { type: number }
+        currentValue: { type: [number, "null"] }
+        cash: { type: number }
+        gain: { type: [number, "null"] }
+        returnPercent: { type: [number, "null"] }
+        lastRebalanceDate: { type: [string, "null"] }
+        nextRebalanceDate: { type: [string, "null"] }
+        valuedAt: { type: [string, "null"] }
+        valuationBasis: { type: string, enum: [quote, close] }
+        refreshedAt: { type: [string, "null"] }
+        candidates:
+          type: array
+          items: { $ref: "#/components/schemas/MomentumCandidate" }
+        holdings:
+          type: array
+          items: { $ref: "#/components/schemas/MomentumHolding" }
         performance:
           type: array
           items: { $ref: "#/components/schemas/BlindTrustPerformance" }

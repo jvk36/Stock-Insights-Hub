@@ -11,3 +11,4 @@
 - [REIT non-GAAP filing sources](reit-non-gaap-filing-sources.md) — Company Facts often omits AFFO-family metrics; use annual 8-K exhibits and reject guidance rows
 - [NAV valuation inputs](nav-valuation-inputs.md) — prefill reported carrying values, but keep fair-market asset value an explicit editable assumption
 - [Blind Trust strategy](blind-trust-strategy.md) — eight businesses, official PSUS NAV, October 26 opening-price inception, annual equal rebalancing
+- [Momentum strategy](momentum-strategy.md) — six specified ETFs, strict 200-day SMA screen, quarterly equal allocation, captured October 26 quote inception

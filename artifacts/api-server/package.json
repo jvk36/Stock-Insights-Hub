@@ -11,6 +11,7 @@
     "test:affo": "node --experimental-strip-types src/lib/reit-affo.test.mjs",
     "test:membership-entitlement": "node --experimental-strip-types src/lib/membership-entitlement.test.mjs",
     "test:model-portfolios": "pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/lib/model-portfolio.test.ts ../artifacts/api-server/src/lib/model-portfolio-storage.test.ts",
+    "test:momentum": "pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/lib/momentum.test.ts ../artifacts/api-server/src/lib/momentum-storage.test.ts",
     "test:subscription-verification": "node --experimental-strip-types src/lib/subscription-verification.test.mjs",
     "test:watchlist": "node --experimental-strip-types --experimental-specifier-resolution=node src/routes/watchlist.test.mjs",
     "test:stock-data": "node --experimental-strip-types --experimental-specifier-resolution=node src/lib/stockData.test.mjs",

@@ -872,6 +872,8 @@ components:
         priceToBook: { type: [number, "null"] }
         priceDate: { type: [string, "null"] }
         bookDate: { type: [string, "null"] }
+        bookSource: { type: [string, "null"] }
+        bookValueLabel: { type: [string, "null"] }
         observedAt: { type: string }
         status: { type: string, enum: [eligible, ineligible, unavailable, temporary_error] }
         reason: { type: [string, "null"] }
@@ -946,6 +948,8 @@ components:
         lastRebalanceDate: { type: [string, "null"] }
         nextRebalanceDate: { type: [string, "null"] }
         valuedAt: { type: [string, "null"] }
+        valuationBasis: { type: string, enum: [open, close] }
+        inceptionPriceBasis: { type: string, enum: [open, close] }
         refreshedAt: { type: [string, "null"] }
         candidates:
           type: array

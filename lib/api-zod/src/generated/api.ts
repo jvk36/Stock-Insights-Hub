@@ -25,6 +25,8 @@ export const GetBlindTrustPortfolioResponse = zod.object({
   lastRebalanceDate: zod.string().nullable(),
   nextRebalanceDate: zod.string().nullable(),
   valuedAt: zod.string().nullable(),
+  valuationBasis: zod.enum(["open", "close"]).optional(),
+  inceptionPriceBasis: zod.enum(["open", "close"]).optional(),
   refreshedAt: zod.string().nullable(),
   candidates: zod.array(
     zod.object({
@@ -36,6 +38,8 @@ export const GetBlindTrustPortfolioResponse = zod.object({
       priceToBook: zod.number().nullable(),
       priceDate: zod.string().nullable(),
       bookDate: zod.string().nullable(),
+      bookSource: zod.string().nullish(),
+      bookValueLabel: zod.string().nullish(),
       observedAt: zod.string(),
       status: zod.enum([
         "eligible",

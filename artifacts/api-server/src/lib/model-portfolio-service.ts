@@ -1,8 +1,8 @@
 import { db, modelPortfoliosTable, modelPortfolioEventsTable, modelPortfolioSnapshotsTable } from "@workspace/db";
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import type { BlindTrustAllocation, BlindTrustLedgerEvent, BlindTrustPerformance, BlindTrustPortfolio } from "@workspace/api-zod";
-import { advanceModel, INITIAL_CAPITAL, initialModelState, UNIVERSE, type ModelState } from "./model-portfolio-engine";
-import { fetchModelMarket, marketDate, completedThrough, type MarketInput } from "./model-portfolio-market";
+import { advanceModel, INITIAL_CAPITAL, initialModelState, UNIVERSE, BLIND_TRUST_INCEPTION_DATE, type ModelState } from "./model-portfolio-engine";
+import { fetchModelMarket, completedThrough, type MarketInput } from "./model-portfolio-market";
 import { logger } from "./logger";
 
 const SLUG = "blind-trust";
@@ -10,12 +10,24 @@ const REFRESH_MS = 15 * 60_000;
 let running: Promise<void> | null = null;
 
 export async function ensureModel() {
-  const initial = initialModelState(marketDate());
+  const initial = initialModelState(BLIND_TRUST_INCEPTION_DATE);
+  initial.inceptionPriceBasis = "open";
   initial.candidates = UNIVERSE.map((business) => ({
     ...business, price: null, bookValue: null, priceToBook: null, priceDate: null, bookDate: null,
     observedAt: new Date().toISOString(), status: "temporary_error", reason: "Initial market data is loading.", rank: null, selected: false,
   }));
   await db.insert(modelPortfoliosTable).values({ slug: SLUG, state: initial }).onConflictDoNothing();
+  // Upgrade only an unallocated model. Never rewrite historical trades or
+  // duplicate an inception that another process has already committed.
+  const policy = JSON.stringify({ launchDate: BLIND_TRUST_INCEPTION_DATE, inceptionPriceBasis: "open", refreshedAt: null });
+  await db.update(modelPortfoliosTable).set({
+    state: sql`${modelPortfoliosTable.state} || ${policy}::jsonb`,
+    updatedAt: new Date(),
+  }).where(and(
+    eq(modelPortfoliosTable.slug, SLUG),
+    sql`${modelPortfoliosTable.state}->>'inceptionDate' is null`,
+    sql`${modelPortfoliosTable.state}->>'inceptionPriceBasis' is distinct from 'open'`,
+  ));
 }
 
 async function refreshModel() {
@@ -41,7 +53,9 @@ export async function commitModelMarket(market: MarketInput, slug = SLUG) {
     for (const event of result.events) {
       const allocation = "tickers" in event;
       const payload = allocation
-        ? { ...event, selectionSnapshot: market.candidates, observedAt: market.observedAt, source: "Yahoo Finance quoteSummary and completed-session chart" }
+        ? { ...event, selectionSnapshot: event.type === "inception" && current.inceptionPriceBasis === "open" ? market.opening?.candidates : market.candidates,
+            observedAt: market.observedAt, priceBasis: event.type === "inception" ? current.inceptionPriceBasis ?? "close" : "close",
+            source: "Yahoo Finance prices and reported book values; PSUS NAV from pershingsquareusa.com" }
         : event;
       // Unique event IDs are a second guard in addition to the strategy lock.
       await tx.insert(modelPortfolioEventsTable).values({
@@ -49,7 +63,8 @@ export async function commitModelMarket(market: MarketInput, slug = SLUG) {
       });
     }
     for (const snapshot of result.snapshots) {
-      const prices = Object.fromEntries(Object.entries(market.prices).map(([ticker, series]) => [ticker, series[snapshot.date] ?? null]));
+      const prices = snapshot.priceBasis === "open" ? market.opening!.prices :
+        Object.fromEntries(Object.entries(market.prices).map(([ticker, series]) => [ticker, series[snapshot.date] ?? null]));
       await tx.insert(modelPortfolioSnapshotsTable).values({
         slug, date: snapshot.date, payload: { ...snapshot, prices },
       }).onConflictDoUpdate({
@@ -87,7 +102,7 @@ export async function getModelPortfolio(): Promise<BlindTrustPortfolio> {
     tx.select().from(modelPortfolioSnapshotsTable).where(eq(modelPortfolioSnapshotsTable.slug, SLUG)).orderBy(asc(modelPortfolioSnapshotsTable.date)),
     tx.select().from(modelPortfolioEventsTable).where(eq(modelPortfolioEventsTable.slug, SLUG)).orderBy(asc(modelPortfolioEventsTable.date), asc(modelPortfolioEventsTable.id)),
   ]);
-  const snapshots = snapshotRows.map((item) => item.payload as BlindTrustPerformance & { prices: Record<string, number | null> });
+  const snapshots = snapshotRows.map((item) => item.payload as BlindTrustPerformance & { prices: Record<string, number | null>; priceBasis?: "open" | "close" });
   const last = snapshots.at(-1);
   const refreshStale = !state.refreshedAt || Date.now() - Date.parse(state.refreshedAt) > REFRESH_MS * 3;
   // Weekend/holiday closes remain valid, while a lost session is explicit.
@@ -107,7 +122,8 @@ export async function getModelPortfolio(): Promise<BlindTrustPortfolio> {
     returnPercent: value == null ? null : (value / INITIAL_CAPITAL - 1) * 100,
     lastRebalanceDate: state.lastRebalanceDate, nextRebalanceDate: state.nextRebalanceDate,
     valuedAt: last?.date ?? null, refreshedAt: state.refreshedAt,
-    candidates: state.candidates,
+    valuationBasis: last?.priceBasis ?? "close", inceptionPriceBasis: state.inceptionPriceBasis ?? "close",
+    candidates: state.candidates.filter((candidate) => UNIVERSE.some((business) => business.ticker === candidate.ticker)),
     holdings: state.positions.map((position) => {
       const price = last?.prices[position.ticker] ?? null;
       const currentValue = price == null ? null : position.shares * price;

@@ -39,6 +39,14 @@ const CURL_BIN = (() => {
 - `api.nasdaq.com` — ETIMEDOUT (TCP-level block of Replit IP range from undici)
 - `stockanalysis.com` — 404/blocked
 
+## Pershing Square USA header sensitivity
+
+The official PSUS NAV page accepts curl's default user agent but returned HTTP 403 with both a custom application agent and `Mozilla/5.0`.
+
+**Why:** Browser-like headers are not universally safer across financial sites; a working curl request can be broken by adding them.
+
+**How to apply:** Preserve the proven default curl headers for the PSUS source. Treat a blocked or unparseable response as unavailable data, never as a NAV of zero.
+
 ## Validate scraped table semantics before caching
 Never fall back to an arbitrary first table when a named financial-constituent table disappears.
 

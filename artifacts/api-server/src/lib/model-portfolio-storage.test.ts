@@ -24,8 +24,11 @@ test("PostgreSQL persistence, atomic snapshots and concurrent annual execution",
     };
   }
   try {
-    await db.insert(modelPortfoliosTable).values({ slug, state: initialModelState("2026-10-26") });
-    await Promise.all([commitModelMarket(market("2026-10-26"), slug), commitModelMarket(market("2026-10-26"), slug)]);
+    const stateAtOpen = { ...initialModelState("2026-10-26"), inceptionPriceBasis: "open" as const };
+    await db.insert(modelPortfoliosTable).values({ slug, state: stateAtOpen });
+    const inception = market("2026-10-26");
+    inception.opening = { date: "2026-10-26", prices: Object.fromEntries(UNIVERSE.map((b) => [b.ticker, 100])), candidates: inception.candidates };
+    await Promise.all([commitModelMarket(inception, slug), commitModelMarket(inception, slug)]);
     const [first] = await db.select().from(modelPortfoliosTable).where(eq(modelPortfoliosTable.slug, slug));
     assert.equal((first.state as ModelState).positions.length, 3);
     assert.equal((first.state as ModelState).positions[0].costBasis, 10_000);

@@ -11,7 +11,6 @@ export const UNIVERSE = [
   { ticker: "L", providerSymbol: "L", name: "Loews Group" },
   { ticker: "HHH", providerSymbol: "HHH", name: "Howard Hughes" },
   { ticker: "PSUS", providerSymbol: "PSUS", name: "Pershing Square US" },
-  { ticker: "IAC", providerSymbol: "IAC", name: "IAC" },
   { ticker: "BOC", providerSymbol: "BOC", name: "Boston Omaha" },
 ] as const;
 
@@ -30,7 +29,11 @@ export type ModelState = {
   refreshedAt: string | null;
   message: string | null;
   valuationGaps?: string[];
+  inceptionPriceBasis?: "open" | "close";
 };
+export const BLIND_TRUST_INCEPTION_DATE = "2026-10-26";
+export type OpeningSession = { date: string; prices: Record<string, number>; candidates: BlindTrustCandidate[] };
+export type ModelValuation = BlindTrustPerformance & { priceBasis?: "open" | "close" };
 export type Prices = Record<string, Record<string, number>>;
 export type EngineEvent = BlindTrustAllocation | BlindTrustLedgerEvent;
 export const INITIAL_CAPITAL = 30_000;
@@ -74,7 +77,7 @@ export function anniversary(inception: string, after: string): string {
 }
 
 export function allocationBlocker(candidates: BlindTrustCandidate[], date: string): string | null {
-  if (candidates.length !== UNIVERSE.length) return "Waiting for the complete nine-business universe.";
+  if (candidates.length !== UNIVERSE.length) return "Waiting for the complete eight-business universe.";
   if (candidates.some((candidate) => candidate.status === "temporary_error")) return "Allocation pending: temporary market-data gaps; existing holdings are unchanged.";
   if (candidates.some((candidate) => candidate.status === "eligible" && candidate.priceDate !== date)) {
     return "Allocation pending: eligible candidates do not have matching completed-session prices.";
@@ -159,24 +162,36 @@ export function applyActions(state: ModelState, actions: Action[], date: string)
 
 export function advanceModel(state: ModelState, input: {
   candidates: BlindTrustCandidate[]; prices: Prices; actions: Action[]; observedAt: string; targetDate: string;
-}): { state: ModelState; events: EngineEvent[]; snapshots: BlindTrustPerformance[] } {
+  opening?: OpeningSession;
+}): { state: ModelState; events: EngineEvent[]; snapshots: ModelValuation[] } {
   let next: ModelState = { ...structuredClone(state), candidates: rankCandidates(input.candidates), refreshedAt: input.observedAt };
   const events: EngineEvent[] = [];
-  const snapshots: BlindTrustPerformance[] = [];
-  if (input.targetDate < state.launchDate) {
+  const snapshots: ModelValuation[] = [];
+  const openingInception = !state.inceptionDate && state.inceptionPriceBasis === "open";
+  if (!state.inceptionDate && input.targetDate < state.launchDate && !openingInception) {
     next.message = "Awaiting the first completed trading session on or after launch. No pre-launch backtest is shown.";
     return { state: next, events, snapshots };
   }
   if (!next.inceptionDate) {
-    const blocker = allocationBlocker(input.candidates, input.targetDate);
+    const opening = input.opening;
+    if (openingInception && (!opening || opening.date !== state.launchDate)) {
+      next.message = `Awaiting verified ${state.launchDate} opening prices for inception. No closing prices will be substituted.`;
+      return { state: next, events, snapshots };
+    }
+    const executionDate = openingInception ? opening!.date : input.targetDate;
+    const executionCandidates = openingInception ? opening!.candidates : input.candidates;
+    const blocker = allocationBlocker(executionCandidates, executionDate);
     if (blocker) { next.message = blocker; return { state: next, events, snapshots }; }
-    const executionPrices = Object.fromEntries(Object.entries(input.prices).map(([ticker, series]) => [ticker, series[input.targetDate]]));
-    const initial = allocate(next, input.candidates, input.targetDate, executionPrices);
+    const executionPrices = openingInception ? opening!.prices :
+      Object.fromEntries(Object.entries(input.prices).map(([ticker, series]) => [ticker, series[input.targetDate]]));
+    const initial = allocate(next, executionCandidates, executionDate, executionPrices);
     next = initial.state;
-    next.processedDate = input.targetDate;
+    next.processedDate = openingInception
+      ? new Date(Date.parse(`${executionDate}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10)
+      : executionDate;
     events.push(...initial.events);
-    snapshots.push({ date: input.targetDate, value: INITIAL_CAPITAL, cash: next.cash, returnPercent: 0 });
-    return { state: next, events, snapshots };
+    snapshots.push({ date: executionDate, value: INITIAL_CAPITAL, cash: next.cash, returnPercent: 0, priceBasis: openingInception ? "open" : "close" });
+    if (!openingInception) return { state: next, events, snapshots };
   }
   const dates = [...new Set(Object.values(input.prices).flatMap((series) => Object.keys(series)))]
     .filter((date) => date > next.processedDate! && date <= input.targetDate).sort();
@@ -190,11 +205,13 @@ export function advanceModel(state: ModelState, input: {
     }
     // Include every intervening action, even when its session could not be
     // valued. Only advance the cursor once all held securities can be valued.
-    const actionDates = [...new Set(input.actions
+    const eligibleActions = input.actions.filter((action) =>
+      !(next.inceptionPriceBasis === "open" && action.date === next.inceptionDate));
+    const actionDates = [...new Set(eligibleActions
       .filter((action) => action.date > next.processedDate! && action.date <= date)
       .map((action) => action.date))].sort();
     for (const actionDate of actionDates) {
-      const applied = applyActions(next, input.actions, actionDate);
+      const applied = applyActions(next, eligibleActions, actionDate);
       next = applied.state;
       events.push(...applied.events);
     }
@@ -213,7 +230,7 @@ export function advanceModel(state: ModelState, input: {
     }
     const value = next.cash + next.positions.reduce((sum, p) => sum + p.shares * prices[p.ticker], 0);
     next.processedDate = date;
-    snapshots.push({ date, value, cash: next.cash, returnPercent: (value / INITIAL_CAPITAL - 1) * 100 });
+    snapshots.push({ date, value, cash: next.cash, returnPercent: (value / INITIAL_CAPITAL - 1) * 100, priceBasis: "close" });
   }
   // Retry a data-delayed allocation even if today's valuation already exists.
   if (next.nextRebalanceDate && next.nextRebalanceDate <= input.targetDate && next.processedDate === input.targetDate) {

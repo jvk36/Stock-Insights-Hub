@@ -21,6 +21,10 @@ export interface BlindTrustCandidate {
   priceDate: string | null;
   /** @nullable */
   bookDate: string | null;
+  /** @nullable */
+  bookSource?: string | null;
+  /** @nullable */
+  bookValueLabel?: string | null;
   observedAt: string;
   status: BlindTrustCandidateStatus;
   /** @nullable */

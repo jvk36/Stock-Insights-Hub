@@ -3,6 +3,7 @@ import test from "node:test";
 import { UNIVERSE, initialModelState, rankCandidates, allocate, advanceModel, anniversary, applyActions } from "./model-portfolio-engine";
 import { normalizeBookInputs, undoFutureSplits, completedThrough, confirmedNoCoverage } from "./model-portfolio-market";
 import { createRequirePremium } from "./premium-middleware";
+import { parsePershingSquareNav } from "./pershing-square-nav";
 
 const day = "2026-10-26";
 const candidates = (date = day) => UNIVERSE.map((business, i) => ({
@@ -16,8 +17,8 @@ const input = (date = day) => ({
   actions: [], prices: Object.fromEntries(candidates(date).map((c) => [c.ticker, { [date]: c.price }])),
 });
 
-test("nine exact identities and stable positive P/B ranking, invalids excluded", () => {
-  assert.deepEqual(UNIVERSE.map((b) => b.ticker), ["BRK.A", "MKL", "FRFHF", "JEF", "L", "HHH", "PSUS", "IAC", "BOC"]);
+test("eight exact identities excluding IAC and stable positive P/B ranking", () => {
+  assert.deepEqual(UNIVERSE.map((b) => b.ticker), ["BRK.A", "MKL", "FRFHF", "JEF", "L", "HHH", "PSUS", "BOC"]);
   const cs = candidates();
   cs[1].priceToBook = cs[0].priceToBook;
   cs[2] = { ...cs[2], priceToBook: -1 };
@@ -35,6 +36,56 @@ test("initial capital: three exact $10,000 costs and fractional BRK.A, no recrea
   assert.equal(first.snapshots[0].value, 30_000);
   assert.equal(first.state.nextRebalanceDate, "2027-10-26");
   assert.equal(advanceModel(first.state, input()).events.length, 0);
+});
+
+test("requested inception uses October 26 opens for both ranking and execution before the close", () => {
+  const state = { ...initialModelState(day), inceptionPriceBasis: "open" as const };
+  const prices: Record<string, number> = { ...priceMap(), BOC: 1, PSUS: 2, JEF: 3 };
+  const opening = { date: day, prices, candidates: candidates().map((c) => ({
+    ...c, price: prices[c.ticker], priceToBook: prices[c.ticker] / c.bookValue,
+  })) };
+  const first = advanceModel(state, { ...input("2026-10-23"), opening });
+  assert.equal(first.state.inceptionDate, day);
+  assert.deepEqual(first.state.positions.map((p) => p.ticker), ["BOC", "PSUS", "JEF"]);
+  assert.deepEqual(first.state.positions.map((p) => p.entryPrice), [1, 2, 3]);
+  assert.ok(first.state.positions.every((p) => p.costBasis === 10_000));
+  assert.equal(first.snapshots[0].priceBasis, "open");
+  assert.equal(first.snapshots[0].value, 30_000);
+  assert.equal(first.state.nextRebalanceDate, "2027-10-26");
+  assert.equal(advanceModel(first.state, { ...input("2026-10-23"), opening }).events.length, 0);
+
+  const close = input(day);
+  for (const ticker of Object.keys(prices)) close.prices[ticker][day] = prices[ticker] * 1.1;
+  close.actions = [{ ticker: "BOC", date: day, type: "dividend", value: 10 }] as never;
+  const valued = advanceModel(first.state, close);
+  assert.ok(Math.abs(valued.snapshots[0].value - 33_000) < 1e-8);
+  assert.equal(valued.snapshots[0].priceBasis, "close");
+  assert.equal(valued.state.processedDate, day);
+  assert.equal(valued.state.cash, 0); // bought on the ex-date: no dividend entitlement
+  assert.equal(valued.events.length, 0);
+});
+
+test("opening-price policy never substitutes a closing price or different date", () => {
+  const state = { ...initialModelState(day), inceptionPriceBasis: "open" as const };
+  assert.equal(advanceModel(state, input(day)).state.inceptionDate, null);
+  const wrong = { ...input(day), opening: { date: "2026-10-23", prices: priceMap(), candidates: candidates() } };
+  assert.equal(advanceModel(state, wrong).events.length, 0);
+  const missing = { date: day, prices: priceMap(), candidates: candidates() };
+  missing.candidates[7].status = "temporary_error" as never;
+  assert.equal(advanceModel(state, { ...input(day), opening: missing }).events.length, 0);
+});
+
+test("official PSUS parser extracts USD NAV, not market price, with verified source date", () => {
+  const html = `<div class="current-nav-update--block"><ul>
+    <li><strong>PSUS</strong> Exchange Symbol</li><li><strong>$49.91</strong> NAV/Share</li>
+    <li><strong>$37.03</strong> NYSE Px/Share</li></ul><p><small>as of 10/20/2026</small></p></div>`;
+  assert.deepEqual(parsePershingSquareNav(html, day), {
+    value: 49.91, date: "2026-10-20", source: "https://www.pershingsquareusa.com/",
+  });
+  assert.throws(() => parsePershingSquareNav(html.replace("$49.91", "$0"), day));
+  assert.throws(() => parsePershingSquareNav(html.replace("10/20/2026", "10/27/2026"), day));
+  assert.throws(() => parsePershingSquareNav(html.replace("10/20/2026", "09/20/2026"), day));
+  assert.throws(() => parsePershingSquareNav(html.replace("PSUS", "PSH"), day));
 });
 
 test("annual equal-weight rebalance compounds current equity, no new deposits", () => {

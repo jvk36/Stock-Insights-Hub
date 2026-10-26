@@ -87,11 +87,12 @@ function Candidates({ p }: { p: BlindTrustPortfolio }) {
       <div className="grid gap-6 lg:grid-cols-[1fr_1.6fr]">
         <div className="space-y-3 text-sm leading-6 text-foreground/85">
           <p>Blind Trust models the Berkshire Hathaway approach to <strong>permanent capital</strong>: businesses whose capital allocators can invest for the long term without regular fund redemptions. This model keeps its original capital invested and makes one annual <strong>capital allocation</strong> decision. Its value can rise or fall.</p>
-          <p>The universe is fixed at nine businesses selected for their permanent-capital and capital-allocation characteristics. Each is ranked by price-to-book using verified USD inputs. The three lowest positive P/Bs receive equal shares of the pool. Missing or invalid figures are flagged, not estimated.</p>
+          <p>The universe is fixed at eight businesses selected for their permanent-capital and capital-allocation characteristics. Each is ranked by price-to-book using verified USD inputs. PSUS uses the fund's officially published NAV/share as its book-value measure. The three lowest positive P/Bs receive equal shares of the pool. Missing or invalid figures are flagged, not estimated.</p>
           <ul className="space-y-1.5 text-xs text-muted-foreground border-l-2 border-primary/40 pl-3">
             <li>Started with {usd(p.initialCapital, 0)}: one third into each of the first three picks.</li>
             <li>Each year the then-total equity (positions plus cash) is re-split equally across the current top three. Nothing is reset to the original amount.</li>
-            <li>Fractional shares are allowed (needed for BRK.A). Shares and entry PPS are split-adjusted; dividends are credited as cash on ex-dividend dates and held until rebalance.</li>
+            <li>Inception is October 26, 2026, using that session's opening prices for ranking and purchases. Future annual rebalances use completed-session closing prices.</li>
+            <li>Fractional shares are allowed (needed for BRK.A). Shares and entry PPS are split-adjusted; dividends are credited as cash on ex-dividend dates and held until rebalance. Purchases at the open do not receive that day's ex-dividend entitlement.</li>
             <li>Dividends are held as cash until the next rebalance.</li>
             <li>No taxes, commissions, or slippage are modelled.</li>
           </ul>
@@ -104,7 +105,7 @@ function Candidates({ p }: { p: BlindTrustPortfolio }) {
           </div>
           <div className="overflow-x-auto rounded-lg border border-border bg-card">
             <table className="w-full text-sm" data-testid="table-candidates">
-              <caption className="sr-only">Nine candidate businesses ranked by price to book</caption>
+              <caption className="sr-only">Eight candidate businesses ranked by price to book</caption>
               <thead className="bg-muted/50"><tr>
                 <th className={th}>Rank</th><th className={th}>Business</th><th className={thr}>Price</th><th className={thr}>Book / sh</th><th className={thr}>P/B</th><th className={th}>Status</th><th className={th}>Sources</th>
               </tr></thead>
@@ -117,7 +118,7 @@ function Candidates({ p }: { p: BlindTrustPortfolio }) {
                     <td className={tdr}>{usd(c.bookValue)}</td>
                     <td className={`${tdr} font-semibold`}>{c.priceToBook == null ? NA : `${num(c.priceToBook)}x`}</td>
                     <td className={td}><span className={`rounded border px-1.5 py-0.5 text-[11px] font-medium capitalize ${STATUS_STYLE[c.status]}`}>{label(c.status)}</span>{c.reason && <div className="text-[11px] text-muted-foreground mt-0.5 max-w-[200px] whitespace-normal">{c.reason}</div>}</td>
-                    <td className={`${td} text-[11px] text-muted-foreground`}>Price {date(c.priceDate)}<br />Book {date(c.bookDate)}<br />Seen {dateTime(c.observedAt)}</td>
+                    <td className={`${td} text-[11px] text-muted-foreground`}>Price {date(c.priceDate)}<br />{c.bookValueLabel ?? "Book"} {date(c.bookDate)}<br />{c.bookSource && <><a href={c.bookSource} target="_blank" rel="noreferrer" className="underline text-primary">Official NAV source</a><br /></>}Seen {dateTime(c.observedAt)}</td>
                   </tr>
                 ))}
                 {rows.length === 0 && <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">Candidate data not available yet.</td></tr>}
@@ -166,7 +167,7 @@ function ModelPortfolio({ p }: { p: BlindTrustPortfolio }) {
   const cashWeight = p.currentValue ? (p.cash / p.currentValue) * 100 : null;
   return (
     <section>
-      <SectionTitle n="02" title="Model portfolio" sub={`Positions actually held since the last rebalance (${date(p.lastRebalanceDate)}), valued ${dateTime(p.valuedAt)}`} />
+      <SectionTitle n="02" title="Model portfolio" sub={`Positions actually held since the last rebalance (${date(p.lastRebalanceDate)}), valued at ${p.valuationBasis === "open" ? "opening" : "closing"} prices on ${dateTime(p.valuedAt)}`} />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6 mb-5">
         <Stat id="inception" k="Inception" v={date(p.inceptionDate)} sub={`Original ${usd(p.initialCapital, 0)}`} />
         <Stat id="current-value" k="Current total" v={p.currentValue == null ? "Unavailable" : usd(p.currentValue)} sub={`incl. cash ${usd(p.cash)}`} />

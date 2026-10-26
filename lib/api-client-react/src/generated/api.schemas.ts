@@ -29,6 +29,10 @@ export interface BlindTrustCandidate {
   priceDate: string | null;
   /** @nullable */
   bookDate: string | null;
+  /** @nullable */
+  bookSource?: string | null;
+  /** @nullable */
+  bookValueLabel?: string | null;
   observedAt: string;
   status: BlindTrustCandidateStatus;
   /** @nullable */
@@ -100,6 +104,22 @@ export const BlindTrustPortfolioStatus = {
   stale: "stale",
 } as const;
 
+export type BlindTrustPortfolioValuationBasis =
+  (typeof BlindTrustPortfolioValuationBasis)[keyof typeof BlindTrustPortfolioValuationBasis];
+
+export const BlindTrustPortfolioValuationBasis = {
+  open: "open",
+  close: "close",
+} as const;
+
+export type BlindTrustPortfolioInceptionPriceBasis =
+  (typeof BlindTrustPortfolioInceptionPriceBasis)[keyof typeof BlindTrustPortfolioInceptionPriceBasis];
+
+export const BlindTrustPortfolioInceptionPriceBasis = {
+  open: "open",
+  close: "close",
+} as const;
+
 export interface BlindTrustPortfolio {
   slug: string;
   title: string;
@@ -123,6 +143,8 @@ export interface BlindTrustPortfolio {
   nextRebalanceDate: string | null;
   /** @nullable */
   valuedAt: string | null;
+  valuationBasis?: BlindTrustPortfolioValuationBasis;
+  inceptionPriceBasis?: BlindTrustPortfolioInceptionPriceBasis;
   /** @nullable */
   refreshedAt: string | null;
   candidates: BlindTrustCandidate[];

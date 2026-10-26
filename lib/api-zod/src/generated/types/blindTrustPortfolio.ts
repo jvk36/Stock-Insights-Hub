@@ -10,7 +10,9 @@ import type { BlindTrustCandidate } from "./blindTrustCandidate";
 import type { BlindTrustHolding } from "./blindTrustHolding";
 import type { BlindTrustLedgerEvent } from "./blindTrustLedgerEvent";
 import type { BlindTrustPerformance } from "./blindTrustPerformance";
+import type { BlindTrustPortfolioInceptionPriceBasis } from "./blindTrustPortfolioInceptionPriceBasis";
 import type { BlindTrustPortfolioStatus } from "./blindTrustPortfolioStatus";
+import type { BlindTrustPortfolioValuationBasis } from "./blindTrustPortfolioValuationBasis";
 
 export interface BlindTrustPortfolio {
   slug: string;
@@ -35,6 +37,8 @@ export interface BlindTrustPortfolio {
   nextRebalanceDate: string | null;
   /** @nullable */
   valuedAt: string | null;
+  valuationBasis?: BlindTrustPortfolioValuationBasis;
+  inceptionPriceBasis?: BlindTrustPortfolioInceptionPriceBasis;
   /** @nullable */
   refreshedAt: string | null;
   candidates: BlindTrustCandidate[];

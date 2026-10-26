@@ -10,4 +10,4 @@
 - [Stripe OAuth entitlement sync](stripe-oauth-entitlement-sync.md) — connected Stripe uses an OAuth proxy; verify subscription state live instead of expecting an exposed API key
 - [REIT non-GAAP filing sources](reit-non-gaap-filing-sources.md) — Company Facts often omits AFFO-family metrics; use annual 8-K exhibits and reject guidance rows
 - [NAV valuation inputs](nav-valuation-inputs.md) — prefill reported carrying values, but keep fair-market asset value an explicit editable assumption
-- [Blind Trust strategy](blind-trust-strategy.md) — user-specified nine-business universe, lowest-P/B top three, initial $10,000 each and annual equal rebalancing
+- [Blind Trust strategy](blind-trust-strategy.md) — eight businesses, official PSUS NAV, October 26 opening-price inception, annual equal rebalancing

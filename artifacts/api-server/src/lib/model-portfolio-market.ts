@@ -1,7 +1,8 @@
 import YahooFinance from "yahoo-finance2";
 import type { BlindTrustCandidate } from "@workspace/api-zod";
 import { convertToUsd, getUsdRate, resolveFinancialCurrency } from "./currency";
-import { UNIVERSE, rankCandidates, type Action, type Prices } from "./model-portfolio-engine";
+import { UNIVERSE, rankCandidates, type Action, type Prices, type OpeningSession } from "./model-portfolio-engine";
+import { fetchPershingSquareNav, PSUS_NAV_SOURCE } from "./pershing-square-nav";
 
 const yahoo = new YahooFinance({ suppressNotices: ["yahooSurvey", "ripHistorical"] });
 const DAY = 86_400_000;
@@ -20,6 +21,7 @@ export type MarketInput = {
   actions: Action[];
   targetDate: string;
   observedAt: string;
+  opening?: OpeningSession;
 };
 
 export function confirmedNoCoverage(errors: unknown[]): boolean {
@@ -58,14 +60,18 @@ export async function fetchModelMarket(since: string, now = new Date()): Promise
   const observedAt = now.toISOString();
   const through = completedThrough(now);
   const prices: Prices = {};
+  const openingPrices: Record<string, number> = {};
   const actions: Action[] = [];
   const candidates: BlindTrustCandidate[] = [];
+  const officialNav = await fetchPershingSquareNav(marketDate(now)).catch(() => null);
   // Bound upstream concurrency; an unavailable candidate must not erase others.
   for (let start = 0; start < UNIVERSE.length; start += 3) {
     const batch = await Promise.all(UNIVERSE.slice(start, start + 3).map(async (business) => {
       const base: BlindTrustCandidate = {
         ...business, price: null, bookValue: null, priceToBook: null, priceDate: null, bookDate: null,
         observedAt, status: "temporary_error", reason: null, rank: null, selected: false,
+        bookSource: business.ticker === "PSUS" ? PSUS_NAV_SOURCE : null,
+        bookValueLabel: business.ticker === "PSUS" ? "NAV/share" : "Book value/share",
       };
       try {
         const [summaryResult, chartResult] = await Promise.allSettled([
@@ -101,6 +107,9 @@ export async function fetchModelMarket(since: string, now = new Date()): Promise
         const series: Record<string, number> = {};
         for (const quote of chart.quotes ?? []) {
           const date = marketDate(quote.date);
+          if (date === since && quote.open != null && quote.open > 0 && priceRate != null) {
+            openingPrices[business.ticker] = undoFutureSplits(quote.open, date, splitActions) * priceRate;
+          }
           if (date > through || quote.close == null || quote.close <= 0 || priceRate == null) continue;
           series[date] = undoFutureSplits(quote.close, date, splitActions) * priceRate;
         }
@@ -112,7 +121,8 @@ export async function fetchModelMarket(since: string, now = new Date()): Promise
         const priceDate = dates.at(-1) ?? null;
         const price = priceDate ? series[priceDate] : null;
         const stats = summary.defaultKeyStatistics;
-        const bookDate = stats?.mostRecentQuarter ? new Date(stats.mostRecentQuarter).toISOString().slice(0, 10) : null;
+        const bookDate = business.ticker === "PSUS" ? officialNav?.date ?? null :
+          stats?.mostRecentQuarter ? new Date(stats.mostRecentQuarter).toISOString().slice(0, 10) : null;
         const dividendActions: Action[] = (chart.events?.dividends ?? []).map((dividend) => ({
           ticker: business.ticker, date: marketDate(dividend.date), type: "dividend",
           value: undoFutureSplits(dividend.amount, marketDate(dividend.date), splitActions) * (priceRate ?? 0),
@@ -120,12 +130,17 @@ export async function fetchModelMarket(since: string, now = new Date()): Promise
         actions.push(...splitActions, ...dividendActions);
         if (!priceDate || price == null) return { ...base, reason: "Completed-session closing prices are temporarily unavailable." };
         const enriched = { ...base, price, priceDate, bookDate };
-        if (!stats || stats.bookValue == null || !bookDate) {
+        if (business.ticker === "PSUS" && !officialNav) {
+          return { ...enriched, reason: "Official PSUS NAV/share could not be verified or is stale. Allocation will retry rather than exclude PSUS." };
+        }
+        const reportedBook = business.ticker === "PSUS" ? officialNav!.value : stats?.bookValue;
+        if (reportedBook == null || !bookDate) {
           return { ...enriched, status: "unavailable" as const, reason: "No reported book value and reporting date are available for this security; excluded until verified." };
         }
         const normalized = normalizeBookInputs({
           close: price, livePrice: sourcePrice.regularMarketPrice ?? null,
-          book: stats.bookValue, reportedPb: stats.priceToBook ?? null, priceRate: 1, bookRate,
+          book: reportedBook, reportedPb: business.ticker === "PSUS" ? null : stats?.priceToBook ?? null,
+          priceRate: 1, bookRate: business.ticker === "PSUS" ? 1 : bookRate,
         });
         if (normalized.issue) {
           return {
@@ -148,5 +163,18 @@ export async function fetchModelMarket(since: string, now = new Date()): Promise
     candidates.push(...batch);
   }
   const targetDate = Object.values(prices).flatMap((series) => Object.keys(series)).sort().at(-1) ?? through;
-  return { candidates: rankCandidates(candidates), prices, actions, targetDate, observedAt };
+  const openingCandidates = rankCandidates(candidates.map((candidate) => {
+    const open = openingPrices[candidate.ticker];
+    const usable = Number.isFinite(open) && open > 0;
+    return {
+      ...candidate, price: usable ? open : null, priceDate: usable ? since : null,
+      priceToBook: usable && candidate.bookValue != null && candidate.bookValue > 0 ? open / candidate.bookValue : null,
+      status: candidate.status === "eligible" && !usable ? "temporary_error" as const : candidate.status,
+      reason: candidate.status === "eligible" && !usable ? `The ${since} opening price is not available; no closing-price substitute is used.` : candidate.reason,
+    };
+  }));
+  return {
+    candidates: rankCandidates(candidates), prices, actions, targetDate, observedAt,
+    opening: { date: since, prices: openingPrices, candidates: openingCandidates },
+  };
 }

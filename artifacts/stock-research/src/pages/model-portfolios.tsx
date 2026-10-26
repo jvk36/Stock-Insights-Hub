@@ -157,7 +157,7 @@ function ModelPortfolio({ p }: { p: BlindTrustPortfolio }) {
 
 export default function ModelPortfolios() {
   const [location] = useLocation();
-  const tab = location.startsWith("/model-portfolios/momentum") ? "momentum" : location.startsWith("/model-portfolios/lazy") ? "lazy" : "blind-trust";
+  const tab = location.startsWith("/model-portfolios/blind-trust") ? "blind-trust" : location.startsWith("/model-portfolios/lazy") ? "lazy" : "momentum";
   const live = { staleTime: 60_000, refetchInterval: 5 * 60_000, refetchIntervalInBackground: false };
   const q = useGetBlindTrustPortfolio({ query: { queryKey: getGetBlindTrustPortfolioQueryKey(), enabled: tab === "blind-trust", ...live } });
   const mq = useGetMomentumPortfolio({ query: { queryKey: getGetMomentumPortfolioQueryKey(), enabled: tab === "momentum", ...live } });
@@ -180,9 +180,9 @@ export default function ModelPortfolios() {
           <div className="flex items-center gap-3 mb-1"><Briefcase className="w-6 h-6 text-primary" /><h1 className="text-2xl font-bold tracking-tight">Model Portfolios</h1></div>
           <p className="text-sm text-muted-foreground">Rules-based, fully auditable hypothetical portfolios. Every number traces to a dated source or ledger entry.</p>
           <div className="mt-4 flex gap-1 overflow-x-auto border-b border-border" role="tablist">
-            <Link href="/model-portfolios/blind-trust" role="tab" aria-selected={tab === "blind-trust"} data-testid="tab-blind-trust" className={tabCls(tab === "blind-trust")}>Blind Trust</Link>
             <Link href="/model-portfolios/momentum" role="tab" aria-selected={tab === "momentum"} data-testid="tab-momentum" className={tabCls(tab === "momentum")}>Momentum</Link>
             <Link href="/model-portfolios/lazy" role="tab" aria-selected={tab === "lazy"} data-testid="tab-lazy" className={tabCls(tab === "lazy")}>Lazy</Link>
+            <Link href="/model-portfolios/blind-trust" role="tab" aria-selected={tab === "blind-trust"} data-testid="tab-blind-trust" className={tabCls(tab === "blind-trust")}>Blind Trust</Link>
           </div>
         </div>
 

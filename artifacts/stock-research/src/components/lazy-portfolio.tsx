@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { AlertTriangle, Clock, RefreshCw } from "lucide-react";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PortfolioBacktest } from "@/components/portfolio-backtest";
 import type { LazyPortfolio } from "@workspace/api-client-react";
 import { NA, usd, num, pct, signedUsd, date, dateTime, tone, Stat, SectionTitle, PerformanceChart, History, th, thr, td, tdr } from "@/components/model-portfolio-shared";
 
@@ -165,6 +166,7 @@ export function LazyView({ q }: { q: UseQueryResult<LazyPortfolio, unknown> }) {
           <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No inception date, holdings, or returns yet. Original capital will be {usd(p.initialCapital, 0)}. Nothing here is estimated in the meantime.</div>
         </section>
       ) : <Portfolio p={p} />}
+      <PortfolioBacktest strategy="lazy" />
       <p className="text-xs leading-5 text-muted-foreground border-t border-border pt-4">Hypothetical fixed-weight ETF model inspired by, but not an exact replication of, David Swensen's Unconventional Success. For education only; not investment advice and not a guarantee of positive returns. Excludes taxes, fees, and slippage; cash earns no interest. Simulated performance can differ materially from real-world outcomes.</p>
     </>
   );

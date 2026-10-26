@@ -158,6 +158,68 @@ export interface BlindTrustPortfolio {
   ledger: BlindTrustLedgerEvent[];
 }
 
+export interface BacktestPosition {
+  ticker: string;
+  name: string;
+  price: number;
+  shares: number;
+  value: number;
+  weight: number;
+  /** @nullable */
+  sma200: number | null;
+  selected: boolean;
+}
+
+export interface BacktestAllocation {
+  date: string;
+  scheduledDate: string;
+  equity: number;
+  cash: number;
+  positions: BacktestPosition[];
+}
+
+export type ModelPortfolioBacktestStrategy =
+  (typeof ModelPortfolioBacktestStrategy)[keyof typeof ModelPortfolioBacktestStrategy];
+
+export const ModelPortfolioBacktestStrategy = {
+  momentum: "momentum",
+  lazy: "lazy",
+} as const;
+
+export type ModelPortfolioBacktestStatus =
+  (typeof ModelPortfolioBacktestStatus)[keyof typeof ModelPortfolioBacktestStatus];
+
+export const ModelPortfolioBacktestStatus = {
+  complete: "complete",
+  partial: "partial",
+  unavailable: "unavailable",
+} as const;
+
+export interface ModelPortfolioBacktest {
+  strategy: ModelPortfolioBacktestStrategy;
+  status: ModelPortfolioBacktestStatus;
+  /** @nullable */
+  message: string | null;
+  startDate: string;
+  endDateExclusive: string;
+  /** @nullable */
+  actualStartDate: string | null;
+  /** @nullable */
+  actualEndDate: string | null;
+  initialCapital: number;
+  /** @nullable */
+  finalValue: number | null;
+  /** @nullable */
+  gain: number | null;
+  /** @nullable */
+  returnPercent: number | null;
+  refreshedAt: string;
+  assumptions: string[];
+  performance: BlindTrustPerformance[];
+  allocations: BacktestAllocation[];
+  omittedDates: string[];
+}
+
 export interface LazyAsset {
   ticker: string;
   name: string;

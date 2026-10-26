@@ -42,6 +42,7 @@ import type {
   InsiderTransactionsResponse,
   LazyPortfolio,
   MacroIndicatorsResponse,
+  ModelPortfolioBacktest,
   MomentumPortfolio,
   NewsResponse,
   ScreenerData,
@@ -66,6 +67,105 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+/**
+ * @summary Ten-year pre-inception ETF strategy backtest (Premium)
+ */
+export const getGetModelPortfolioBacktestUrl = (
+  strategy: "momentum" | "lazy",
+) => {
+  return `/api/model-portfolios/${strategy}/backtest`;
+};
+
+export const getModelPortfolioBacktest = async (
+  strategy: "momentum" | "lazy",
+  options?: RequestInit,
+): Promise<ModelPortfolioBacktest> => {
+  return customFetch<ModelPortfolioBacktest>(
+    getGetModelPortfolioBacktestUrl(strategy),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetModelPortfolioBacktestQueryKey = (
+  strategy: "momentum" | "lazy",
+) => {
+  return [`/api/model-portfolios/${strategy}/backtest`] as const;
+};
+
+export const getGetModelPortfolioBacktestQueryOptions = <
+  TData = Awaited<ReturnType<typeof getModelPortfolioBacktest>>,
+  TError = ErrorType<void>,
+>(
+  strategy: "momentum" | "lazy",
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getModelPortfolioBacktest>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetModelPortfolioBacktestQueryKey(strategy);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getModelPortfolioBacktest>>
+  > = ({ signal }) =>
+    getModelPortfolioBacktest(strategy, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!strategy,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getModelPortfolioBacktest>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetModelPortfolioBacktestQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getModelPortfolioBacktest>>
+>;
+export type GetModelPortfolioBacktestQueryError = ErrorType<void>;
+
+/**
+ * @summary Ten-year pre-inception ETF strategy backtest (Premium)
+ */
+
+export function useGetModelPortfolioBacktest<
+  TData = Awaited<ReturnType<typeof getModelPortfolioBacktest>>,
+  TError = ErrorType<void>,
+>(
+  strategy: "momentum" | "lazy",
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getModelPortfolioBacktest>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetModelPortfolioBacktestQueryOptions(
+    strategy,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Shared quarterly fixed-weight Swensen-inspired ETF model (Premium)

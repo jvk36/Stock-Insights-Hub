@@ -8,6 +8,58 @@
 import * as zod from "zod";
 
 /**
+ * @summary Ten-year pre-inception ETF strategy backtest (Premium)
+ */
+export const GetModelPortfolioBacktestParams = zod.object({
+  strategy: zod.enum(["momentum", "lazy"]),
+});
+
+export const GetModelPortfolioBacktestResponse = zod.object({
+  strategy: zod.enum(["momentum", "lazy"]),
+  status: zod.enum(["complete", "partial", "unavailable"]),
+  message: zod.string().nullable(),
+  startDate: zod.string(),
+  endDateExclusive: zod.string(),
+  actualStartDate: zod.string().nullable(),
+  actualEndDate: zod.string().nullable(),
+  initialCapital: zod.number(),
+  finalValue: zod.number().nullable(),
+  gain: zod.number().nullable(),
+  returnPercent: zod.number().nullable(),
+  refreshedAt: zod.string(),
+  assumptions: zod.array(zod.string()),
+  performance: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+      returnPercent: zod.number(),
+      cash: zod.number(),
+    }),
+  ),
+  allocations: zod.array(
+    zod.object({
+      date: zod.string(),
+      scheduledDate: zod.string(),
+      equity: zod.number(),
+      cash: zod.number(),
+      positions: zod.array(
+        zod.object({
+          ticker: zod.string(),
+          name: zod.string(),
+          price: zod.number(),
+          shares: zod.number(),
+          value: zod.number(),
+          weight: zod.number(),
+          sma200: zod.number().nullable(),
+          selected: zod.boolean(),
+        }),
+      ),
+    }),
+  ),
+  omittedDates: zod.array(zod.string()),
+});
+
+/**
  * @summary Shared quarterly fixed-weight Swensen-inspired ETF model (Premium)
  */
 export const GetLazyPortfolioResponse = zod.object({

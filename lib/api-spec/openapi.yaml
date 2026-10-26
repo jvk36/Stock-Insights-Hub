@@ -19,6 +19,29 @@ tags:
   - name: watchlist
     description: Premium personal watchlist operations
 paths:
+  /model-portfolios/{strategy}/backtest:
+    get:
+      operationId: getModelPortfolioBacktest
+      tags: [ModelPortfolios]
+      summary: Ten-year pre-inception ETF strategy backtest (Premium)
+      parameters:
+        - in: path
+          name: strategy
+          required: true
+          schema: { type: string, enum: [momentum, lazy] }
+      responses:
+        "200":
+          description: Historical simulation, performance and every rebalance allocation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelPortfolioBacktest"
+        "401":
+          description: Sign in required
+        "403":
+          description: Premium required
+        "503":
+          description: Historical data temporarily unavailable
   /model-portfolios/lazy:
     get:
       operationId: getLazyPortfolio
@@ -1005,6 +1028,57 @@ components:
         ledger:
           type: array
           items: { $ref: "#/components/schemas/BlindTrustLedgerEvent" }
+    BacktestPosition:
+      type: object
+      required: [ticker, name, price, shares, value, weight, sma200, selected]
+      properties:
+        ticker: { type: string }
+        name: { type: string }
+        price: { type: number }
+        shares: { type: number }
+        value: { type: number }
+        weight: { type: number }
+        sma200: { type: [number, "null"] }
+        selected: { type: boolean }
+    BacktestAllocation:
+      type: object
+      required: [date, scheduledDate, equity, cash, positions]
+      properties:
+        date: { type: string }
+        scheduledDate: { type: string }
+        equity: { type: number }
+        cash: { type: number }
+        positions:
+          type: array
+          items: { $ref: "#/components/schemas/BacktestPosition" }
+    ModelPortfolioBacktest:
+      type: object
+      required: [strategy, status, message, startDate, endDateExclusive, actualStartDate, actualEndDate, initialCapital, finalValue, gain, returnPercent, refreshedAt, assumptions, performance, allocations, omittedDates]
+      properties:
+        strategy: { type: string, enum: [momentum, lazy] }
+        status: { type: string, enum: [complete, partial, unavailable] }
+        message: { type: [string, "null"] }
+        startDate: { type: string }
+        endDateExclusive: { type: string }
+        actualStartDate: { type: [string, "null"] }
+        actualEndDate: { type: [string, "null"] }
+        initialCapital: { type: number }
+        finalValue: { type: [number, "null"] }
+        gain: { type: [number, "null"] }
+        returnPercent: { type: [number, "null"] }
+        refreshedAt: { type: string }
+        assumptions:
+          type: array
+          items: { type: string }
+        performance:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustPerformance" }
+        allocations:
+          type: array
+          items: { $ref: "#/components/schemas/BacktestAllocation" }
+        omittedDates:
+          type: array
+          items: { type: string }
     LazyAsset:
       type: object
       required: [ticker, name, assetClass, targetWeight, price, priceDate]

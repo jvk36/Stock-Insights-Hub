@@ -190,11 +190,11 @@ export default function ModelPortfolios() {
           <div className="flex items-center gap-3 mb-1"><Briefcase className="w-6 h-6 text-primary" /><h1 className="text-2xl font-bold tracking-tight">Model Portfolios</h1></div>
           <p className="text-sm text-muted-foreground">Rules-based, fully auditable hypothetical portfolios. Every number traces to a dated source or ledger entry.</p>
           <div className="mt-4 flex gap-1 overflow-x-auto border-b border-border" role="tablist">
-            <Link href="/model-portfolios/momentum" role="tab" aria-selected={tab === "momentum"} data-testid="tab-momentum" className={tabCls(tab === "momentum")}>Momentum</Link>
-            <Link href="/model-portfolios/lazy" role="tab" aria-selected={tab === "lazy"} data-testid="tab-lazy" className={tabCls(tab === "lazy")}>Lazy</Link>
-            <Link href="/model-portfolios/blind-trust" role="tab" aria-selected={tab === "blind-trust"} data-testid="tab-blind-trust" className={tabCls(tab === "blind-trust")}>Blind Trust</Link>
             <Link href="/model-portfolios/cloning" role="tab" aria-selected={tab === "cloning"} data-testid="tab-cloning" className={tabCls(tab === "cloning")}>Cloning</Link>
             <Link href="/model-portfolios/magic-formula" role="tab" aria-selected={tab === "magic-formula"} data-testid="tab-magic-formula" className={tabCls(tab === "magic-formula")}>Magic Formula</Link>
+            <Link href="/model-portfolios/blind-trust" role="tab" aria-selected={tab === "blind-trust"} data-testid="tab-blind-trust" className={tabCls(tab === "blind-trust")}>Blind Trust</Link>
+            <Link href="/model-portfolios/momentum" role="tab" aria-selected={tab === "momentum"} data-testid="tab-momentum" className={tabCls(tab === "momentum")}>Momentum</Link>
+            <Link href="/model-portfolios/lazy" role="tab" aria-selected={tab === "lazy"} data-testid="tab-lazy" className={tabCls(tab === "lazy")}>Lazy</Link>
           </div>
         </div>
 

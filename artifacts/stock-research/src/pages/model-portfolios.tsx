@@ -35,10 +35,11 @@ function Header() {
           <span className="font-bold text-foreground tracking-tight">Terminal</span>
         </div>
         <nav className="flex items-center gap-1 min-w-0 overflow-x-auto [scrollbar-width:none]">
-          {[["/macro", "Macro Summary"], ["/13f", "Top Hedge Funds - Insights"], ["/indexes", "Stock Screens"], ["/stock", "Stock Insights"], ["/watchlist", "Stock Watch"]].map(([h, t]) => (
-            <Link key={h} href={h} className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap shrink-0">{t}</Link>
+          {[["/macro", "Macro Summary"], ["/13f", "Top Hedge Funds - Insights"], ["/model-portfolios", "Model Portfolios"], ["/indexes", "Stock Screens"], ["/stock", "Stock Insights"], ["/watchlist", "Stock Watch"]].map(([h, t]) => (
+            h === "/model-portfolios"
+              ? <span key={h} className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap shrink-0">{t}</span>
+              : <Link key={h} href={h} className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap shrink-0">{t}</Link>
           ))}
-          <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap shrink-0">Model Portfolios</span>
         </nav>
       </div>
     </header>

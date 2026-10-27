@@ -104,6 +104,19 @@ export const GetCloningPortfolioResponse = zod.object({
         }),
       )
       .optional(),
+    ledger: zod
+      .array(
+        zod.object({
+          id: zod.string(),
+          date: zod.string(),
+          type: zod.string(),
+          ticker: zod.string().nullable(),
+          shares: zod.number(),
+          price: zod.number(),
+          cashChange: zod.number(),
+        }),
+      )
+      .optional(),
   }),
   holdings: zod.array(
     zod.object({
@@ -240,6 +253,19 @@ export const GetModelPortfolioBacktestResponse = zod.object({
               }),
             ),
         ),
+      }),
+    )
+    .optional(),
+  ledger: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        date: zod.string(),
+        type: zod.string(),
+        ticker: zod.string().nullable(),
+        shares: zod.number(),
+        price: zod.number(),
+        cashChange: zod.number(),
       }),
     )
     .optional(),

@@ -11,6 +11,12 @@ Cloning is the fourth Model Portfolios tab, following Momentum, Lazy, Blind Trus
 
 ## Closing-price calendar
 
+Each quarterly rebalance sells all remaining holdings, then buys the new strategy selections with all available cash at equal weights. A stock selected again must still have separate sell and buy entries in the Transaction Ledger.
+
+**Why:** The user explicitly described the rebalance as “we sell everything and buy the new ones filtered by the strategy 45 days after every quarter.”
+
+**How to apply:** Do not net trades in retained names or interpret the quarterly process as buying only new entrants. Include cash distributions and verified corporate actions in the ledger so cash remains reconcilable.
+
 Requested inception is August 15, 2026; because that is Saturday, execute at August 17's close. Later dates are exactly 45 calendar days after quarter end, moved to the next trading close if needed, rather than three-month anniversaries of delayed fills. September 30, 2026 + 45 days is November 14, so execution is November 16.
 
 **Why:** The user's explicit inception date differs from June 30 + 45 days (August 14). Keep the requested inception while retaining literal quarter-end arithmetic afterward; this distinction was explained during implementation.

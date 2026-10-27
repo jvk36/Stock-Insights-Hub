@@ -73,7 +73,8 @@ export function getCloningPortfolio(): Promise<CloningPortfolio> {
   return dedupe("cloning", async () => {
     const old = await read("cloning");
     const previous = old?.portfolio ? GetCloningPortfolioResponse.parse(old.portfolio) : undefined;
-    if (previous && recent(previous.result)) return previous;
+    // Rebuild older snapshots once to add the ledger, preserving sealed allocations.
+    if (previous?.result.ledger && recent(previous.result)) return previous;
     try {
       const end = nextDay(completedThrough());
       const { market, reviews } = await prepare(CLONING_INCEPTION, end);

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { BacktestAllocation } from "./backtestAllocation";
+import type { BlindTrustLedgerEvent } from "./blindTrustLedgerEvent";
 import type { BlindTrustPerformance } from "./blindTrustPerformance";
 import type { CloningReviewAudit } from "./cloningReviewAudit";
 import type { ModelPortfolioBacktestStatus } from "./modelPortfolioBacktestStatus";
@@ -35,4 +36,5 @@ export interface ModelPortfolioBacktest {
   allocations: BacktestAllocation[];
   omittedDates: string[];
   reviewAudit?: CloningReviewAudit[];
+  ledger?: BlindTrustLedgerEvent[];
 }

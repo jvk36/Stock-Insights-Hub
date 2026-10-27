@@ -69,6 +69,23 @@ export function PerformanceChart({ p }: { p: { performance: BlindTrustPerformanc
   );
 }
 
+export function TransactionLedger({ ledger }: { ledger: BlindTrustLedgerEvent[] }) {
+  return (
+    <details open={ledger.length <= 12}>
+      <summary className="cursor-pointer text-sm font-semibold mb-2" data-testid="button-toggle-ledger">Transaction ledger ({ledger.length})</summary>
+      <div className="max-h-96 overflow-auto rounded-lg border border-border bg-card">
+        <table className="w-full text-sm" data-testid="table-ledger">
+          <thead className="bg-muted/50 sticky top-0"><tr><th className={th}>Date</th><th className={th}>Type</th><th className={th}>Ticker</th><th className={thr}>Shares</th><th className={thr}>Price</th><th className={thr}>Cash change</th></tr></thead>
+          <tbody>{ledger.map((e) => (
+            <tr key={e.id} className="border-t border-border"><td className={td}>{date(e.date)}</td><td className={`${td} capitalize`}>{label(e.type)}</td><td className={`${td} font-mono`}>{e.ticker ?? "—"}</td><td className={tdr}>{num(e.shares, 8)}</td><td className={tdr}>{e.type === "split" ? `${num(e.price)}× split` : usd(e.price)}</td><td className={`${tdr} ${tone(e.cashChange)}`}>{signedUsd(e.cashChange)}</td></tr>
+          ))}
+          {ledger.length === 0 && <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">No transactions yet.</td></tr>}</tbody>
+        </table>
+      </div>
+    </details>
+  );
+}
+
 export function History({ p }: { p: { allocations: BlindTrustAllocation[]; ledger: BlindTrustLedgerEvent[] } }) {
   return (
     <div className="grid gap-6 lg:grid-cols-2 mt-6">
@@ -89,18 +106,7 @@ export function History({ p }: { p: { allocations: BlindTrustAllocation[]; ledge
         </div>
       </div>
       <div>
-        <details open={p.ledger.length <= 12}>
-          <summary className="cursor-pointer text-sm font-semibold mb-2" data-testid="button-toggle-ledger">Transaction ledger ({p.ledger.length})</summary>
-          <div className="max-h-96 overflow-auto rounded-lg border border-border bg-card">
-            <table className="w-full text-sm" data-testid="table-ledger">
-              <thead className="bg-muted/50 sticky top-0"><tr><th className={th}>Date</th><th className={th}>Type</th><th className={th}>Ticker</th><th className={thr}>Shares</th><th className={thr}>Price</th><th className={thr}>Cash change</th></tr></thead>
-              <tbody>{p.ledger.map((e) => (
-                <tr key={e.id} className="border-t border-border"><td className={td}>{date(e.date)}</td><td className={`${td} capitalize`}>{label(e.type)}</td><td className={`${td} font-mono`}>{e.ticker ?? "—"}</td><td className={tdr}>{num(e.shares, 8)}</td><td className={tdr}>{e.type === "split" ? `${num(e.price)}× split` : usd(e.price)}</td><td className={`${tdr} ${tone(e.cashChange)}`}>{signedUsd(e.cashChange)}</td></tr>
-              ))}
-              {p.ledger.length === 0 && <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">No transactions yet.</td></tr>}</tbody>
-            </table>
-          </div>
-        </details>
+        <TransactionLedger ledger={p.ledger} />
       </div>
     </div>
   );

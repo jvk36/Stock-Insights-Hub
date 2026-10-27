@@ -9,7 +9,7 @@ import {
   type ModelPortfolioBacktest,
   type BacktestAllocation,
 } from "@workspace/api-client-react";
-import { NA, usd, num, pct, signedUsd, date, dateTime, tone, Stat, SectionTitle, PerformanceChart, th, thr, td, tdr } from "@/components/model-portfolio-shared";
+import { NA, usd, num, pct, signedUsd, date, dateTime, tone, Stat, SectionTitle, PerformanceChart, TransactionLedger, th, thr, td, tdr } from "@/components/model-portfolio-shared";
 
 const btn = "inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 h-8 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50";
 
@@ -112,6 +112,7 @@ function Intro({ p, loading }: { p?: CloningPortfolio; loading: boolean }) {
             <li>Thereafter rebalances are scheduled 45 calendar days after each quarter end and executed at the close of that day, or the next trading day if the market is closed. Example: September 30 plus 45 days is Saturday, November 14, so execution is Monday, November 16.</li>
             <li>For each tracked manager, the candidate is its single largest new or increased common-share purchase ranked by added portfolio weight = (current shares minus split-normalized prior shares) x quarter-end unit value / current total portfolio value x 100. Weight changes caused only by price moves do not count.</li>
             <li>Manager winners are ranked by added weight, descending. Duplicate tickers keep only the largest entry. The top ten unique stocks are bought in equal dollar amounts; fewer than ten are split equally among those available; none means the portfolio holds cash.</li>
+            <li>At each quarterly rebalance, all remaining holdings are sold at the execution close before the new selections are purchased with all available cash. Stocks selected again are sold and repurchased as well. The transaction ledger records each sale and purchase separately.</li>
             <li>Only original, current and prior filings available strictly before the trade date are used. Filings arriving on the trade date itself are excluded. A position with no prior comparison filing is not treated as a new purchase.</li>
             <li>No taxes, commissions or slippage are modelled.</li>
           </ul>
@@ -203,6 +204,9 @@ function Live({ p }: { p: CloningPortfolio }) {
       <PerformanceChart p={{ performance: r.performance }} />
       <p className="mt-3 text-xs text-muted-foreground">Cash includes distributions and verified cash acquisition proceeds, held until the next quarterly rebalance. Holdings can therefore fall below ten between reviews; the allocation history preserves the original purchases.</p>
       {r.allocations.length > 0 && <div className="mt-6"><h3 className="text-sm font-semibold mb-2">Allocation history</h3><CloningAllocationTable allocations={r.allocations} testId="cloning-live-allocations" /></div>}
+      <div className="mt-6" data-testid="cloning-transaction-ledger">
+        {r.ledger ? <TransactionLedger ledger={r.ledger} /> : <p className="text-sm text-muted-foreground">Transaction ledger unavailable in this stored snapshot. Refresh to load verified transactions.</p>}
+      </div>
       <details className="mt-4 rounded-lg border border-border p-3 text-xs text-muted-foreground"><summary className="cursor-pointer font-semibold">Accounting, pricing sources and model assumptions</summary><ul className="mt-3 space-y-2">{r.assumptions.map((s, i) => <li key={i}>{s}</li>)}</ul></details>
       {r.omittedDates.length > 0 && <p className="mt-3 text-xs text-amber-800">Omitted valuation sessions (insufficient data): {r.omittedDates.map(date).join(", ")}.</p>}
     </>

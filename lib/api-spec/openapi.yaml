@@ -1114,6 +1114,9 @@ components:
         reviewAudit:
           type: array
           items: { $ref: "#/components/schemas/CloningReviewAudit" }
+        ledger:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustLedgerEvent" }
     CloningReviewAudit:
       type: object
       required: [date, scheduledDate, reportDate, issues, picks]

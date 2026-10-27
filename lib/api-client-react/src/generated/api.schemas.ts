@@ -279,6 +279,7 @@ export interface ModelPortfolioBacktest {
   allocations: BacktestAllocation[];
   omittedDates: string[];
   reviewAudit?: CloningReviewAudit[];
+  ledger?: BlindTrustLedgerEvent[];
 }
 
 export type CloningPortfolioSlug =

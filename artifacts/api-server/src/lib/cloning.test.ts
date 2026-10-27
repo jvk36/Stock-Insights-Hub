@@ -150,3 +150,53 @@ test("unsupported fractional stock distributions stop returns instead of inflati
   assert.equal(b.actualEndDate, "2026-08-17");
   assert.match(b.message!, /unsupported stock distribution/);
 });
+
+test("ledger sells and repurchases the entire holding even when selected again", () => {
+  const b = runCloning(market(), [review(), review("2026-11-16", "2026-11-14")], "2026-08-15", "2026-11-17");
+  assert.deepEqual(b.ledger!.map((e) => e.type), ["deposit", "buy", "sell", "buy"]);
+  const trades = b.ledger!.filter((e) => e.date === "2026-11-16");
+  assert.deepEqual(trades.map((e) => [e.type, e.ticker, e.shares, e.price, e.cashChange]),
+    [["sell", "AAA", 3000, 12, 36000], ["buy", "AAA", 3000, 12, -36000]]);
+  assert.equal(b.ledger!.reduce((cash, e) => cash + e.cashChange, 0), b.performance.at(-1)!.cash);
+  const replay = runCloning(market(), [review(), review("2026-11-16", "2026-11-14")],
+    "2026-08-15", "2026-11-17", b.allocations);
+  assert.deepEqual(replay.ledger, b.ledger);
+});
+
+test("ledger liquidates outgoing stocks before buying replacement stocks", () => {
+  const m = market();
+  m.prices.BBB = { "2026-11-16": 20 };
+  const next = review("2026-11-16", "2026-11-14");
+  next.picks = selectCloningPicks(pair("2", "BBB"), "2026-06-30", next.date).picks;
+  const b = runCloning(m, [review(), next], "2026-08-15", "2026-11-17");
+  assert.deepEqual(b.ledger!.slice(-2).map((e) => [e.type, e.ticker, e.shares, e.cashChange]),
+    [["sell", "AAA", 3000, 36000], ["buy", "BBB", 1800, -36000]]);
+  const cash = runCloning(m, [review(), { ...next, picks: [] }], "2026-08-15", "2026-11-17");
+  assert.equal(cash.ledger!.at(-1)!.type, "sell");
+  assert.equal(cash.ledger!.reduce((sum, e) => sum + e.cashChange, 0), 36000);
+});
+
+test("ledger records splits, dividends and cash acquisitions without duplicating actions", () => {
+  const m = { ...market(), settlements: [{ ticker: "AAA", date: "2026-11-16", price: 15, source: "https://issuer.example/closing" }] };
+  m.actions = [
+    { ticker: "AAA", date: "2026-08-18", type: "split", value: 2 },
+    { ticker: "AAA", date: "2026-08-18", type: "dividend", value: 1 },
+  ];
+  delete m.prices.AAA["2026-08-18"];
+  const b = runCloning(m, [review()], "2026-08-15", "2026-11-17");
+  assert.deepEqual(b.ledger!.map((e) => e.type), ["deposit", "buy", "split", "dividend", "cash_acquisition"]);
+  assert.equal(b.ledger!.find((e) => e.type === "dividend")!.cashChange, 6000);
+  assert.equal(b.ledger!.at(-1)!.cashChange, 90000);
+  assert.equal(b.ledger!.reduce((sum, e) => sum + e.cashChange, 0), b.performance.at(-1)!.cash);
+});
+
+test("blocked rebalances do not record unexecuted sales or purchases", () => {
+  const m = market();
+  const next = review("2026-11-16", "2026-11-14");
+  next.picks = selectCloningPicks(pair("2", "MISSING"), "2026-06-30", next.date).picks;
+  const b = runCloning(m, [review(), next], "2026-08-15", "2026-11-17");
+  assert.deepEqual(b.ledger!.map((e) => e.type), ["deposit", "buy"]);
+  const unpriced = market();
+  delete unpriced.prices.AAA["2026-08-17"];
+  assert.deepEqual(runCloning(unpriced, [review()], "2026-08-15", "2026-11-17").ledger, []);
+});

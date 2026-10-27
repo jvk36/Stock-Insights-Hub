@@ -278,7 +278,7 @@ function makeRoute(
 
 const sp500Cache: IndexCache = { data: null, revalidating: false };
 
-async function scrapeSp500(): Promise<IndexStock[]> {
+export async function scrapeSp500(): Promise<IndexStock[]> {
   const $ = await fetchWikiHtml("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies");
   const stocks: IndexStock[] = [];
   $(".wikitable").first().find("tbody tr").each((_, row) => {

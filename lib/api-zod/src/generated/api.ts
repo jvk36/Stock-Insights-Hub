@@ -8,6 +8,125 @@
 import * as zod from "zod";
 
 /**
+ * @summary Staggered annual Magic Formula portfolio (Premium)
+ */
+export const GetMagicFormulaPortfolioResponse = zod.object({
+  slug: zod.enum(["magic-formula"]),
+  title: zod.string(),
+  currency: zod.enum(["USD"]),
+  status: zod.enum(["pending", "active", "stale"]),
+  message: zod.string().nullable(),
+  inceptionDate: zod.string(),
+  initialCapital: zod.number(),
+  currentValue: zod.number().nullable(),
+  cash: zod.number(),
+  reservedCash: zod.number(),
+  dividendCash: zod.number(),
+  gain: zod.number().nullable(),
+  returnPercent: zod.number().nullable(),
+  valuedAt: zod.string().nullable(),
+  refreshedAt: zod.string().nullable(),
+  rankingProgress: zod.string(),
+  rankings: zod.array(
+    zod.object({
+      year: zod.number(),
+      scheduledDate: zod.string(),
+      capturedAt: zod.string(),
+      availableOn: zod.string(),
+      universeCount: zod.number(),
+      candidates: zod.array(
+        zod.object({
+          ticker: zod.string(),
+          name: zod.string(),
+          sector: zod.string(),
+          ebit: zod.number().nullable(),
+          enterpriseValue: zod.number().nullable(),
+          netPpe: zod.number().nullable(),
+          workingCapital: zod.number().nullable(),
+          earningsYield: zod.number().nullable(),
+          returnOnCapital: zod.number().nullable(),
+          earningsRank: zod.number().nullable(),
+          capitalRank: zod.number().nullable(),
+          score: zod.number().nullable(),
+          rank: zod.number().nullable(),
+          reason: zod.string().nullable(),
+          financialDate: zod.string().nullable(),
+          source: zod.string(),
+        }),
+      ),
+    }),
+  ),
+  cohorts: zod.array(
+    zod.object({
+      cohort: zod.number(),
+      scheduledDate: zod.string(),
+      nextDate: zod.string(),
+      lastTradeDate: zod.string().nullable(),
+      rankingYear: zod.number().nullable(),
+      tickers: zod.array(zod.string()),
+    }),
+  ),
+  holdings: zod.array(
+    zod
+      .object({
+        ticker: zod.string(),
+        name: zod.string(),
+        targetWeight: zod.number(),
+        entryDate: zod.string(),
+        entryPrice: zod.number(),
+        shares: zod.number(),
+        costBasis: zod.number(),
+        currentPrice: zod.number().nullable(),
+        priceDate: zod.string().nullable(),
+        currentValue: zod.number().nullable(),
+        weight: zod.number().nullable(),
+        gain: zod.number().nullable(),
+        gainPercent: zod.number().nullable(),
+        stale: zod.boolean(),
+      })
+      .and(
+        zod.object({
+          cohort: zod.number(),
+          rank: zod.number(),
+        }),
+      ),
+  ),
+  performance: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+      returnPercent: zod.number(),
+      cash: zod.number(),
+    }),
+  ),
+  allocations: zod.array(
+    zod.object({
+      id: zod.string(),
+      date: zod.string(),
+      scheduledDate: zod.string(),
+      type: zod.string(),
+      equity: zod.number(),
+      amountPerPosition: zod.number().nullable(),
+      targetWeights: zod.record(zod.string(), zod.number()).optional(),
+      tickers: zod.array(zod.string()),
+      note: zod.string().nullable(),
+    }),
+  ),
+  ledger: zod.array(
+    zod.object({
+      id: zod.string(),
+      date: zod.string(),
+      type: zod.string(),
+      ticker: zod.string().nullable(),
+      shares: zod.number(),
+      price: zod.number(),
+      cashChange: zod.number(),
+    }),
+  ),
+  assumptions: zod.array(zod.string()),
+});
+
+/**
  * @summary Quarterly point-in-time 13F cloning portfolio (Premium)
  */
 export const GetCloningPortfolioResponse = zod.object({

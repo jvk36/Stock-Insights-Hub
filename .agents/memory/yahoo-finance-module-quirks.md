@@ -20,6 +20,12 @@ Yahoo ADR prices and market caps are usually USD, but `financialData.freeCashflo
 **How to apply:** Convert aggregate statement and enterprise-value fields with the live `[CCY]USD=X` rate before combining them with USD ADR price/market cap. Also convert `fundamentalsTimeSeries` EPS because it uses statement currency. Do not convert shares, ratios, ADR price, or quote-summary ADR EPS/dividend fields, which are listing-denominated. Cache FX rates, retain last good rates on failure, and return unavailable rather than relabeling local values as USD.
 
 ## Field availability
+- `fundamentalsTimeSeries` trailing records can use valid `periodType: "TTM"` that the v3 schema rejects. With `validateResult: false`, dates can remain Unix seconds while quarterly dates are Date objects.
+
+**Why:** The stale period-type enum rejected otherwise valid trailing EBIT records across the S&P 500.
+
+**How to apply:** For trailing requests, validate consumed numeric fields locally and normalize both Unix-second and Date dates to UTC accounting dates. Never shift a midnight accounting date into the preceding New York calendar day.
+
 - `incomeStatementHistory` module: has `totalRevenue`, `netIncome`, `grossProfit` but NOT `dilutedEps`. Do not use for EPS growth calculation.
 - `earnings` module via quoteSummary: `earningsChart.yearly` and `financialsChart.yearly` are often null/unavailable for specific stocks. Use as best-effort only; handle null gracefully.
 - For RSI(14): fetch 60-day daily chart with `period1: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)`. Need 15+ closes. Store as `calculateRSI14(closes)`.

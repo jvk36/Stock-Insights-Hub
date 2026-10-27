@@ -7,6 +7,7 @@ import { startModelPortfolioScheduler } from "./lib/model-portfolio-service";
 import { startMomentumScheduler } from "./lib/momentum-service";
 import { startLazyScheduler } from "./lib/lazy-service";
 import { startCloningScheduler } from "./lib/cloning-service";
+import { startMagicFormulaScheduler } from "./lib/magic-formula-service";
 
 const rawPort = process.env["PORT"];
 
@@ -36,6 +37,7 @@ app.listen(port, (err) => {
   startMomentumScheduler();
   startLazyScheduler();
   startCloningScheduler();
+  startMagicFormulaScheduler();
 
   // Pre-warm macro indicators cache in background so first user request is fast
   warmMacroCache().catch(() => { /* non-fatal */ });

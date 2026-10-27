@@ -19,6 +19,24 @@ tags:
   - name: watchlist
     description: Premium personal watchlist operations
 paths:
+  /model-portfolios/magic-formula:
+    get:
+      operationId: getMagicFormulaPortfolio
+      tags: [ModelPortfolios]
+      summary: Staggered annual Magic Formula portfolio (Premium)
+      responses:
+        "200":
+          description: Frozen annual rankings, cohorts and transaction ledger
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MagicFormulaPortfolio"
+        "401":
+          description: Sign in required
+        "403":
+          description: Premium required
+        "503":
+          description: Portfolio temporarily unavailable
   /model-portfolios/cloning:
     get:
       operationId: getCloningPortfolio
@@ -1151,6 +1169,99 @@ components:
         addedWeight: { type: number }
         activity: { type: string, enum: [new, increase] }
         selected: { type: boolean }
+    MagicFormulaCandidate:
+      type: object
+      required: [ticker, name, sector, ebit, enterpriseValue, netPpe, workingCapital, earningsYield, returnOnCapital, earningsRank, capitalRank, score, rank, reason, financialDate, source]
+      properties:
+        ticker: { type: string }
+        name: { type: string }
+        sector: { type: string }
+        ebit: { type: [number, "null"] }
+        enterpriseValue: { type: [number, "null"] }
+        netPpe: { type: [number, "null"] }
+        workingCapital: { type: [number, "null"] }
+        earningsYield: { type: [number, "null"] }
+        returnOnCapital: { type: [number, "null"] }
+        earningsRank: { type: [integer, "null"] }
+        capitalRank: { type: [integer, "null"] }
+        score: { type: [integer, "null"] }
+        rank: { type: [integer, "null"] }
+        reason: { type: [string, "null"] }
+        financialDate: { type: [string, "null"] }
+        source: { type: string }
+    MagicFormulaRanking:
+      type: object
+      required: [year, scheduledDate, capturedAt, availableOn, universeCount, candidates]
+      properties:
+        year: { type: integer }
+        scheduledDate: { type: string }
+        capturedAt: { type: string }
+        availableOn: { type: string }
+        universeCount: { type: integer }
+        candidates:
+          type: array
+          items: { $ref: "#/components/schemas/MagicFormulaCandidate" }
+    MagicFormulaHolding:
+      allOf:
+        - $ref: "#/components/schemas/LazyHolding"
+        - type: object
+          required: [cohort, rank]
+          properties:
+            cohort: { type: integer }
+            rank: { type: integer }
+    MagicFormulaCohort:
+      type: object
+      required: [cohort, scheduledDate, nextDate, lastTradeDate, rankingYear, tickers]
+      properties:
+        cohort: { type: integer }
+        scheduledDate: { type: string }
+        nextDate: { type: string }
+        lastTradeDate: { type: [string, "null"] }
+        rankingYear: { type: [integer, "null"] }
+        tickers:
+          type: array
+          items: { type: string }
+    MagicFormulaPortfolio:
+      type: object
+      required: [slug, title, currency, status, message, inceptionDate, initialCapital, currentValue, cash, reservedCash, dividendCash, gain, returnPercent, valuedAt, refreshedAt, rankingProgress, rankings, cohorts, holdings, performance, allocations, ledger, assumptions]
+      properties:
+        slug: { type: string, enum: [magic-formula] }
+        title: { type: string }
+        currency: { type: string, enum: [USD] }
+        status: { type: string, enum: [pending, active, stale] }
+        message: { type: [string, "null"] }
+        inceptionDate: { type: string }
+        initialCapital: { type: number }
+        currentValue: { type: [number, "null"] }
+        cash: { type: number }
+        reservedCash: { type: number }
+        dividendCash: { type: number }
+        gain: { type: [number, "null"] }
+        returnPercent: { type: [number, "null"] }
+        valuedAt: { type: [string, "null"] }
+        refreshedAt: { type: [string, "null"] }
+        rankingProgress: { type: string }
+        rankings:
+          type: array
+          items: { $ref: "#/components/schemas/MagicFormulaRanking" }
+        cohorts:
+          type: array
+          items: { $ref: "#/components/schemas/MagicFormulaCohort" }
+        holdings:
+          type: array
+          items: { $ref: "#/components/schemas/MagicFormulaHolding" }
+        performance:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustPerformance" }
+        allocations:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustAllocation" }
+        ledger:
+          type: array
+          items: { $ref: "#/components/schemas/BlindTrustLedgerEvent" }
+        assumptions:
+          type: array
+          items: { type: string }
     CloningPortfolio:
       type: object
       required: [slug, title, inceptionDate, nextRebalanceDate, reportPeriod, result, holdings, candidates, coverage]

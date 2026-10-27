@@ -282,6 +282,140 @@ export interface ModelPortfolioBacktest {
   ledger?: BlindTrustLedgerEvent[];
 }
 
+export interface MagicFormulaCandidate {
+  ticker: string;
+  name: string;
+  sector: string;
+  /** @nullable */
+  ebit: number | null;
+  /** @nullable */
+  enterpriseValue: number | null;
+  /** @nullable */
+  netPpe: number | null;
+  /** @nullable */
+  workingCapital: number | null;
+  /** @nullable */
+  earningsYield: number | null;
+  /** @nullable */
+  returnOnCapital: number | null;
+  /** @nullable */
+  earningsRank: number | null;
+  /** @nullable */
+  capitalRank: number | null;
+  /** @nullable */
+  score: number | null;
+  /** @nullable */
+  rank: number | null;
+  /** @nullable */
+  reason: string | null;
+  /** @nullable */
+  financialDate: string | null;
+  source: string;
+}
+
+export interface MagicFormulaRanking {
+  year: number;
+  scheduledDate: string;
+  capturedAt: string;
+  availableOn: string;
+  universeCount: number;
+  candidates: MagicFormulaCandidate[];
+}
+
+export interface LazyHolding {
+  ticker: string;
+  name: string;
+  targetWeight: number;
+  entryDate: string;
+  entryPrice: number;
+  shares: number;
+  costBasis: number;
+  /** @nullable */
+  currentPrice: number | null;
+  /** @nullable */
+  priceDate: string | null;
+  /** @nullable */
+  currentValue: number | null;
+  /** @nullable */
+  weight: number | null;
+  /** @nullable */
+  gain: number | null;
+  /** @nullable */
+  gainPercent: number | null;
+  stale: boolean;
+}
+
+export type MagicFormulaHolding = LazyHolding & {
+  cohort: number;
+  rank: number;
+};
+
+export interface MagicFormulaCohort {
+  cohort: number;
+  scheduledDate: string;
+  nextDate: string;
+  /** @nullable */
+  lastTradeDate: string | null;
+  /** @nullable */
+  rankingYear: number | null;
+  tickers: string[];
+}
+
+export type MagicFormulaPortfolioSlug =
+  (typeof MagicFormulaPortfolioSlug)[keyof typeof MagicFormulaPortfolioSlug];
+
+export const MagicFormulaPortfolioSlug = {
+  "magic-formula": "magic-formula",
+} as const;
+
+export type MagicFormulaPortfolioCurrency =
+  (typeof MagicFormulaPortfolioCurrency)[keyof typeof MagicFormulaPortfolioCurrency];
+
+export const MagicFormulaPortfolioCurrency = {
+  USD: "USD",
+} as const;
+
+export type MagicFormulaPortfolioStatus =
+  (typeof MagicFormulaPortfolioStatus)[keyof typeof MagicFormulaPortfolioStatus];
+
+export const MagicFormulaPortfolioStatus = {
+  pending: "pending",
+  active: "active",
+  stale: "stale",
+} as const;
+
+export interface MagicFormulaPortfolio {
+  slug: MagicFormulaPortfolioSlug;
+  title: string;
+  currency: MagicFormulaPortfolioCurrency;
+  status: MagicFormulaPortfolioStatus;
+  /** @nullable */
+  message: string | null;
+  inceptionDate: string;
+  initialCapital: number;
+  /** @nullable */
+  currentValue: number | null;
+  cash: number;
+  reservedCash: number;
+  dividendCash: number;
+  /** @nullable */
+  gain: number | null;
+  /** @nullable */
+  returnPercent: number | null;
+  /** @nullable */
+  valuedAt: string | null;
+  /** @nullable */
+  refreshedAt: string | null;
+  rankingProgress: string;
+  rankings: MagicFormulaRanking[];
+  cohorts: MagicFormulaCohort[];
+  holdings: MagicFormulaHolding[];
+  performance: BlindTrustPerformance[];
+  allocations: BlindTrustAllocation[];
+  ledger: BlindTrustLedgerEvent[];
+  assumptions: string[];
+}
+
 export type CloningPortfolioSlug =
   (typeof CloningPortfolioSlug)[keyof typeof CloningPortfolioSlug];
 
@@ -311,29 +445,6 @@ export interface LazyAsset {
   price: number | null;
   /** @nullable */
   priceDate: string | null;
-}
-
-export interface LazyHolding {
-  ticker: string;
-  name: string;
-  targetWeight: number;
-  entryDate: string;
-  entryPrice: number;
-  shares: number;
-  costBasis: number;
-  /** @nullable */
-  currentPrice: number | null;
-  /** @nullable */
-  priceDate: string | null;
-  /** @nullable */
-  currentValue: number | null;
-  /** @nullable */
-  weight: number | null;
-  /** @nullable */
-  gain: number | null;
-  /** @nullable */
-  gainPercent: number | null;
-  stale: boolean;
 }
 
 export type LazyPortfolioStatus =

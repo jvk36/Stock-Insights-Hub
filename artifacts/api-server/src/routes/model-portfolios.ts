@@ -5,9 +5,18 @@ import { getLazyPortfolio } from "../lib/lazy-service";
 import { GetMomentumPortfolioResponse, GetLazyPortfolioResponse, GetModelPortfolioBacktestParams, GetModelPortfolioBacktestResponse } from "@workspace/api-zod";
 import { getPortfolioBacktest } from "../lib/portfolio-backtest-service";
 import { getCloningPortfolio } from "../lib/cloning-service";
+import { getMagicFormulaPortfolio } from "../lib/magic-formula-service";
 
 const router: IRouter = Router();
 // Mounted after requirePremium in the shared router.
+router.get("/model-portfolios/magic-formula", async (req, res): Promise<void> => {
+  res.set("Cache-Control", "private, no-store");
+  try { res.json(await getMagicFormulaPortfolio()); }
+  catch (error) {
+    req.log.error({ err: error }, "Unable to read Magic Formula portfolio");
+    res.status(503).json({ error: "Magic Formula portfolio is temporarily unavailable. Please retry." });
+  }
+});
 router.get("/model-portfolios/:strategy/backtest", async (req, res): Promise<void> => {
   res.set("Cache-Control", "private, no-store");
   const params = GetModelPortfolioBacktestParams.safeParse(req.params);

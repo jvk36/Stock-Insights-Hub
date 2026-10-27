@@ -43,6 +43,7 @@ import type {
   InsiderTransactionsResponse,
   LazyPortfolio,
   MacroIndicatorsResponse,
+  MagicFormulaPortfolio,
   ModelPortfolioBacktest,
   MomentumPortfolio,
   NewsResponse,
@@ -68,6 +69,82 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+/**
+ * @summary Staggered annual Magic Formula portfolio (Premium)
+ */
+export const getGetMagicFormulaPortfolioUrl = () => {
+  return `/api/model-portfolios/magic-formula`;
+};
+
+export const getMagicFormulaPortfolio = async (
+  options?: RequestInit,
+): Promise<MagicFormulaPortfolio> => {
+  return customFetch<MagicFormulaPortfolio>(getGetMagicFormulaPortfolioUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMagicFormulaPortfolioQueryKey = () => {
+  return [`/api/model-portfolios/magic-formula`] as const;
+};
+
+export const getGetMagicFormulaPortfolioQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMagicFormulaPortfolio>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMagicFormulaPortfolio>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMagicFormulaPortfolioQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMagicFormulaPortfolio>>
+  > = ({ signal }) => getMagicFormulaPortfolio({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMagicFormulaPortfolio>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMagicFormulaPortfolioQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMagicFormulaPortfolio>>
+>;
+export type GetMagicFormulaPortfolioQueryError = ErrorType<void>;
+
+/**
+ * @summary Staggered annual Magic Formula portfolio (Premium)
+ */
+
+export function useGetMagicFormulaPortfolio<
+  TData = Awaited<ReturnType<typeof getMagicFormulaPortfolio>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMagicFormulaPortfolio>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMagicFormulaPortfolioQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Quarterly point-in-time 13F cloning portfolio (Premium)

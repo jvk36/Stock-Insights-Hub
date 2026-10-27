@@ -21,7 +21,7 @@ export const MAGIC_ASSUMPTIONS = [
   "Four $7,500 groups deploy five stocks each ($1,500 per stock) on October 27, 2026; January 27, April 27 and July 27, 2027. Uninvested initial capital remains reserved cash without interest. Fractional shares are permitted.",
   "Ranking refreshes once per year on or after October 27. The next three quarterly groups use ranks 6–10, 11–15 and 16–20 of the same frozen ranking, not newly recomputed quarterly lists.",
   "Each group is sold one year after its actual purchase date, at the next trading session's close if markets are closed. Replacement uses that group's sale proceeds plus all accumulated cash dividends, not the reserves for untouched groups. Stocks selected again are sold and repurchased; other groups are not liquidated.",
-  "Today's initial group may use captured, time-stamped current USD quotes; later annual replacements use completed closing prices. No backdated trades before the ranking observation are invented. Delayed ranking/price availability delays execution and is disclosed in rebalance history.",
+  "Initial groups buy at verified USD opening prices for their execution session; annual replacements use completed closing prices. The first five stocks use October 27, 2026 opening prices, as requested. Current quotes value holdings but never replace an opening-price cost basis. Delayed ranking/price availability delays later execution and is disclosed in rebalance history.",
   "Dividends accrue as cash on ex-date (an idealization of payment timing) and are used at the next annual group replacement; known ordinary splits adjust quantities. Unsupported corporate actions or missing prices stop valuation/trades rather than inventing proceeds.",
   "This is a long-only equity/value strategy, not market-neutral or guaranteed absolute/uncorrelated returns. It can suffer significant losses and prolonged underperformance. Taxes, fees, spreads, slippage and cash interest are excluded. Performance includes undeployed cash.",
 ];
@@ -67,7 +67,8 @@ export function refreshMagicFormula(): Promise<void> {
   running = (async () => {
     await ensure();
     let state = await readState();
-    if (state.refreshedAt && Date.now() - Date.parse(state.refreshedAt) < REFRESH_MS) return;
+    const needsOpeningCorrection = state.positions.length > 0 && !state.inceptionPriceBasis;
+    if (!needsOpeningCorrection && state.positions.length > 0 && state.refreshedAt && Date.now() - Date.parse(state.refreshedAt) < REFRESH_MS) return;
     const today = marketDate(), year = rankingYear(today);
     if (today < MAGIC_INCEPTION) return;
     if (!state.rankings.some((r) => r.year === year)) {

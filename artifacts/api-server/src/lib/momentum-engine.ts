@@ -20,6 +20,7 @@ export type MomentumState = {
 };
 export type MomentumMarket = {
   observedAt: string; targetDate: string; prices: Prices; adjusted: Prices; actions: Action[];
+  opens?: Prices;
   live: Record<string, { price: number; at: string }>;
 };
 export type MomentumSnapshot = BlindTrustPerformance & {

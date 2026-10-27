@@ -14,6 +14,7 @@ function ranking(year = 2026, prefix = "A"): MagicFormulaRanking {
 function market(dates: string[], rankings = [ranking()]): MomentumMarket {
   const tickers = ["SPY", ...rankings.flatMap((r) => r.candidates.map((c) => c.ticker))];
   return { observedAt: `${dates.at(-1)}T22:00:00Z`, targetDate: dates.at(-1)!, prices: Object.fromEntries(tickers.map((t) => [t, Object.fromEntries(dates.map((d) => [d, 10]))])),
+    opens: Object.fromEntries(tickers.map((t) => [t, Object.fromEntries(dates.map((d) => [d, 10]))])),
     actions: [], adjusted: {}, live: {} };
 }
 function state() { const s = initialMagicState(); s.rankings = [ranking()]; return s; }
@@ -106,14 +107,67 @@ test("a late snapshot cannot be used to execute earlier purchases", () => {
   const executed = advanceMagic(pending, market(["2026-10-28"]));
   assert.equal(executed.cohorts[0].lastTradeDate, "2026-10-28");
 });
-test("same-day captured quotes can fund inception but not a historical purchase", () => {
+test("same-day opening prices fund inception while live quotes only mark current value", () => {
   const m = market(["2026-10-26"]);
   m.observedAt = "2026-10-27T15:00:00Z";
   m.live = Object.fromEntries(["SPY", ...ranking().candidates.map((c) => c.ticker)].map((t) => [t, { price: 20, at: "2026-10-27T14:59:00Z" }]));
+  m.opens = Object.fromEntries(Object.keys(m.live).map((t) => [t, { "2026-10-27": 15 }]));
   const s = advanceMagic(state(), m);
-  assert.equal(s.positions[0].entryPrice, 20);
+  assert.equal(s.positions[0].entryPrice, 15);
   assert.equal(s.positions[0].entryDate, "2026-10-27");
-  assert.equal(s.positions[0].shares, 75);
+  assert.equal(s.positions[0].shares, 100);
+  assert.equal(s.performance.at(-1)!.value, 32500);
+});
+test("initial opening prices win over completed closes and unavailable opens never use quotes", () => {
+  const m = market(["2026-10-27"]);
+  for (const prices of Object.values(m.opens!)) prices["2026-10-27"] = 8;
+  const s = advanceMagic(state(), m);
+  assert.deepEqual(s.positions.map((p) => p.rank), [1, 2, 3, 4, 5]);
+  assert.ok(s.positions.every((p) => p.entryPrice === 8 && p.shares === 187.5));
+  assert.equal(s.performance.at(-1)!.value, 31875);
+  delete m.opens!.A01["2026-10-27"];
+  const pending = advanceMagic(state(), m);
+  assert.equal(pending.positions.length, 0);
+  assert.equal(pending.cash, 30000);
+  assert.match(pending.message!, /session opening prices/);
+});
+test("legacy inception entries, ledger and performance are corrected once to opening prices", () => {
+  const legacy = advanceMagic(state(), market(["2026-10-27"]));
+  delete legacy.inceptionPriceBasis;
+  const m = market(["2026-10-27"]);
+  for (const prices of Object.values(m.opens!)) prices["2026-10-27"] = 8;
+  const corrected = advanceMagic(legacy, m);
+  assert.ok(corrected.positions.every((p) => p.entryPrice === 8 && p.shares === 187.5));
+  assert.ok(corrected.ledger.filter((e) => e.type === "buy").every((e) => e.price === 8 && e.shares === 187.5));
+  assert.equal(corrected.ledger.length, 6);
+  assert.equal(corrected.cash, 22500);
+  assert.equal(sumCash(corrected), corrected.cash);
+  assert.equal(corrected.performance.at(-1)!.value, 31875);
+  assert.deepEqual(advanceMagic(corrected, m), corrected);
+});
+test("verified opens establish today's session even if the calendar quote is missing", () => {
+  const m = market(["2026-10-26"]);
+  m.observedAt = "2026-10-27T15:00:00Z";
+  m.opens = Object.fromEntries(["SPY", ...ranking().candidates.map((c) => c.ticker)].map((t) => [t, { "2026-10-27": 15 }]));
+  m.live = Object.fromEntries(ranking().candidates.map((c) => [c.ticker, { price: 20, at: "2026-10-27T14:59:00Z" }]));
+  const s = advanceMagic(state(), m);
+  assert.equal(s.positions.length, 5);
+  assert.equal(s.positions[0].entryPrice, 15);
+  assert.equal(s.performance.at(-1)!.date, "2026-10-27");
+});
+test("legacy correction waits for all opens and does not rewrite later transaction history", () => {
+  const legacy = advanceMagic(state(), market(["2026-10-27"]));
+  delete legacy.inceptionPriceBasis;
+  const m = market(["2026-10-27"]);
+  delete m.opens!.A01["2026-10-27"];
+  const pending = advanceMagic(legacy, m);
+  assert.deepEqual(pending.positions, legacy.positions);
+  assert.deepEqual(pending.ledger, legacy.ledger);
+  assert.match(pending.message!, /Awaiting verified inception opening prices/);
+  legacy.processedThrough = "2026-10-28";
+  const later = advanceMagic(legacy, m);
+  assert.deepEqual(later.ledger, legacy.ledger);
+  assert.match(later.message!, /existing history is preserved/);
 });
 test("refresh/replay is idempotent and split-adjusted dividend cash is counted once", () => {
   let s = advanceMagic(state(), market(["2026-10-27"]));

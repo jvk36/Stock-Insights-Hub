@@ -113,7 +113,7 @@ function Intro({ p, loading }: { p?: MagicFormulaPortfolio; loading: boolean }) 
           <h3 className="font-semibold text-foreground">Staggered cohorts</h3>
           <ul className="space-y-1.5 text-xs text-muted-foreground border-l-2 border-primary/40 pl-3">
             <li>Starts October 27, 2026 with {usd(30000, 0)}, split into four {usd(7500, 0)} cohorts of five stocks at {usd(1500, 0)} each.</li>
-            <li>Cohort 1 buys ranks 1-5 at inception; cohort 2 ranks 6-10 on Jan 27, 2027; cohort 3 ranks 11-15 on Apr 27; cohort 4 ranks 16-20 on Jul 27.</li>
+            <li>Cohort 1 buys ranks 1-5 at October 27, 2026 opening prices; cohort 2 ranks 6-10 on Jan 27, 2027; cohort 3 ranks 11-15 on Apr 27; cohort 4 ranks 16-20 on Jul 27. Initial purchases use their session's opening prices, not current quotes.</li>
             <li>Undeployed cohort money is held as a separate cash reserve until its date, not invested early.</li>
             <li>Each cohort is sold after one year (or the next trading day) at that dated close. Its replacements use only that cohort's proceeds plus accumulated dividends; other cohorts' reserves are never spent and untouched holdings are never sold.</li>
             <li>No taxes, commissions or slippage. There is no backtest for this strategy; only live results since inception are shown.</li>
@@ -196,8 +196,8 @@ function Live({ p }: { p: MagicFormulaPortfolio }) {
 
 export function MagicFormulaView({ enabled }: { enabled: boolean }) {
   const q = useGetMagicFormulaPortfolio({ query: {
-    queryKey: getGetMagicFormulaPortfolioQueryKey(), enabled, staleTime: 60_000, refetchIntervalInBackground: false,
-    refetchInterval: (query) => (query.state.data?.status === "pending" && query.state.data.rankings.length === 0 ? 15_000 : 5 * 60_000),
+    queryKey: getGetMagicFormulaPortfolioQueryKey(), enabled, staleTime: 60_000, refetchOnMount: "always", refetchIntervalInBackground: false,
+    refetchInterval: (query) => (query.state.data?.status === "pending" || query.state.data?.holdings.length === 0 ? 15_000 : 5 * 60_000),
   } });
   const p = q.data;
   const scanning = p?.status === "pending" && !!p.rankingProgress;

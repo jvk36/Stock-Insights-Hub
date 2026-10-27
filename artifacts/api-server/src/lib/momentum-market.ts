@@ -10,7 +10,7 @@ export async function fetchMomentumMarket(
   universe: readonly { ticker: string }[] = ETF_UNIVERSE,
 ): Promise<MomentumMarket> {
   const market: MomentumMarket = {
-    observedAt: now.toISOString(), targetDate: completedThrough(now), prices: {}, adjusted: {}, actions: [], live: {},
+    observedAt: now.toISOString(), targetDate: completedThrough(now), prices: {}, adjusted: {}, actions: [], live: {}, opens: {},
   };
   // Retain inception warmup as well as all post-launch sessions, so missed
   // quarterly decisions can be replayed using only information available then.
@@ -24,6 +24,9 @@ export async function fetchMomentumMarket(
         const q = quoteResult.value;
         if (q.symbol === ticker && q.currency === "USD" && q.regularMarketTime && q.regularMarketPrice != null && q.regularMarketPrice > 0) {
           market.live[ticker] = { price: q.regularMarketPrice, at: new Date(q.regularMarketTime).toISOString() };
+          if (q.regularMarketOpen != null && Number.isFinite(q.regularMarketOpen) && q.regularMarketOpen > 0) {
+            market.opens![ticker] = { [marketDate(new Date(q.regularMarketTime))]: q.regularMarketOpen };
+          }
         }
       }
       if (chartResult.status === "rejected") {
@@ -42,8 +45,12 @@ export async function fetchMomentumMarket(
       })).filter((a) => Number.isFinite(a.value) && a.value > 0));
       market.prices[ticker] = {};
       market.adjusted[ticker] = {};
+      market.opens![ticker] ??= {};
       for (const q of chart.quotes) {
         const date = marketDate(q.date);
+        if (date <= marketDate(now) && q.open != null && Number.isFinite(q.open) && q.open > 0) {
+          market.opens![ticker][date] = undoFutureSplits(q.open, date, splits);
+        }
         if (date > market.targetDate || q.close == null || !Number.isFinite(q.close) || q.close <= 0) continue;
         market.adjusted[ticker][date] = q.close;
         market.prices[ticker][date] = undoFutureSplits(q.close, date, splits);

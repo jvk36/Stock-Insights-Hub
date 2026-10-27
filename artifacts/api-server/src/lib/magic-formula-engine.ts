@@ -6,6 +6,7 @@ export const MAGIC_CAPITAL = 30000;
 export type MagicPosition = { ticker: string; name: string; cohort: number; rank: number; shares: number; entryDate: string; entryPrice: number; costBasis: number };
 export type MagicState = {
   version: 1; cash: number; reservedCash: number; dividendCash: number; cohortCash: number[];
+  inceptionPriceBasis?: "session-open";
   rankings: MagicFormulaRanking[]; cohorts: MagicFormulaCohort[]; positions: MagicPosition[];
   ledger: BlindTrustLedgerEvent[]; allocations: BlindTrustAllocation[]; performance: BlindTrustPerformance[];
   prices: Record<string, number>; processedThrough: string | null; refreshedAt: string | null; message: string | null;
@@ -46,9 +47,35 @@ export function advanceMagic(input: MagicState, market: MomentumMarket): MagicSt
   const s: MagicState = structuredClone(input);
   s.refreshedAt = market.observedAt;
   s.message = null;
+  // Correct only the original, same-session simulated purchases. Never rewrite
+  // later dividends, splits or annual replacements as though they had not occurred.
+  if (!s.inceptionPriceBasis && s.positions.length) {
+    const initial = s.positions.filter((p) => p.cohort === 1);
+    const safe = initial.length === 5 && s.positions.length === 5 && s.processedThrough === MAGIC_INCEPTION
+      && initial.every((p) => p.entryDate === MAGIC_INCEPTION)
+      && s.ledger.length === 6 && s.ledger.every((e) => e.type === "deposit" || e.type === "buy");
+    if (!safe) { s.message = "Opening-price correction requires review of later transactions; existing history is preserved."; return s; }
+    if (initial.some((p) => !((market.opens?.[p.ticker]?.[MAGIC_INCEPTION] ?? 0) > 0))) {
+      s.message = "Awaiting verified inception opening prices; stored positions are preserved without substituting current quotes.";
+      return s;
+    }
+    for (const p of initial) {
+      p.entryPrice = market.opens![p.ticker][MAGIC_INCEPTION];
+      p.shares = p.costBasis / p.entryPrice;
+      const buy = s.ledger.find((e) => e.type === "buy" && e.ticker === p.ticker)!;
+      buy.price = p.entryPrice; buy.shares = p.shares;
+    }
+    s.inceptionPriceBasis = "session-open";
+    s.allocations.forEach((a) => {
+      if (a.date === MAGIC_INCEPTION) a.note = `Cohort 1; frozen 2026 ranking, ranks 1–5. $1,500 per stock at verified ${MAGIC_INCEPTION} USD session opening prices. Original intraday entry quotes corrected to opening prices.`;
+    });
+  }
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(market.observedAt));
   // Live prices are allowed only for today's initial deployment, never historical fills.
   const sessions = new Set(Object.keys(market.prices.SPY ?? {}).filter((d) => d >= MAGIC_INCEPTION && d <= market.targetDate));
+  for (const date of Object.keys(market.opens?.SPY ?? {})) {
+    if (date >= MAGIC_INCEPTION && date <= today) sessions.add(date);
+  }
   if (market.live.SPY?.at && market.live.SPY.at.slice(0, 10) === today && today >= MAGIC_INCEPTION) sessions.add(today);
   const record = (date: string, type: string, ticker: string | null, shares: number, price: number, cashChange: number) =>
     s.ledger.push({ id: `magic:${date}:${type}:${ticker ?? "cash"}:${s.ledger.length}`, date, type, ticker, shares, price, cashChange });
@@ -87,10 +114,12 @@ export function advanceMagic(input: MagicState, market: MomentumMarket): MagicSt
         .sort((a, b) => a.rank! - b.rank!);
       const outgoing = s.positions.filter((p) => p.cohort === cohort.cohort);
       const initial = cohort.lastTradeDate == null;
+      const executionPrice = (ticker: string) => initial ? market.opens?.[ticker]?.[date] ?? null : price(ticker);
       // Anniversary replacements use completed closes, not intraday quotes.
       if (!initial && date > market.targetDate) continue;
-      if (picks.length !== 5 || [...picks, ...s.positions].some((p) => price(p.ticker, initial) == null)) {
-        s.message = `Cohort ${cohort.cohort}: five ranked stocks and verified execution prices are required. Holdings and reserved cash are preserved.`; continue;
+      if (picks.length !== 5 || picks.some((p) => !(executionPrice(p.ticker)! > 0))
+        || (!initial && s.positions.some((p) => price(p.ticker) == null))) {
+        s.message = `Cohort ${cohort.cohort}: five ranked stocks and verified execution prices (${initial ? "session opening prices" : "closing prices"}) are required. Holdings and reserved cash are preserved.`; continue;
       }
       if (!s.ledger.length) record(date, "deposit", null, 0, 0, MAGIC_CAPITAL);
       const proceeds = outgoing.reduce((n, p) => n + p.shares * price(p.ticker, initial)!, 0);
@@ -102,18 +131,19 @@ export function advanceMagic(input: MagicState, market: MomentumMarket): MagicSt
       else { s.dividendCash = 0; s.cohortCash[cohort.cohort - 1] = 0; }
       s.positions = s.positions.filter((p) => p.cohort !== cohort.cohort);
       for (const c of picks) {
-        const pps = price(c.ticker, initial)!, amount = budget / 5, shares = amount / pps;
+        const pps = executionPrice(c.ticker)!, amount = budget / 5, shares = amount / pps;
         s.positions.push({ ticker: c.ticker, name: c.name, cohort: cohort.cohort, rank: c.rank!, shares, entryDate: date, entryPrice: pps, costBasis: amount });
         record(date, "buy", c.ticker, shares, pps, -amount);
       }
       s.cash -= budget;
+      if (initial && cohort.cohort === 1) s.inceptionPriceBasis = "session-open";
       if (Math.abs(s.cash) < 1e-8) s.cash = 0;
       const scheduled = cohort.nextDate;
       cohort.lastTradeDate = date; cohort.rankingYear = year; cohort.tickers = picks.map((p) => p.ticker);
       // Exactly a year from execution, moved to next trading session by the loop.
       cohort.nextDate = `${Number(date.slice(0, 4)) + 1}${date.slice(4)}`;
       const allPrices = s.positions.map((p) => price(p.ticker, initial));
-      const quoteSources = picks.map((p) => `${p.ticker}: ${market.prices[p.ticker]?.[date] > 0 ? `${date} close` : `captured quote ${market.live[p.ticker]?.at}`}`).join("; ");
+      const quoteSources = picks.map((p) => `${p.ticker}: ${date} ${initial ? "session open" : "close"}`).join("; ");
       s.allocations.push({
         id: `magic:${date}:cohort:${cohort.cohort}`, date, scheduledDate: scheduled, type: initial ? "inception" : "rebalance",
         equity: allPrices.every((p) => p != null) ? s.cash + s.positions.reduce((n, p, i) => n + p.shares * allPrices[i]!, 0) : budget,
@@ -128,6 +158,8 @@ export function advanceMagic(input: MagicState, market: MomentumMarket): MagicSt
     s.prices = prices as Record<string, number>;
     s.performance = s.performance.filter((p) => p.date !== date);
     s.performance.push({ date, value, cash: s.cash, returnPercent: (value / MAGIC_CAPITAL - 1) * 100 });
+    const allocation = s.allocations.find((a) => a.date === date && a.type === "inception");
+    if (allocation) allocation.equity = value;
   }
   const last = s.performance.at(-1);
   if (s.ledger.length && (!last || last.date < market.targetDate)) {

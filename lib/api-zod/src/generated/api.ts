@@ -8,14 +8,155 @@
 import * as zod from "zod";
 
 /**
+ * @summary Quarterly point-in-time 13F cloning portfolio (Premium)
+ */
+export const GetCloningPortfolioResponse = zod.object({
+  slug: zod.enum(["cloning"]),
+  title: zod.string(),
+  inceptionDate: zod.string(),
+  nextRebalanceDate: zod.string(),
+  reportPeriod: zod.string().nullable(),
+  result: zod.object({
+    strategy: zod.enum(["momentum", "lazy", "blind-trust", "cloning"]),
+    status: zod.enum(["complete", "partial", "unavailable"]),
+    message: zod.string().nullable(),
+    startDate: zod.string(),
+    endDateExclusive: zod.string(),
+    actualStartDate: zod.string().nullable(),
+    actualEndDate: zod.string().nullable(),
+    initialCapital: zod.number(),
+    finalValue: zod.number().nullable(),
+    gain: zod.number().nullable(),
+    returnPercent: zod.number().nullable(),
+    refreshedAt: zod.string(),
+    assumptions: zod.array(zod.string()),
+    performance: zod.array(
+      zod.object({
+        date: zod.string(),
+        value: zod.number(),
+        returnPercent: zod.number(),
+        cash: zod.number(),
+      }),
+    ),
+    allocations: zod.array(
+      zod.object({
+        date: zod.string(),
+        scheduledDate: zod.string(),
+        equity: zod.number(),
+        cash: zod.number(),
+        positions: zod.array(
+          zod.object({
+            ticker: zod.string(),
+            name: zod.string(),
+            price: zod.number().nullable(),
+            shares: zod.number(),
+            value: zod.number(),
+            weight: zod.number(),
+            sma200: zod.number().nullable(),
+            selected: zod.boolean(),
+            bookValue: zod.number().nullish(),
+            priceToBook: zod.number().nullish(),
+            bookDate: zod.string().nullish(),
+            filedOn: zod.string().nullish(),
+            bookSource: zod.string().nullish(),
+            reason: zod.string().nullish(),
+            manager: zod.string().optional(),
+            addedWeight: zod.number().optional(),
+            reportPeriod: zod.string().optional(),
+            filingSource: zod.string().optional(),
+            entryPrice: zod.number().optional(),
+            entryDate: zod.string().optional(),
+            costBasis: zod.number().optional(),
+            gain: zod.number().nullish(),
+          }),
+        ),
+      }),
+    ),
+    omittedDates: zod.array(zod.string()),
+    reviewAudit: zod
+      .array(
+        zod.object({
+          date: zod.string(),
+          scheduledDate: zod.string(),
+          reportDate: zod.string(),
+          issues: zod.array(zod.string()),
+          picks: zod.array(
+            zod
+              .object({
+                ticker: zod.string(),
+                name: zod.string(),
+                manager: zod.string(),
+                fundCik: zod.string(),
+                reportPeriod: zod.string(),
+                filedOn: zod.string(),
+                filingSource: zod.string(),
+                addedWeight: zod.number(),
+                activity: zod.enum(["new", "increase"]),
+                selected: zod.boolean(),
+              })
+              .and(
+                zod.object({
+                  price: zod.number().nullable(),
+                  pricingIssue: zod.string().nullable(),
+                }),
+              ),
+          ),
+        }),
+      )
+      .optional(),
+  }),
+  holdings: zod.array(
+    zod.object({
+      ticker: zod.string(),
+      name: zod.string(),
+      price: zod.number().nullable(),
+      shares: zod.number(),
+      value: zod.number(),
+      weight: zod.number(),
+      sma200: zod.number().nullable(),
+      selected: zod.boolean(),
+      bookValue: zod.number().nullish(),
+      priceToBook: zod.number().nullish(),
+      bookDate: zod.string().nullish(),
+      filedOn: zod.string().nullish(),
+      bookSource: zod.string().nullish(),
+      reason: zod.string().nullish(),
+      manager: zod.string().optional(),
+      addedWeight: zod.number().optional(),
+      reportPeriod: zod.string().optional(),
+      filingSource: zod.string().optional(),
+      entryPrice: zod.number().optional(),
+      entryDate: zod.string().optional(),
+      costBasis: zod.number().optional(),
+      gain: zod.number().nullish(),
+    }),
+  ),
+  candidates: zod.array(
+    zod.object({
+      ticker: zod.string(),
+      name: zod.string(),
+      manager: zod.string(),
+      fundCik: zod.string(),
+      reportPeriod: zod.string(),
+      filedOn: zod.string(),
+      filingSource: zod.string(),
+      addedWeight: zod.number(),
+      activity: zod.enum(["new", "increase"]),
+      selected: zod.boolean(),
+    }),
+  ),
+  coverage: zod.array(zod.string()),
+});
+
+/**
  * @summary Ten-year pre-inception ETF strategy backtest (Premium)
  */
 export const GetModelPortfolioBacktestParams = zod.object({
-  strategy: zod.enum(["momentum", "lazy", "blind-trust"]),
+  strategy: zod.enum(["momentum", "lazy", "blind-trust", "cloning"]),
 });
 
 export const GetModelPortfolioBacktestResponse = zod.object({
-  strategy: zod.enum(["momentum", "lazy", "blind-trust"]),
+  strategy: zod.enum(["momentum", "lazy", "blind-trust", "cloning"]),
   status: zod.enum(["complete", "partial", "unavailable"]),
   message: zod.string().nullable(),
   startDate: zod.string(),
@@ -58,11 +199,50 @@ export const GetModelPortfolioBacktestResponse = zod.object({
           filedOn: zod.string().nullish(),
           bookSource: zod.string().nullish(),
           reason: zod.string().nullish(),
+          manager: zod.string().optional(),
+          addedWeight: zod.number().optional(),
+          reportPeriod: zod.string().optional(),
+          filingSource: zod.string().optional(),
+          entryPrice: zod.number().optional(),
+          entryDate: zod.string().optional(),
+          costBasis: zod.number().optional(),
+          gain: zod.number().nullish(),
         }),
       ),
     }),
   ),
   omittedDates: zod.array(zod.string()),
+  reviewAudit: zod
+    .array(
+      zod.object({
+        date: zod.string(),
+        scheduledDate: zod.string(),
+        reportDate: zod.string(),
+        issues: zod.array(zod.string()),
+        picks: zod.array(
+          zod
+            .object({
+              ticker: zod.string(),
+              name: zod.string(),
+              manager: zod.string(),
+              fundCik: zod.string(),
+              reportPeriod: zod.string(),
+              filedOn: zod.string(),
+              filingSource: zod.string(),
+              addedWeight: zod.number(),
+              activity: zod.enum(["new", "increase"]),
+              selected: zod.boolean(),
+            })
+            .and(
+              zod.object({
+                price: zod.number().nullable(),
+                pricingIssue: zod.string().nullable(),
+              }),
+            ),
+        ),
+      }),
+    )
+    .optional(),
 });
 
 /**

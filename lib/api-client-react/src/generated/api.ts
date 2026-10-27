@@ -23,6 +23,7 @@ import type {
   BoardLeadershipResponse,
   BuybackHistoryResponse,
   ChartData,
+  CloningPortfolio,
   CompanyProfile,
   EarningsHistoryResponse,
   FinancialStatements,
@@ -69,16 +70,91 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 /**
+ * @summary Quarterly point-in-time 13F cloning portfolio (Premium)
+ */
+export const getGetCloningPortfolioUrl = () => {
+  return `/api/model-portfolios/cloning`;
+};
+
+export const getCloningPortfolio = async (
+  options?: RequestInit,
+): Promise<CloningPortfolio> => {
+  return customFetch<CloningPortfolio>(getGetCloningPortfolioUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCloningPortfolioQueryKey = () => {
+  return [`/api/model-portfolios/cloning`] as const;
+};
+
+export const getGetCloningPortfolioQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCloningPortfolio>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCloningPortfolio>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCloningPortfolioQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCloningPortfolio>>
+  > = ({ signal }) => getCloningPortfolio({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCloningPortfolio>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCloningPortfolioQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCloningPortfolio>>
+>;
+export type GetCloningPortfolioQueryError = ErrorType<void>;
+
+/**
+ * @summary Quarterly point-in-time 13F cloning portfolio (Premium)
+ */
+
+export function useGetCloningPortfolio<
+  TData = Awaited<ReturnType<typeof getCloningPortfolio>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCloningPortfolio>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCloningPortfolioQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Ten-year pre-inception ETF strategy backtest (Premium)
  */
 export const getGetModelPortfolioBacktestUrl = (
-  strategy: "momentum" | "lazy" | "blind-trust",
+  strategy: "momentum" | "lazy" | "blind-trust" | "cloning",
 ) => {
   return `/api/model-portfolios/${strategy}/backtest`;
 };
 
 export const getModelPortfolioBacktest = async (
-  strategy: "momentum" | "lazy" | "blind-trust",
+  strategy: "momentum" | "lazy" | "blind-trust" | "cloning",
   options?: RequestInit,
 ): Promise<ModelPortfolioBacktest> => {
   return customFetch<ModelPortfolioBacktest>(
@@ -91,7 +167,7 @@ export const getModelPortfolioBacktest = async (
 };
 
 export const getGetModelPortfolioBacktestQueryKey = (
-  strategy: "momentum" | "lazy" | "blind-trust",
+  strategy: "momentum" | "lazy" | "blind-trust" | "cloning",
 ) => {
   return [`/api/model-portfolios/${strategy}/backtest`] as const;
 };
@@ -100,7 +176,7 @@ export const getGetModelPortfolioBacktestQueryOptions = <
   TData = Awaited<ReturnType<typeof getModelPortfolioBacktest>>,
   TError = ErrorType<void>,
 >(
-  strategy: "momentum" | "lazy" | "blind-trust",
+  strategy: "momentum" | "lazy" | "blind-trust" | "cloning",
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getModelPortfolioBacktest>>,
@@ -145,7 +221,7 @@ export function useGetModelPortfolioBacktest<
   TData = Awaited<ReturnType<typeof getModelPortfolioBacktest>>,
   TError = ErrorType<void>,
 >(
-  strategy: "momentum" | "lazy" | "blind-trust",
+  strategy: "momentum" | "lazy" | "blind-trust" | "cloning",
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getModelPortfolioBacktest>>,

@@ -3,7 +3,7 @@ name: Portfolio backtest scope
 description: User-confirmed historical simulation scope and Model Portfolios tab order.
 ---
 
-Provide a third, ten-year historical backtest section for all three strategies. Keep the tabs ordered Momentum, Lazy, Blind Trust, with Blind Trust last.
+Provide a third, ten-year historical backtest section for the original three strategies. Their relative order is Momentum, Lazy, Blind Trust. The user subsequently requested Cloning as the fourth tab; see cloning-strategy.md for its different inception and historical window.
 
 **Why:** The user initially dropped the Blind Trust backtest, then explicitly reversed that scope decision: “Could you re-attempt to do the 10-year backtest for the Blind Trust sub-tab,” using public historical book values and prices and ignoring tickers without pricing (such as PSUS).
 

@@ -181,6 +181,15 @@ export interface BacktestPosition {
   bookSource?: string | null;
   /** @nullable */
   reason?: string | null;
+  manager?: string;
+  addedWeight?: number;
+  reportPeriod?: string;
+  filingSource?: string;
+  entryPrice?: number;
+  entryDate?: string;
+  costBasis?: number;
+  /** @nullable */
+  gain?: number | null;
 }
 
 export interface BacktestAllocation {
@@ -198,6 +207,7 @@ export const ModelPortfolioBacktestStrategy = {
   momentum: "momentum",
   lazy: "lazy",
   "blind-trust": "blind-trust",
+  cloning: "cloning",
 } as const;
 
 export type ModelPortfolioBacktestStatus =
@@ -208,6 +218,42 @@ export const ModelPortfolioBacktestStatus = {
   partial: "partial",
   unavailable: "unavailable",
 } as const;
+
+export type CloningPickActivity =
+  (typeof CloningPickActivity)[keyof typeof CloningPickActivity];
+
+export const CloningPickActivity = {
+  new: "new",
+  increase: "increase",
+} as const;
+
+export interface CloningPick {
+  ticker: string;
+  name: string;
+  manager: string;
+  fundCik: string;
+  reportPeriod: string;
+  filedOn: string;
+  filingSource: string;
+  addedWeight: number;
+  activity: CloningPickActivity;
+  selected: boolean;
+}
+
+export type CloningReviewAuditPicksItem = CloningPick & {
+  /** @nullable */
+  price: number | null;
+  /** @nullable */
+  pricingIssue: string | null;
+};
+
+export interface CloningReviewAudit {
+  date: string;
+  scheduledDate: string;
+  reportDate: string;
+  issues: string[];
+  picks: CloningReviewAuditPicksItem[];
+}
 
 export interface ModelPortfolioBacktest {
   strategy: ModelPortfolioBacktestStrategy;
@@ -232,6 +278,27 @@ export interface ModelPortfolioBacktest {
   performance: BlindTrustPerformance[];
   allocations: BacktestAllocation[];
   omittedDates: string[];
+  reviewAudit?: CloningReviewAudit[];
+}
+
+export type CloningPortfolioSlug =
+  (typeof CloningPortfolioSlug)[keyof typeof CloningPortfolioSlug];
+
+export const CloningPortfolioSlug = {
+  cloning: "cloning",
+} as const;
+
+export interface CloningPortfolio {
+  slug: CloningPortfolioSlug;
+  title: string;
+  inceptionDate: string;
+  nextRebalanceDate: string;
+  /** @nullable */
+  reportPeriod: string | null;
+  result: ModelPortfolioBacktest;
+  holdings: BacktestPosition[];
+  candidates: CloningPick[];
+  coverage: string[];
 }
 
 export interface LazyAsset {

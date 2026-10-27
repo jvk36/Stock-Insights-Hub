@@ -29,4 +29,13 @@ export interface BacktestPosition {
   bookSource?: string | null;
   /** @nullable */
   reason?: string | null;
+  manager?: string;
+  addedWeight?: number;
+  reportPeriod?: string;
+  filingSource?: string;
+  entryPrice?: number;
+  entryDate?: string;
+  costBasis?: number;
+  /** @nullable */
+  gain?: number | null;
 }

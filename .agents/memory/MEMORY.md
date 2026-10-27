@@ -13,4 +13,5 @@
 - [Blind Trust strategy](blind-trust-strategy.md) — eight businesses, official PSUS NAV, October 26 opening-price inception, annual equal rebalancing
 - [Momentum strategy](momentum-strategy.md) — six specified ETFs, strict 200-day SMA screen, quarterly equal allocation, captured October 26 quote inception
 - [Lazy strategy](lazy-strategy.md) — confirmed 50/20/30 mix across six fixed ETF weights, quarterly rebalancing and October 26 quote inception
-- [Portfolio backtests](portfolio-backtests.md) — all three historical simulations; Blind Trust uses original filing-level books and remains the last tab
+- [Portfolio backtests](portfolio-backtests.md) — original three historical simulations; Blind Trust uses original filing-level books
+- [Cloning strategy](cloning-strategy.md) — fourth tab; confirmed ranking, deduplication, closing-price calendar and historical-source constraints

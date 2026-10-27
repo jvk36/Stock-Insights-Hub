@@ -14,6 +14,7 @@
     "test:momentum": "pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/lib/momentum.test.ts ../artifacts/api-server/src/lib/momentum-storage.test.ts",
     "test:lazy": "pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/lib/lazy.test.ts ../artifacts/api-server/src/lib/lazy-storage.test.ts",
     "test:backtests": "pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/lib/portfolio-backtest.test.ts ../artifacts/api-server/src/lib/blind-trust-backtest.test.ts",
+    "test:cloning": "pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/lib/cloning.test.ts",
     "test:subscription-verification": "node --experimental-strip-types src/lib/subscription-verification.test.mjs",
     "test:watchlist": "node --experimental-strip-types --experimental-specifier-resolution=node src/routes/watchlist.test.mjs",
     "test:stock-data": "node --experimental-strip-types --experimental-specifier-resolution=node src/lib/stockData.test.mjs",

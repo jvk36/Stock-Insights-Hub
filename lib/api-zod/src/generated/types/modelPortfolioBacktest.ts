@@ -7,6 +7,7 @@
  */
 import type { BacktestAllocation } from "./backtestAllocation";
 import type { BlindTrustPerformance } from "./blindTrustPerformance";
+import type { CloningReviewAudit } from "./cloningReviewAudit";
 import type { ModelPortfolioBacktestStatus } from "./modelPortfolioBacktestStatus";
 import type { ModelPortfolioBacktestStrategy } from "./modelPortfolioBacktestStrategy";
 
@@ -33,4 +34,5 @@ export interface ModelPortfolioBacktest {
   performance: BlindTrustPerformance[];
   allocations: BacktestAllocation[];
   omittedDates: string[];
+  reviewAudit?: CloningReviewAudit[];
 }

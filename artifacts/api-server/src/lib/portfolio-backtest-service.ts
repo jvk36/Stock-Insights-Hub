@@ -8,6 +8,7 @@ import { BACKTEST_START, runPortfolioBacktest, type BacktestStrategy } from "./p
 import { logger } from "./logger";
 import { fetchBlindTrustBooks } from "./blind-trust-history";
 import { fetchBlindTrustPriceHistory, runBlindTrustBacktest } from "./blind-trust-backtest";
+import { getCloningBacktest } from "./cloning-service";
 
 // A separately namespaced historical cache, never a live strategy/ledger.
 const VERSION = 1;
@@ -27,6 +28,7 @@ function fetchHistory() {
 }
 
 export function getPortfolioBacktest(strategy: BacktestStrategy): Promise<ModelPortfolioBacktest> {
+  if (strategy === "cloning") return getCloningBacktest();
   const current = pending.get(strategy);
   if (current) return current;
   const run = (async () => {

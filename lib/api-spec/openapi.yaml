@@ -19,6 +19,24 @@ tags:
   - name: watchlist
     description: Premium personal watchlist operations
 paths:
+  /model-portfolios/cloning:
+    get:
+      operationId: getCloningPortfolio
+      tags: [ModelPortfolios]
+      summary: Quarterly point-in-time 13F cloning portfolio (Premium)
+      responses:
+        "200":
+          description: Cloning model, manager picks and persisted execution history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CloningPortfolio"
+        "401":
+          description: Sign in required
+        "403":
+          description: Premium required
+        "503":
+          description: Verified data temporarily unavailable
   /model-portfolios/{strategy}/backtest:
     get:
       operationId: getModelPortfolioBacktest
@@ -28,7 +46,7 @@ paths:
         - in: path
           name: strategy
           required: true
-          schema: { type: string, enum: [momentum, lazy, blind-trust] }
+          schema: { type: string, enum: [momentum, lazy, blind-trust, cloning] }
       responses:
         "200":
           description: Historical simulation, performance and every rebalance allocation
@@ -1046,6 +1064,14 @@ components:
         filedOn: { type: [string, "null"] }
         bookSource: { type: [string, "null"] }
         reason: { type: [string, "null"] }
+        manager: { type: string }
+        addedWeight: { type: number }
+        reportPeriod: { type: string }
+        filingSource: { type: string }
+        entryPrice: { type: number }
+        entryDate: { type: string }
+        costBasis: { type: number }
+        gain: { type: [number, "null"] }
     BacktestAllocation:
       type: object
       required: [date, scheduledDate, equity, cash, positions]
@@ -1061,7 +1087,7 @@ components:
       type: object
       required: [strategy, status, message, startDate, endDateExclusive, actualStartDate, actualEndDate, initialCapital, finalValue, gain, returnPercent, refreshedAt, assumptions, performance, allocations, omittedDates]
       properties:
-        strategy: { type: string, enum: [momentum, lazy, blind-trust] }
+        strategy: { type: string, enum: [momentum, lazy, blind-trust, cloning] }
         status: { type: string, enum: [complete, partial, unavailable] }
         message: { type: [string, "null"] }
         startDate: { type: string }
@@ -1083,6 +1109,62 @@ components:
           type: array
           items: { $ref: "#/components/schemas/BacktestAllocation" }
         omittedDates:
+          type: array
+          items: { type: string }
+        reviewAudit:
+          type: array
+          items: { $ref: "#/components/schemas/CloningReviewAudit" }
+    CloningReviewAudit:
+      type: object
+      required: [date, scheduledDate, reportDate, issues, picks]
+      properties:
+        date: { type: string }
+        scheduledDate: { type: string }
+        reportDate: { type: string }
+        issues:
+          type: array
+          items: { type: string }
+        picks:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/CloningPick"
+              - type: object
+                required: [price, pricingIssue]
+                properties:
+                  price: { type: [number, "null"] }
+                  pricingIssue: { type: [string, "null"] }
+    CloningPick:
+      type: object
+      required: [ticker, name, manager, fundCik, reportPeriod, filedOn, filingSource, addedWeight, activity, selected]
+      properties:
+        ticker: { type: string }
+        name: { type: string }
+        manager: { type: string }
+        fundCik: { type: string }
+        reportPeriod: { type: string }
+        filedOn: { type: string }
+        filingSource: { type: string }
+        addedWeight: { type: number }
+        activity: { type: string, enum: [new, increase] }
+        selected: { type: boolean }
+    CloningPortfolio:
+      type: object
+      required: [slug, title, inceptionDate, nextRebalanceDate, reportPeriod, result, holdings, candidates, coverage]
+      properties:
+        slug: { type: string, enum: [cloning] }
+        title: { type: string }
+        inceptionDate: { type: string }
+        nextRebalanceDate: { type: string }
+        reportPeriod: { type: [string, "null"] }
+        result: { $ref: "#/components/schemas/ModelPortfolioBacktest" }
+        holdings:
+          type: array
+          items: { $ref: "#/components/schemas/BacktestPosition" }
+        candidates:
+          type: array
+          items: { $ref: "#/components/schemas/CloningPick" }
+        coverage:
           type: array
           items: { type: string }
     LazyAsset:

@@ -13,4 +13,5 @@ export const ModelPortfolioBacktestStrategy = {
   momentum: "momentum",
   lazy: "lazy",
   "blind-trust": "blind-trust",
+  cloning: "cloning",
 } as const;

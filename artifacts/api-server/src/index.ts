@@ -6,6 +6,7 @@ import { initEdgarFetcher } from "./lib/edgar-fetcher";
 import { startModelPortfolioScheduler } from "./lib/model-portfolio-service";
 import { startMomentumScheduler } from "./lib/momentum-service";
 import { startLazyScheduler } from "./lib/lazy-service";
+import { startCloningScheduler } from "./lib/cloning-service";
 
 const rawPort = process.env["PORT"];
 
@@ -34,6 +35,7 @@ app.listen(port, (err) => {
   startModelPortfolioScheduler();
   startMomentumScheduler();
   startLazyScheduler();
+  startCloningScheduler();
 
   // Pre-warm macro indicators cache in background so first user request is fast
   warmMacroCache().catch(() => { /* non-fatal */ });

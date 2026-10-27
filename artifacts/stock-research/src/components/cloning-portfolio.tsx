@@ -5,8 +5,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   useGetCloningPortfolio,
   getGetCloningPortfolioQueryKey,
-  useGetModelPortfolioBacktest,
-  getGetModelPortfolioBacktestQueryKey,
   type CloningPortfolio,
   type ModelPortfolioBacktest,
   type BacktestAllocation,
@@ -115,10 +113,10 @@ function Intro({ p, loading }: { p?: CloningPortfolio; loading: boolean }) {
             <li>For each tracked manager, the candidate is its single largest new or increased common-share purchase ranked by added portfolio weight = (current shares minus split-normalized prior shares) x quarter-end unit value / current total portfolio value x 100. Weight changes caused only by price moves do not count.</li>
             <li>Manager winners are ranked by added weight, descending. Duplicate tickers keep only the largest entry. The top ten unique stocks are bought in equal dollar amounts; fewer than ten are split equally among those available; none means the portfolio holds cash.</li>
             <li>Only original, current and prior filings available strictly before the trade date are used. Filings arriving on the trade date itself are excluded. A position with no prior comparison filing is not treated as a new purchase.</li>
-            <li>The ten-year backtest covers August 15, 2016 to strictly before August 15, 2026 using the same rules. No taxes, commissions or slippage are modelled.</li>
+            <li>No taxes, commissions or slippage are modelled.</li>
           </ul>
           <h3 className="font-semibold text-foreground">Return expectations and principal risks</h3>
-          <p>This is a concentrated equity strategy. It is correlated with the stock market, can lose money for extended periods, and is not promised to deliver absolute, uncorrelated, or above-market returns. 13F filings are delayed up to 45 days and incomplete: they omit short positions, most international and private holdings, and hedges, so a manager's true exposure may differ. The tracked manager universe reflects present-day selection, which introduces survivorship and selection bias into history. Backtest figures are hypothetical and were not achieved by any account.</p>
+          <p>This is a concentrated equity strategy. It is correlated with the stock market, can lose money for extended periods, and is not promised to deliver absolute, uncorrelated, or above-market returns. 13F filings are delayed up to 45 days and incomplete: they omit short positions, most international and private holdings, and hedges, so a manager's true exposure may differ. The tracked manager universe reflects present-day selection, which introduces survivorship and selection bias. Model figures are hypothetical and were not achieved by any account.</p>
         </div>
         <div>
           <div className="mb-2 text-xs text-muted-foreground">Current candidate purchases{p?.reportPeriod ? ` from 13Fs for the period ending ${date(p.reportPeriod)}` : ""}. Highlighted rows are selected.</div>
@@ -211,92 +209,6 @@ function Live({ p }: { p: CloningPortfolio }) {
   );
 }
 
-function ReviewAudit({ b }: { b: ModelPortfolioBacktest }) {
-  const [year, setYear] = useState("all");
-  const reviews = b.reviewAudit ?? [];
-  const years = [...new Set(reviews.map((r) => r.date.slice(0, 4)))];
-  if (!reviews.length) return null;
-  return (
-    <details className="mt-5 rounded-lg border border-border bg-card p-4" open={b.allocations.length === 0}>
-      <summary className="cursor-pointer text-sm font-semibold">Quarterly selection and price-coverage audit ({reviews.length} reviews)</summary>
-      <p className="my-3 text-xs text-muted-foreground">These are the rule-selected stocks at every review, including reviews whose allocations could not be funded with verified data. A price here does not imply that a trade executed. Shares and compounded equity are shown only in the verified allocation history above; missing prices are never estimated.</p>
-      <label className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">Year
-        <select className="rounded border border-border bg-card p-1 text-foreground" value={year} onChange={(e) => setYear(e.target.value)}>
-          <option value="all">All years</option>{years.map((y) => <option key={y}>{y}</option>)}
-        </select>
-      </label>
-      <div className="max-h-[600px] overflow-auto">
-        <table className="w-full min-w-[800px] text-xs" data-testid="table-cloning-review-audit">
-          <thead className="sticky top-0 bg-muted"><tr><th className={th}>Stock</th><th className={th}>Manager</th><th className={thr}>Added weight</th><th className={thr}>Execution close</th><th className={th}>Filed / Source</th></tr></thead>
-          {reviews.filter((r) => year === "all" || r.date.startsWith(year)).map((r) => (
-            <tbody key={r.date}>
-              <tr className="border-t bg-muted/40"><td colSpan={5} className={`${td} font-semibold`}>Review {date(r.date)} · scheduled {date(r.scheduledDate)} · quarter ended {date(r.reportDate)}</td></tr>
-              {r.picks.map((p, i) => <tr key={`${p.ticker}-${i}`} className="border-t border-border">
-                <td className={td}><span className="font-mono font-semibold">{p.ticker || "Unresolved"}</span><div className="max-w-[180px] truncate text-muted-foreground" title={p.name}>{p.name}</div></td>
-                <td className={td}>{p.manager}</td><td className={tdr}>{num(p.addedWeight)}%</td>
-                <td className={`${tdr} ${p.price == null ? "text-amber-800" : ""}`} title={p.pricingIssue ?? undefined}>{p.price == null ? "Unavailable" : usd(p.price)}</td>
-                <td className={td}>{date(p.filedOn)} · <a className="text-primary underline" href={p.filingSource} target="_blank" rel="noreferrer">13F</a></td>
-              </tr>)}
-              {!!r.issues.length && <tr><td colSpan={5} className="p-3 text-amber-900"><details><summary className="cursor-pointer">{r.issues.length} disclosure / identity coverage notes</summary><ul className="mt-2 space-y-1">{r.issues.map((s, i) => <li key={i}>{s}</li>)}</ul></details></td></tr>}
-            </tbody>
-          ))}
-        </table>
-      </div>
-    </details>
-  );
-}
-
-function Backtest() {
-  const q = useGetModelPortfolioBacktest("cloning", { query: { queryKey: getGetModelPortfolioBacktestQueryKey("cloning"), staleTime: 60 * 60_000 } });
-  const b = q.data;
-  const shortEnd = b?.status !== "complete";
-  const lateStart = b?.actualStartDate != null && b.actualStartDate > b.startDate;
-  return (
-    <section data-testid="section-backtest-cloning">
-      <SectionTitle n="03" title="Ten-year backtest" sub="Hypothetical point-in-time reconstruction, Aug 15, 2016 to before Aug 15, 2026. Separate from live results." />
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-        <span>Simulated on historical 13F filings and closes. Not results anyone achieved; subject to survivorship and selection bias in the current manager universe.</span>
-        <span className="flex items-center gap-2">
-          {b && <span className="font-mono text-[11px]">computed {dateTime(b.refreshedAt)}</span>}
-          <button onClick={() => q.refetch()} disabled={q.isFetching} className={btn} data-testid="button-refresh-cloning-backtest"><RefreshCw className={`w-3.5 h-3.5 ${q.isFetching ? "animate-spin" : ""}`} />Refresh</button>
-        </span>
-      </div>
-      {q.isLoading ? (
-        <div className="space-y-3"><div className="grid grid-cols-2 lg:grid-cols-6 gap-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20" />)}</div><Skeleton className="h-64 w-full" /></div>
-      ) : q.isError || !b ? <ErrorBox what="the backtest" onRetry={() => q.refetch()} id="cloning-backtest" /> : (
-        <>
-          <StatusNote b={b} id="cloning-backtest" />
-          {b.allocations.length === 0 && <ReviewAudit b={b} />}
-          {b.status === "unavailable" && b.allocations.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No simulated figures are shown. Nothing is estimated in their place.</div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6 mb-5">
-                <Stat id="cloning-bt-start" k="Simulated start" v={date(b.actualStartDate)} sub={`window from ${date(b.startDate)}`} />
-                <Stat id="cloning-bt-end" k="Last simulated close" v={date(b.actualEndDate)} sub={`before ${date(b.endDateExclusive)}`} />
-                <Stat id="cloning-bt-initial" k="Starting capital" v={usd(b.initialCapital, 0)} sub="hypothetical" />
-                <Stat id="cloning-bt-final" k="Ending value" v={b.finalValue == null ? "Unavailable" : usd(b.finalValue)} />
-                <Stat id="cloning-bt-gain" k="Simulated return ($)" v={signedUsd(b.gain)} cls={tone(b.gain)} />
-                <Stat id="cloning-bt-return" k="Simulated return (%)" v={pct(b.returnPercent)} cls={tone(b.returnPercent)} sub={b.status === "complete" && !shortEnd && !lateStart ? "cumulative, not annualized" : "covers actual dates only"} />
-              </div>
-              {(shortEnd || lateStart || b.status !== "complete") && <p className="mb-4 text-xs text-amber-800">Simulated coverage is {date(b.actualStartDate)} to {date(b.actualEndDate)}, not the full ten-year window. Returns apply to that span only.</p>}
-              <h3 className="text-sm font-semibold mb-2">Hypothetical simulated value, {date(b.actualStartDate)} to {date(b.actualEndDate)}</h3>
-              <PerformanceChart p={{ performance: b.performance }} />
-              <h3 className="mt-6 text-sm font-semibold mb-2">Quarterly allocations</h3>
-              <CloningAllocationTable allocations={b.allocations} testId="cloning-backtest-allocations" />
-              <ReviewAudit b={b} />
-              {b.omittedDates.length > 0 && <p className="mt-3 text-xs text-amber-800">Omitted valuation sessions (insufficient data): {b.omittedDates.map(date).join(", ")}.</p>}
-              {b.assumptions.length > 0 && (
-                <ul className="mt-5 space-y-1.5 text-xs text-muted-foreground border-l-2 border-primary/40 pl-3">{b.assumptions.map((s, i) => <li key={i}>{s}</li>)}</ul>
-              )}
-            </>
-          )}
-        </>
-      )}
-    </section>
-  );
-}
-
 export function CloningView({ enabled }: { enabled: boolean }) {
   const q = useGetCloningPortfolio({ query: { queryKey: getGetCloningPortfolioQueryKey(), enabled, staleTime: 60_000, refetchInterval: 5 * 60_000, refetchIntervalInBackground: false } });
   const p = q.data;
@@ -316,7 +228,6 @@ export function CloningView({ enabled }: { enabled: boolean }) {
           : q.isError || !p ? <ErrorBox what="the live Cloning portfolio" onRetry={() => q.refetch()} id="cloning" />
           : <Live p={p} />}
       </section>
-      <Backtest />
       <p className="text-xs leading-5 text-muted-foreground border-t border-border pt-4">Hypothetical, concentrated equity model for education only. Not investment advice. No outperformance or absolute return is promised. 13F data is delayed and incomplete. Excludes taxes, commissions, and slippage.</p>
     </>
   );

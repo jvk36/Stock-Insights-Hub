@@ -19,8 +19,14 @@ Requested inception is August 15, 2026; because that is Saturday, execute at Aug
 
 ## Historical-source constraints
 
+The user requested that Cloning have no Backtesting section. Keep its visible scope to the introduction and since-inception model portfolio; do not restore historical backtesting without a new request.
+
+**Why:** The user explicitly asked to drop the Backtesting section.
+
+**How to apply:** Preserve live performance and allocation history. The historical-source rules below apply only if historical backtesting is requested again.
+
 Never silently discard an unpriceable winner to build a survivor-only backtest. A valid-looking USD ticker series can belong to a different issuer after ticker reuse or a bad archive mapping. Verify identity, not merely currency and symbol. Missing current/prior filings are not evidence of no purchases.
 
 **Why:** Investigation found archived holdings mapped to unrelated currently priced companies, and acquired/delisted winners lacking historical quotes. Such substitutions would produce believable but false performance. Original filing dates also lack precise acceptance times, so same-day filings are conservatively excluded rather than assumed available at the close.
 
-**How to apply:** Show selection/price-coverage audits even if compounded allocations cannot be verified. Explicitly withhold complete-window returns when blocked. Reconstruct acquisition proceeds only from verified completion terms, never a rumored deal price, a stale last quote, or arbitrary forward filling. Disclose that retrospective inception reconstruction is hypothetical, not recorded execution.
+**How to apply:** If historical backtesting is requested again, show selection/price-coverage audits even if compounded allocations cannot be verified and explicitly withhold complete-window returns when blocked. Reconstruct acquisition proceeds only from verified completion terms, never a rumored deal price, a stale last quote, or arbitrary forward filling. Disclose that retrospective inception reconstruction is hypothetical, not recorded execution.

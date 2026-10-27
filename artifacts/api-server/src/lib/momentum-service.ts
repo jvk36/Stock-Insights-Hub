@@ -61,7 +61,7 @@ export function refreshMomentumPortfolio(): Promise<void> {
     await ensureMomentum();
     const [row] = await db.select().from(modelPortfoliosTable).where(eq(modelPortfoliosTable.slug, SLUG));
     const state = row.state as MomentumState;
-    if (state.refreshedAt && Date.now() - Date.parse(state.refreshedAt) < REFRESH_MS) return;
+    if (state.liveValuationVersion === 1 && !state.message && state.refreshedAt && Date.now() - Date.parse(state.refreshedAt) < REFRESH_MS) return;
     await commitMomentumMarket(await fetchMomentumMarket(state.launchDate));
   })().finally(() => { running = null; });
   return running;
@@ -77,6 +77,9 @@ export function startMomentumScheduler() {
 
 export async function getMomentumPortfolio(): Promise<MomentumPortfolio> {
   await ensureMomentum();
+  // Requests also wake an idle/scaled-down server; timers alone are insufficient.
+  await refreshMomentumPortfolio().catch((error) =>
+    logger.error({ err: error }, "Momentum request refresh failed; returning stored values"));
   return db.transaction(async (tx) => {
     const [row] = await tx.select().from(modelPortfoliosTable).where(eq(modelPortfoliosTable.slug, SLUG));
     const state = row.state as MomentumState;

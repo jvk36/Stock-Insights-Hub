@@ -61,7 +61,7 @@ export function refreshLazyPortfolio(): Promise<void> {
     await ensureLazy();
     const [row] = await db.select().from(modelPortfoliosTable).where(eq(modelPortfoliosTable.slug, SLUG));
     const state = row.state as LazyState;
-    if (state.refreshedAt && Date.now() - Date.parse(state.refreshedAt) < REFRESH_MS) return;
+    if (state.liveValuationVersion === 1 && !state.message && state.refreshedAt && Date.now() - Date.parse(state.refreshedAt) < REFRESH_MS) return;
     await commitLazyMarket(await fetchMomentumMarket(state.launchDate, new Date(), LAZY_UNIVERSE));
   })().finally(() => { running = null; });
   return running;
@@ -77,6 +77,8 @@ export function startLazyScheduler() {
 
 export async function getLazyPortfolio(): Promise<LazyPortfolio> {
   await ensureLazy();
+  await refreshLazyPortfolio().catch((error) =>
+    logger.error({ err: error }, "Lazy request refresh failed; returning stored values"));
   return db.transaction(async (tx) => {
     const [row] = await tx.select().from(modelPortfoliosTable).where(eq(modelPortfoliosTable.slug, SLUG));
     const state = row.state as LazyState;

@@ -1,5 +1,6 @@
 import type { MomentumCandidate, MomentumHolding, BlindTrustPerformance } from "@workspace/api-zod";
 import type { Action, Prices, EngineEvent } from "./model-portfolio-engine";
+import { portfolioLivePrices } from "./portfolio-live-prices";
 
 export const MOMENTUM_INCEPTION = "2026-10-26";
 export const MOMENTUM_CAPITAL = 30_000;
@@ -17,6 +18,7 @@ export type MomentumState = {
   nextRebalanceDate: string | null; lastRebalanceDate: string | null; processedDate: string | null;
   positions: Position[]; cash: number; candidates: MomentumCandidate[];
   refreshedAt: string | null; message: string | null; valuationGaps: string[];
+  liveValuationVersion?: 1;
 };
 export type MomentumMarket = {
   observedAt: string; targetDate: string; prices: Prices; adjusted: Prices; actions: Action[];
@@ -141,6 +143,8 @@ export function capturedMomentumInception(candidates: MomentumCandidate[], obser
 export function advanceMomentum(state: MomentumState, market: MomentumMarket) {
   let next = structuredClone(state);
   next.refreshedAt = market.observedAt;
+  next.liveValuationVersion = 1;
+  next.message = null;
   const events: (EngineEvent & { selectionSnapshot?: MomentumCandidate[]; observedAt?: string })[] = [];
   const snapshots: MomentumSnapshot[] = [];
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(market.observedAt));
@@ -203,5 +207,7 @@ export function advanceMomentum(state: MomentumState, market: MomentumMarket) {
   if (next.candidates.some((c) => c.status !== "ready") && !next.message) {
     next.message = "Current ETF signals are incomplete. Existing holdings and the last verified valuation are preserved; allocations require all six verified signals.";
   }
+  const liveMark = portfolioLivePrices(next.positions, next.processedDate, market);
+  if (liveMark) record(liveMark.date, liveMark.prices, "quote", liveMark.valuedAt);
   return { state: next, events, snapshots };
 }

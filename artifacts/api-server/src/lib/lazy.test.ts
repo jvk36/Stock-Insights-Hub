@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { advanceLazy, capturedLazyInception, LAZY_UNIVERSE } from "./lazy-engine";
+import { advanceLazy, capturedLazyInception, LAZY_UNIVERSE, type LazyState } from "./lazy-engine";
 import { LAZY_CAPTURED_AT, LAZY_INCEPTION_ASSETS } from "./lazy-inception";
 import { nextQuarter, type MomentumMarket } from "./momentum-engine";
 
@@ -14,6 +14,47 @@ function market(dates: string[], factor = 1): MomentumMarket {
   };
 }
 const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
+
+test("Lazy refresh values fresh quotes and clears recovered errors without changing holdings", () => {
+  const initial: LazyState = inception().state;
+  initial.message = "Current ETF prices are incomplete; existing holdings and last verified valuation are preserved.";
+  const m = market(["2026-10-26"]);
+  m.observedAt = "2026-10-27T16:00:00.000Z";
+  m.live = Object.fromEntries(LAZY_INCEPTION_ASSETS.map((a) => [a.ticker, { price: a.price! * 1.1, at: "2026-10-27T15:59:00.000Z" }]));
+  const r = advanceLazy(initial, m);
+  assert.equal(r.state.message, null);
+  assert.equal(r.snapshots.at(-1)!.priceBasis, "quote");
+  assert.equal(r.snapshots.at(-1)!.date, "2026-10-27");
+  near(r.snapshots.at(-1)!.value, 33000);
+  assert.deepEqual(r.state.positions, initial.positions);
+  assert.equal(r.state.processedDate, "2026-10-26");
+  assert.equal(r.state.nextRebalanceDate, "2027-01-26");
+  assert.equal(r.events.length, 0);
+  assert.equal(advanceLazy(r.state, m).events.length, 0);
+  // The completed close replaces the intraday mark; it is not another purchase.
+  m.prices = market(["2026-10-27"], 1.2).prices;
+  m.targetDate = "2026-10-27"; m.observedAt = "2026-10-27T22:00:00Z";
+  const closed = advanceLazy(r.state, m);
+  assert.equal(closed.snapshots.at(-1)!.priceBasis, "close");
+  near(closed.snapshots.at(-1)!.value, 36000);
+  assert.equal(closed.events.length, 0);
+});
+
+test("Lazy rejects partial/stale intraday marks and waits for corporate-action accounting", () => {
+  for (const kind of ["missing", "stale", "dividend"] as const) {
+    const initial = inception().state;
+    const m = market(["2026-10-26"]);
+    m.observedAt = "2026-10-27T16:00:00Z";
+    m.live = Object.fromEntries(LAZY_INCEPTION_ASSETS.map((a) => [a.ticker, { price: a.price!, at: "2026-10-27T15:59:00Z" }]));
+    if (kind === "missing") delete m.live.IEI;
+    if (kind === "stale") m.live.IEI.at = "2026-10-26T19:59:00Z";
+    if (kind === "dividend") m.actions = [{ type: "dividend", ticker: "TIP", date: "2026-10-27", value: 1 }];
+    const r = advanceLazy(initial, m);
+    assert.ok(r.snapshots.every((s) => s.priceBasis === "close"));
+    assert.equal(r.events.length, 0);
+    assert.deepEqual(r.state.positions, initial.positions);
+  }
+});
 
 test("Lazy captures six exact weights and fractional shares totaling $30,000", () => {
   const r = inception();

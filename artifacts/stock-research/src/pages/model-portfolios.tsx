@@ -169,7 +169,7 @@ function ModelPortfolio({ p }: { p: BlindTrustPortfolio }) {
 export default function ModelPortfolios() {
   const [location] = useLocation();
   const tab = location.startsWith("/model-portfolios/magic-formula") ? "magic-formula" : location.startsWith("/model-portfolios/cloning") ? "cloning" : location.startsWith("/model-portfolios/blind-trust") ? "blind-trust" : location.startsWith("/model-portfolios/lazy") ? "lazy" : "momentum";
-  const live = { staleTime: 60_000, refetchInterval: 5 * 60_000, refetchIntervalInBackground: false };
+  const live = { staleTime: 60_000, refetchInterval: 5 * 60_000, refetchIntervalInBackground: false, refetchOnMount: "always" as const, refetchOnWindowFocus: "always" as const };
   const q = useGetBlindTrustPortfolio({ query: { queryKey: getGetBlindTrustPortfolioQueryKey(), enabled: tab === "blind-trust", ...live } });
   const mq = useGetMomentumPortfolio({ query: { queryKey: getGetMomentumPortfolioQueryKey(), enabled: tab === "momentum", ...live } });
   const lq = useGetLazyPortfolio({ query: { queryKey: getGetLazyPortfolioQueryKey(), enabled: tab === "lazy", ...live } });

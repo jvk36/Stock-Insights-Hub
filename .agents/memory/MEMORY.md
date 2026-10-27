@@ -16,3 +16,4 @@
 - [Portfolio backtests](portfolio-backtests.md) — original three historical simulations; Blind Trust uses original filing-level books
 - [Cloning strategy](cloning-strategy.md) — fourth tab; confirmed ranking, deduplication, closing-price calendar and historical-source constraints
 - [Magic Formula strategy](magic-formula-strategy.md) — fifth tab; standard Greenblatt ROC, annual frozen rankings and four staggered groups with dividend reinvestment
+- [Portfolio price refresh](portfolio-price-refresh.md) — intraday marks do not trade; reads wake refreshes and recovered feeds must clear old warnings.

@@ -29,6 +29,44 @@ function addClose(m: MomentumMarket, date: string, prices: Record<string, number
 }
 const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-7, `${a} != ${b}`);
 
+test("intraday refresh updates valuation and clears recovered warnings without trading", () => {
+  const m = fixture(["VTI"]);
+  const initial = advanceMomentum(initialMomentum(), m).state;
+  initial.message = "Current ETF signals are incomplete.";
+  addClose(m, "2026-10-26", { VTI: 110 });
+  m.observedAt = "2026-10-27T16:00:00.000Z";
+  m.live = Object.fromEntries(ETF_UNIVERSE.map((e) => [e.ticker, { price: e.ticker === "VTI" ? 121 : 90, at: "2026-10-27T15:59:00.000Z" }]));
+  const r = advanceMomentum(initial, m);
+  assert.equal(r.state.message, null);
+  assert.deepEqual(r.state.positions, initial.positions);
+  assert.equal(r.state.nextRebalanceDate, initial.nextRebalanceDate);
+  assert.equal(r.events.length, 0);
+  assert.equal(r.snapshots.at(-1)!.priceBasis, "quote");
+  assert.equal(r.snapshots.at(-1)!.valuedAt, "2026-10-27T15:59:00.000Z");
+  near(r.snapshots.at(-1)!.value, 33000);
+  assert.equal(r.state.processedDate, "2026-10-26");
+  const again = advanceMomentum(r.state, m);
+  assert.equal(again.events.length, 0);
+  assert.deepEqual(again.snapshots.at(-1), r.snapshots.at(-1));
+});
+
+test("Momentum never marks stale quotes or unaccounted splits as a fresh valuation", () => {
+  for (const kind of ["stale", "split", "missing-close"] as const) {
+    const m = fixture(["VTI"]);
+    const initial = advanceMomentum(initialMomentum(), m).state;
+    addClose(m, "2026-10-26", { VTI: 110 });
+    m.observedAt = "2026-10-27T16:00:00.000Z";
+    m.live = Object.fromEntries(ETF_UNIVERSE.map((e) => [e.ticker, { price: 121, at: "2026-10-27T15:59:00.000Z" }]));
+    if (kind === "stale") m.live.VTI.at = "2026-10-26T19:59:00Z";
+    if (kind === "split") m.actions = [{ type: "split", ticker: "VTI", date: "2026-10-27", value: 2 }];
+    if (kind === "missing-close") { m.targetDate = "2026-10-27"; m.prices.VEU["2026-10-27"] = 90; }
+    const r = advanceMomentum(initial, m);
+    assert.ok(r.snapshots.every((s) => s.priceBasis === "close"));
+    assert.deepEqual(r.state.positions, initial.positions);
+    assert.equal(r.events.length, 0);
+  }
+});
+
 test("actual launch capture is complete, timestamped and portable without changing inception", () => {
   const r = capturedMomentumInception(MOMENTUM_INCEPTION_SIGNALS, MOMENTUM_CAPTURED_AT);
   assert.equal(r.state.inceptionDate, "2026-10-26");

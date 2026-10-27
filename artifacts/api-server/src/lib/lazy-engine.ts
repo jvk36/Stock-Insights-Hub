@@ -1,6 +1,7 @@
 import type { LazyAsset, LazyHolding, BlindTrustPerformance } from "@workspace/api-zod";
 import type { EngineEvent } from "./model-portfolio-engine";
 import { nextQuarter, type MomentumMarket } from "./momentum-engine";
+import { portfolioLivePrices } from "./portfolio-live-prices";
 
 export const LAZY_INCEPTION = "2026-10-26";
 export const LAZY_CAPITAL = 30_000;
@@ -18,6 +19,7 @@ export type LazyState = {
   nextRebalanceDate: string; lastRebalanceDate: string; processedDate: string;
   positions: Position[]; cash: number; assets: LazyAsset[];
   refreshedAt: string | null; message: string | null; valuationGaps: string[];
+  liveValuationVersion?: 1;
 };
 export type LazySnapshot = BlindTrustPerformance & {
   prices: Record<string, number>; priceBasis: "quote" | "close"; valuedAt: string;
@@ -87,6 +89,8 @@ export function capturedLazyInception(assets: LazyAsset[], observedAt: string) {
 export function advanceLazy(state: LazyState, market: MomentumMarket) {
   let next = structuredClone(state);
   next.refreshedAt = market.observedAt;
+  next.liveValuationVersion = 1;
+  next.message = null;
   const events: LazyEvent[] = [];
   const snapshots: LazySnapshot[] = [];
   next.assets = LAZY_UNIVERSE.map((e) => {
@@ -130,6 +134,12 @@ export function advanceLazy(state: LazyState, market: MomentumMarket) {
   }
   if (next.assets.some((a) => a.price == null) && !next.message) {
     next.message = "Current ETF prices are incomplete; existing holdings and last verified valuation are preserved.";
+  }
+  const liveMark = portfolioLivePrices(next.positions, next.processedDate, market);
+  if (liveMark) {
+    const value = next.cash + next.positions.reduce((sum, p) => sum + p.shares * liveMark.prices[p.ticker], 0);
+    snapshots.push({ date: liveMark.date, value, cash: next.cash, returnPercent: (value / LAZY_CAPITAL - 1) * 100,
+      prices: liveMark.prices, priceBasis: "quote", valuedAt: liveMark.valuedAt });
   }
   return { state: next, events, snapshots };
 }

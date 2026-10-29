@@ -602,14 +602,14 @@ export default function StockIndexes() {
               href="/13f"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
             >
-              Top Hedge Funds - Insights
+              Hedge Fund Blueprint
             </Link>
             <Link
               href="/model-portfolios"
               data-testid="link-nav-model-portfolios"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap shrink-0"
             >
-              Model Portfolios
+              Algo-Portfolios
             </Link>
             <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
               Stock Screens

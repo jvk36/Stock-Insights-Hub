@@ -35,7 +35,7 @@ function Header() {
           <span className="font-bold text-foreground tracking-tight">Terminal</span>
         </div>
         <nav className="flex items-center gap-1 min-w-0 overflow-x-auto [scrollbar-width:none]">
-          {[["/macro", "Macro Summary"], ["/13f", "Top Hedge Funds - Insights"], ["/model-portfolios", "Model Portfolios"], ["/indexes", "Stock Screens"], ["/stock", "Stock Insights"], ["/watchlist", "Stock Watch"]].map(([h, t]) => (
+          {[["/macro", "Macro Summary"], ["/13f", "Hedge Fund Blueprint"], ["/model-portfolios", "Algo-Portfolios"], ["/indexes", "Stock Screens"], ["/stock", "Stock Insights"], ["/watchlist", "Stock Watch"]].map(([h, t]) => (
             h === "/model-portfolios"
               ? <span key={h} className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap shrink-0">{t}</span>
               : <Link key={h} href={h} className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap shrink-0">{t}</Link>
@@ -188,7 +188,7 @@ export default function ModelPortfolios() {
       <Header />
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 space-y-8">
         <div>
-          <div className="flex items-center gap-3 mb-1"><Briefcase className="w-6 h-6 text-primary" /><h1 className="text-2xl font-bold tracking-tight">Model Portfolios</h1></div>
+          <div className="flex items-center gap-3 mb-1"><Briefcase className="w-6 h-6 text-primary" /><h1 className="text-2xl font-bold tracking-tight">Algo-Portfolios</h1></div>
           <p className="text-sm text-muted-foreground">Rules-based, fully auditable hypothetical portfolios. Every number traces to a dated source or ledger entry.</p>
           <div className="mt-4 flex gap-1 overflow-x-auto border-b border-border" role="tablist">
             <Link href="/model-portfolios/cloning" role="tab" aria-selected={tab === "cloning"} data-testid="tab-cloning" className={tabCls(tab === "cloning")}>Cloning</Link>

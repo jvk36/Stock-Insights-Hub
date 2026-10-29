@@ -91,12 +91,6 @@ export default function StockDetail() {
               >
                 Hedge Fund Blueprint
               </Link>
-              <Link
-                href="/watchlist"
-                className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
-              >
-                Stock Watch
-              </Link>
               <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
                 Stock Insights
               </span>
@@ -113,6 +107,7 @@ export default function StockDetail() {
               >
                 Stock Screens
               </Link>
+              <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Watch</Link>
             </nav>
           </div>
         </header>
@@ -198,12 +193,6 @@ export default function StockDetail() {
             >
               Hedge Fund Blueprint
             </Link>
-            <Link
-              href="/watchlist"
-              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
-            >
-              Stock Watch
-            </Link>
             <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
               Stock Insights
             </span>
@@ -220,6 +209,7 @@ export default function StockDetail() {
             >
               Stock Screens
             </Link>
+            <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Watch</Link>
           </nav>
 
           <div className="hidden flex-1 md:block" />

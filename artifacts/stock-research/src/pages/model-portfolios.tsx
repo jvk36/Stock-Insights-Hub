@@ -8,6 +8,8 @@ import { PortfolioBacktest } from "@/components/portfolio-backtest";
 import { TrendingUp, Briefcase, RefreshCw, AlertTriangle, Clock } from "lucide-react";
 import { NA, usd, num, pct, signedUsd, date, dateTime, tone, label, Stat, SectionTitle, PerformanceChart, History, th, thr, td, tdr } from "@/components/model-portfolio-shared";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMembership } from "@/lib/membership";
+import { PortfolioIntroPreview } from "@/components/portfolio-intro-preview";
 import {
   useGetBlindTrustPortfolio,
   getGetBlindTrustPortfolioQueryKey,
@@ -35,7 +37,7 @@ function Header() {
           <span className="font-bold text-foreground tracking-tight">Terminal</span>
         </div>
         <nav className="flex items-center gap-1 min-w-0 overflow-x-auto [scrollbar-width:none]">
-          {[["/macro", "Macro Summary"], ["/13f", "Hedge Fund Blueprint"], ["/watchlist", "Stock Watch"], ["/stock", "Stock Insights"], ["/model-portfolios", "Algo-Portfolios"], ["/indexes", "Stock Screens"]].map(([h, t]) => (
+          {[["/macro", "Macro Summary"], ["/13f", "Hedge Fund Blueprint"], ["/stock", "Stock Insights"], ["/model-portfolios", "Algo-Portfolios"], ["/indexes", "Stock Screens"], ["/watchlist", "Stock Watch"]].map(([h, t]) => (
             h === "/model-portfolios"
               ? <span key={h} className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap shrink-0">{t}</span>
               : <Link key={h} href={h} className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap shrink-0">{t}</Link>
@@ -168,11 +170,13 @@ function ModelPortfolio({ p }: { p: BlindTrustPortfolio }) {
 
 export default function ModelPortfolios() {
   const [location] = useLocation();
+  const { membership, loading, authState } = useMembership();
+  const isPremium = !loading && authState !== "unknown" && membership?.premium === true;
   const tab = location.startsWith("/model-portfolios/magic-formula") ? "magic-formula" : location.startsWith("/model-portfolios/cloning") ? "cloning" : location.startsWith("/model-portfolios/blind-trust") ? "blind-trust" : location.startsWith("/model-portfolios/lazy") ? "lazy" : "momentum";
   const live = { staleTime: 60_000, refetchInterval: 5 * 60_000, refetchIntervalInBackground: false, refetchOnMount: "always" as const, refetchOnWindowFocus: "always" as const };
-  const q = useGetBlindTrustPortfolio({ query: { queryKey: getGetBlindTrustPortfolioQueryKey(), enabled: tab === "blind-trust", ...live } });
-  const mq = useGetMomentumPortfolio({ query: { queryKey: getGetMomentumPortfolioQueryKey(), enabled: tab === "momentum", ...live } });
-  const lq = useGetLazyPortfolio({ query: { queryKey: getGetLazyPortfolioQueryKey(), enabled: tab === "lazy", ...live } });
+  const q = useGetBlindTrustPortfolio({ query: { queryKey: getGetBlindTrustPortfolioQueryKey(), enabled: isPremium && tab === "blind-trust", ...live } });
+  const mq = useGetMomentumPortfolio({ query: { queryKey: getGetMomentumPortfolioQueryKey(), enabled: isPremium && tab === "momentum", ...live } });
+  const lq = useGetLazyPortfolio({ query: { queryKey: getGetLazyPortfolioQueryKey(), enabled: isPremium && tab === "lazy", ...live } });
   const p = q.data;
   useEffect(() => {
     const t = tab === "magic-formula" ? "Magic Formula Model Portfolio | Terminal" : tab === "cloning" ? "Cloning Model Portfolio | Terminal" : tab === "lazy" ? "Lazy Model Portfolio | Terminal" : tab === "momentum" ? "Momentum Model Portfolio | Terminal" : "Blind Trust Model Portfolio | Terminal";
@@ -199,7 +203,7 @@ export default function ModelPortfolios() {
           </div>
         </div>
 
-        {tab === "magic-formula" ? <MagicFormulaView enabled /> : tab === "cloning" ? <CloningView enabled /> : tab === "lazy" ? <LazyView q={lq} /> : tab === "momentum" ? <MomentumView q={mq} /> : q.isLoading ? (
+        {!isPremium ? <PortfolioIntroPreview strategy={tab} /> : tab === "magic-formula" ? <MagicFormulaView enabled /> : tab === "cloning" ? <CloningView enabled /> : tab === "lazy" ? <LazyView q={lq} /> : tab === "momentum" ? <MomentumView q={mq} /> : q.isLoading ? (
           <div className="space-y-4"><Skeleton className="h-40 w-full" /><div className="grid grid-cols-2 lg:grid-cols-6 gap-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20" />)}</div><Skeleton className="h-64 w-full" /></div>
         ) : q.isError || !p ? (
           <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-sm" data-testid="status-error">

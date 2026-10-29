@@ -1033,12 +1033,6 @@ export default function ThirteenFInsights() {
               Hedge Fund Blueprint
             </span>
             <Link
-              href="/watchlist"
-              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
-            >
-              Stock Watch
-            </Link>
-            <Link
               href="/stock"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
             >
@@ -1057,6 +1051,7 @@ export default function ThirteenFInsights() {
             >
               Stock Screens
             </Link>
+            <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Watch</Link>
           </nav>
 
           <div className="flex-1" />

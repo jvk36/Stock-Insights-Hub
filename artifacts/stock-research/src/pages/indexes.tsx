@@ -6,6 +6,8 @@ import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMembership } from "@/lib/membership";
+import { PremiumFeatureNotice } from "@/components/premium-feature-notice";
 import {
   useGetIndexSp500,    getGetIndexSp500QueryKey,
   useGetIndexNasdaq100, getGetIndexNasdaq100QueryKey,
@@ -266,6 +268,8 @@ function IndexTabContent({
   legendLabel,
   source,
 }: IndexTabContentProps) {
+  const { membership, loading, authState } = useMembership();
+  const isPremium = !loading && authState !== "unknown" && membership?.premium === true;
   const [filterText, setFilterText]     = useState("");
   const [activeSector, setActiveSector] = useState<string | null>(null);
   const [showSectors, setShowSectors]   = useState(false);
@@ -276,6 +280,7 @@ function IndexTabContent({
   const metricsQuery = useGetIndexMetrics(indexId, {
     query: {
       queryKey: getGetIndexMetricsQueryKey(indexId),
+      enabled: isPremium,
       staleTime: 0,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       refetchInterval: (query: any) => (query?.state?.data?.metricsReady ? false : 15_000),
@@ -300,7 +305,7 @@ function IndexTabContent({
       );
     }
     // Screener filter — applied while a panel is open
-    if (openPanel !== null) {
+    if (isPremium && openPanel !== null) {
       const screener = SCREENERS.find((s) => s.id === openPanel);
       if (screener) {
         const vals = screenerValues[openPanel];
@@ -320,7 +325,7 @@ function IndexTabContent({
     // Keep the presentation deterministic regardless of API/source ordering.
     // slice() makes this a non-mutating stable sort (modern JS sort stability).
     return list.slice().sort((a, b) => a.symbol.localeCompare(b.symbol));
-  }, [stocks, activeSector, filterText, openPanel, screenerValues, metricsData]);
+  }, [stocks, activeSector, filterText, openPanel, screenerValues, metricsData, isPremium]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   function togglePanel(scr: ScreenerId) {
@@ -392,7 +397,7 @@ function IndexTabContent({
         {SCREENERS.map((scr) => {
           const isOpen   = openPanel === scr.id;
           const modified = isModified(scr.id);
-          const disabled = !metricsReady;
+          const disabled = isPremium && !metricsReady;
 
           const btn = (
             <button
@@ -406,6 +411,7 @@ function IndexTabContent({
               }`}
             >
               {scr.label}
+              {!isPremium && <span className="text-[10px] opacity-70">Premium</span>}
               {modified && (
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${isOpen ? "bg-primary-foreground" : "bg-primary"} opacity-80`}
@@ -464,7 +470,10 @@ function IndexTabContent({
       )}
 
       {/* ── Screener panel ─────────────────────────────────────────────── */}
-      {openPanel !== null && activeScreener && (
+      {openPanel !== null && !isPremium && (
+        <div className="my-3"><PremiumFeatureNotice feature={`${activeScreener?.label ?? "Advanced"} screening`} /></div>
+      )}
+      {isPremium && openPanel !== null && activeScreener && (
         <div className="border border-border rounded-xl bg-card px-5 py-4 mb-3 mt-1">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
@@ -605,12 +614,6 @@ export default function StockIndexes() {
               Hedge Fund Blueprint
             </Link>
             <Link
-              href="/watchlist"
-              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
-            >
-              Stock Watch
-            </Link>
-            <Link
               href="/stock"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
             >
@@ -626,6 +629,7 @@ export default function StockIndexes() {
             <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
               Stock Screens
             </span>
+            <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Watch</Link>
           </nav>
 
           <div className="flex-1" />

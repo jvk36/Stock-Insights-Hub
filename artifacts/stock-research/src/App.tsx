@@ -120,15 +120,15 @@ function Routes() {
     <Route path="/sign-up/*?">{() => <AuthPage mode="sign-up" />}</Route>
     <Route path="/account">{() => <SignedInRoute><Account /></SignedInRoute>}</Route>
     <Route path="/admin/members">{() => <PremiumRoute><AdminMembers /></PremiumRoute>}</Route>
-    <Route path="/indexes">{() => <PremiumRoute><StockIndexes /></PremiumRoute>}</Route>
+    <Route path="/indexes" component={StockIndexes} />
     <Route path="/watchlist">{() => <SignedInRoute><Watchlist /></SignedInRoute>}</Route>
 
-    <Route path="/model-portfolios">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>
-    <Route path="/model-portfolios/blind-trust">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>
-    <Route path="/model-portfolios/momentum">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>
-    <Route path="/model-portfolios/lazy">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>
-    <Route path="/model-portfolios/cloning">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>
-    <Route path="/model-portfolios/magic-formula">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>
+    <Route path="/model-portfolios" component={ModelPortfolios} />
+    <Route path="/model-portfolios/blind-trust" component={ModelPortfolios} />
+    <Route path="/model-portfolios/momentum" component={ModelPortfolios} />
+    <Route path="/model-portfolios/lazy" component={ModelPortfolios} />
+    <Route path="/model-portfolios/cloning" component={ModelPortfolios} />
+    <Route path="/model-portfolios/magic-formula" component={ModelPortfolios} />
     <Route path="/stock" component={StockDetail} />
     <Route path="/stock/:symbol" component={StockDetail} />
     <Route component={NotFound} />

@@ -83,6 +83,12 @@ export default function MacroSummary() {
             >
               Hedge Fund Blueprint
             </Link>
+            <button
+              onClick={() => setLocation("/stock")}
+              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors cursor-pointer"
+            >
+              Stock Insights
+            </button>
             <Link
               href="/model-portfolios"
               data-testid="link-nav-model-portfolios"
@@ -96,12 +102,6 @@ export default function MacroSummary() {
             >
               Stock Screens
             </Link>
-            <button
-              onClick={() => setLocation("/stock")}
-              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors cursor-pointer"
-            >
-              Stock Insights
-            </button>
             <Link
               href="/watchlist"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"

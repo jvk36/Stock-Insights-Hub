@@ -6,6 +6,7 @@ import indexesRouter from "./indexes";
 import thirteenFRouter from "./thirteen-f";
 import membershipRouter from "./membership";
 import { requirePremium } from "../lib/membership-auth";
+import { createStockAccess } from "../lib/stock-access";
 import watchlistRouter from "./watchlist";
 import modelPortfoliosRouter from "./model-portfolios";
 
@@ -15,8 +16,9 @@ router.use(healthRouter);
 router.use(membershipRouter);
 router.use(macroRouter);
 router.use(thirteenFRouter);
-router.use(requirePremium);
+router.use("/stock/:symbol/:section", createStockAccess(requirePremium));
 router.use(stockRouter);
+router.use(requirePremium);
 router.use(indexesRouter);
 router.use(watchlistRouter);
 router.use(modelPortfoliosRouter);

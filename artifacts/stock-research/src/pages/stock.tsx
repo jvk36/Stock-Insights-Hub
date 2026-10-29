@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation, useParams, Link } from "wouter";
-import { ArrowRight, Search, TrendingUp } from "lucide-react";
+import { ArrowRight, Lock, Search, TrendingUp } from "lucide-react";
+import { useMembership } from "@/lib/membership";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGetStockQuote, getGetStockQuoteQueryKey } from "@workspace/api-client-react";
@@ -27,6 +28,22 @@ function SectionDivider({ children }: { children: React.ReactNode }) {
         {children}
       </h2>
       <div className="flex-1 h-px bg-border" />
+    </div>
+  );
+}
+
+function PremiumStockContent({ children }: { children: React.ReactNode }) {
+  const { membership, loading, authState } = useMembership();
+  if (loading || authState === "unknown") {
+    return <p className="text-muted-foreground">Checking membership…</p>;
+  }
+  if (membership?.premium) return children;
+  return (
+    <div className="rounded-xl border border-border bg-card p-8 text-center space-y-4">
+      <Lock className="mx-auto h-6 w-6 text-primary" />
+      <h2 className="text-xl font-semibold">Premium stock insights</h2>
+      <p className="text-muted-foreground">Overview is free. Upgrade to Premium to access this sub-tab.</p>
+      <Link href="/pricing" className="inline-flex rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground">Explore Premium</Link>
     </div>
   );
 }
@@ -74,6 +91,9 @@ export default function StockDetail() {
               >
                 Hedge Fund Blueprint
               </Link>
+              <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
+                Stock Insights
+              </span>
               <Link
                 href="/model-portfolios"
                 data-testid="link-nav-model-portfolios"
@@ -87,9 +107,6 @@ export default function StockDetail() {
               >
                 Stock Screens
               </Link>
-              <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
-                Stock Insights
-              </span>
             <Link
               href="/watchlist"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
@@ -181,6 +198,9 @@ export default function StockDetail() {
             >
               Hedge Fund Blueprint
             </Link>
+            <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
+              Stock Insights
+            </span>
             <Link
               href="/model-portfolios"
               data-testid="link-nav-model-portfolios"
@@ -194,9 +214,6 @@ export default function StockDetail() {
             >
               Stock Screens
             </Link>
-            <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
-              Stock Insights
-            </span>
             <Link
               href="/watchlist"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
@@ -266,6 +283,7 @@ export default function StockDetail() {
             <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Analysis</TabsTrigger>
             <TabsTrigger value="models" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Models</TabsTrigger>
           </TabsList>
+          <p className="mt-2 text-xs text-muted-foreground">Overview is free. All other sub-tabs require Premium.</p>
 
           <div className="mt-6">
             {/* Overview: chart + stats + all detail sections */}
@@ -294,31 +312,31 @@ export default function StockDetail() {
             </TabsContent>
 
             <TabsContent value="indicators" className="mt-0">
-              <FundamentalSummary symbol={symbol!} />
+              <PremiumStockContent><FundamentalSummary symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
 
             <TabsContent value="screener" className="mt-0">
-              <ScreenerRatings symbol={symbol!} />
+              <PremiumStockContent><ScreenerRatings symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
 
             <TabsContent value="board-leadership" className="mt-0">
-              <BoardLeadershipTab symbol={symbol!} />
+              <PremiumStockContent><BoardLeadershipTab symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
 
             <TabsContent value="buybacks" className="mt-0">
-              <BuybacksTab symbol={symbol!} />
+              <PremiumStockContent><BuybacksTab symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
 
             <TabsContent value="insider-activity" className="mt-0">
-              <InsiderActivityTab symbol={symbol!} />
+              <PremiumStockContent><InsiderActivityTab symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
 
             <TabsContent value="analysis" className="mt-0">
-              <AnalysisTab symbol={symbol!} />
+              <PremiumStockContent><AnalysisTab symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
 
             <TabsContent value="models" className="mt-0">
-              <ModelsTab symbol={symbol!} />
+              <PremiumStockContent><ModelsTab symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
           </div>
         </Tabs>

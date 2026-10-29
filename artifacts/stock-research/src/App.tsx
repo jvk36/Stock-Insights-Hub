@@ -129,8 +129,8 @@ function Routes() {
     <Route path="/model-portfolios/lazy">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>
     <Route path="/model-portfolios/cloning">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>
     <Route path="/model-portfolios/magic-formula">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>
-    <Route path="/stock">{() => <PremiumRoute><StockDetail /></PremiumRoute>}</Route>
-    <Route path="/stock/:symbol">{() => <PremiumRoute><StockDetail /></PremiumRoute>}</Route>
+    <Route path="/stock" component={StockDetail} />
+    <Route path="/stock/:symbol" component={StockDetail} />
     <Route component={NotFound} />
   </Switch>;
 }

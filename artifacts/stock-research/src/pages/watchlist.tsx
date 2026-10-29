@@ -88,6 +88,12 @@ export default function Watchlist() {
               Hedge Fund Blueprint
             </Link>
             <Link
+              href="/stock"
+              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
+            >
+              Stock Insights
+            </Link>
+            <Link
               href="/model-portfolios"
               data-testid="link-nav-model-portfolios"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap shrink-0"
@@ -99,12 +105,6 @@ export default function Watchlist() {
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
             >
               Stock Screens
-            </Link>
-            <Link
-              href="/stock"
-              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
-            >
-              Stock Insights
             </Link>
             <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap">
               Stock Watch

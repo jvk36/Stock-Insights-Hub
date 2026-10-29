@@ -11,6 +11,14 @@ if (!process.env.DATABASE_URL) {
 }
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// pg removes broken idle clients before emitting this event. Without a listener,
+// a database restart/disconnect becomes an unhandled error and crashes Node.
+// Do not retry queries here: in-flight operations must still report failures.
+pool.on("error", (error: Error & { code?: string }) => {
+  console.error("PostgreSQL idle connection closed; the pool will replace it.", {
+    code: error.code,
+  });
+});
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";

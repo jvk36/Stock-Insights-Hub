@@ -83,6 +83,12 @@ export default function MacroSummary() {
             >
               Hedge Fund Blueprint
             </Link>
+            <Link
+              href="/watchlist"
+              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
+            >
+              Stock Watch
+            </Link>
             <button
               onClick={() => setLocation("/stock")}
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors cursor-pointer"
@@ -101,12 +107,6 @@ export default function MacroSummary() {
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
             >
               Stock Screens
-            </Link>
-            <Link
-              href="/watchlist"
-              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
-            >
-              Stock Watch
             </Link>
           </nav>
 

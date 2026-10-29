@@ -1,13 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import express from "express";
-import { createRequirePremium } from "../lib/premium-middleware.ts";
 import { createWatchlistRouter } from "./watchlist-router.ts";
-
-const memberships = {
-  paid: { role: "paid", subscriptionStatus: "active", currentPeriodEnd: null, deletionStartedAt: null },
-  free: { role: "free", subscriptionStatus: null, currentPeriodEnd: null, deletionStartedAt: null },
-};
 
 const records = [
   { id: "aapl-a", clerkUserId: "user-a", ticker: "AAPL", addedAt: new Date("2025-01-01T00:00:00Z") },
@@ -35,11 +29,6 @@ app.use((req, _res, next) => {
   req.log = { warn() {}, error() {} };
   next();
 });
-app.use(createRequirePremium(async (req) => {
-  const userId = req.headers["x-test-user"];
-  if (typeof userId !== "string") return null;
-  return memberships[userId === "user-free" ? "free" : "paid"];
-}));
 app.use(createWatchlistRouter({
   getUserId: (req) => typeof req.headers["x-test-user"] === "string" ? req.headers["x-test-user"] : null,
   store,
@@ -61,9 +50,31 @@ async function request(path, options = {}) {
   return fetch(`${baseUrl}${path}`, { ...options, headers: { "content-type": "application/json", ...(options.headers ?? {}) } });
 }
 
-test("signed-out and Free users cannot reach watchlist routes", async () => {
-  assert.equal((await request("/watchlist")).status, 401);
-  assert.equal((await request("/watchlist", { headers: { "x-test-user": "user-free" } })).status, 403);
+test("signed-out users cannot read or modify any watchlist data", async () => {
+  for (const [path, options] of [
+    ["/watchlist", {}],
+    ["/watchlist/bulk-metrics", {}],
+    ["/stocks/AAPL/history", {}],
+    ["/watchlist/add", { method: "POST", body: JSON.stringify({ ticker: "AAPL" }) }],
+    ["/watchlist/aapl-a", { method: "DELETE" }],
+  ]) {
+    assert.equal((await request(path, options)).status, 401, path);
+  }
+});
+
+test("Free users can add, list, view metrics and history, and remove their own stocks", async () => {
+  const headers = { "x-test-user": "user-free" };
+  const added = await request("/watchlist/add", { method: "POST", headers, body: JSON.stringify({ ticker: "VTI" }) });
+  assert.equal(added.status, 201);
+  const entry = await added.json();
+  const listed = await request("/watchlist", { headers });
+  assert.deepEqual((await listed.json()).map((item) => item.ticker), ["VTI"]);
+  const metrics = await request("/watchlist/bulk-metrics", { headers });
+  assert.equal(metrics.status, 200);
+  assert.deepEqual((await metrics.json()).map((item) => item.ticker), ["VTI"]);
+  assert.equal((await request("/stocks/VTI/history", { headers })).status, 200);
+  assert.equal((await request("/watchlist/aapl-a", { method: "DELETE", headers })).status, 404);
+  assert.equal((await request(`/watchlist/${entry.id}`, { method: "DELETE", headers })).status, 204);
 });
 
 test("list and metrics are scoped to the authenticated user", async () => {

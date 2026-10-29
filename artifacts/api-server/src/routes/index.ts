@@ -18,9 +18,10 @@ router.use(macroRouter);
 router.use(thirteenFRouter);
 router.use("/stock/:symbol/:section", createStockAccess(requirePremium));
 router.use(stockRouter);
+// Watchlist routes enforce sign-in and ownership themselves, for all tiers.
+router.use(watchlistRouter);
 router.use(requirePremium);
 router.use(indexesRouter);
-router.use(watchlistRouter);
 router.use(modelPortfoliosRouter);
 
 export default router;

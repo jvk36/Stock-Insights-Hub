@@ -121,7 +121,7 @@ function Routes() {
     <Route path="/account">{() => <SignedInRoute><Account /></SignedInRoute>}</Route>
     <Route path="/admin/members">{() => <PremiumRoute><AdminMembers /></PremiumRoute>}</Route>
     <Route path="/indexes">{() => <PremiumRoute><StockIndexes /></PremiumRoute>}</Route>
-    <Route path="/watchlist">{() => <PremiumRoute><Watchlist /></PremiumRoute>}</Route>
+    <Route path="/watchlist">{() => <SignedInRoute><Watchlist /></SignedInRoute>}</Route>
 
     <Route path="/model-portfolios">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>
     <Route path="/model-portfolios/blind-trust">{() => <PremiumRoute><ModelPortfolios /></PremiumRoute>}</Route>

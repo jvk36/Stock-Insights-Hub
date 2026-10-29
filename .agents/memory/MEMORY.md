@@ -17,5 +17,5 @@
 - [Cloning strategy](cloning-strategy.md) — fourth tab; confirmed ranking, deduplication, closing-price calendar and historical-source constraints
 - [Magic Formula strategy](magic-formula-strategy.md) — fifth tab; standard Greenblatt ROC, annual frozen rankings and four staggered groups with dividend reinvestment
 - [Portfolio price refresh](portfolio-price-refresh.md) — intraday marks do not trade; reads wake refreshes and recovered feeds must clear old warnings.
-- [Stock Insights access](stock-insights-access.md) — Overview is Free-tier; all other sub-tabs stay Premium; navigation follows Hedge Fund Blueprint.
+- [Stock access tiers](stock-insights-access.md) — Stock Insights Overview is free; Stock Watch is free with sign-in and immediately follows Hedge Fund Blueprint.
 - [Database pool resilience](database-pool-resilience.md) — handle idle-pool errors without crashing; active query failures must still reject.

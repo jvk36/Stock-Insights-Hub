@@ -11,6 +11,7 @@ import StockDetail from "@/pages/stock";
 import MacroSummary from "@/pages/macro";
 import StockIndexes from "@/pages/indexes";
 import Watchlist from "@/pages/watchlist";
+import { StockWatchSignInNotice } from "@/components/stock-watch-sign-in-notice";
 
 import ThirteenFInsights from "@/pages/thirteen-f";
 import Pricing from "@/pages/pricing";
@@ -28,11 +29,11 @@ function PremiumRoute({ children }: { children: React.ReactNode }) {
   return membership?.premium ? children : <Redirect to="/pricing" />;
 }
 
-function SignedInRoute({ children }: { children: React.ReactNode }) {
+function SignedInRoute({ children, signedOutFallback }: { children: React.ReactNode; signedOutFallback?: React.ReactNode }) {
   const { membership, loading, authState } = useMembership();
   if (authState === "unknown" || loading) return <div className="min-h-screen grid place-items-center bg-background text-muted-foreground">Checking account…</div>;
-  if (authState === "signed-out") return <Redirect to="/sign-in" />;
-  return membership?.authenticated ? children : <Redirect to="/sign-in" />;
+  if (authState === "signed-out") return signedOutFallback ?? <Redirect to="/sign-in" />;
+  return membership?.authenticated ? children : signedOutFallback ?? <Redirect to="/sign-in" />;
 }
 
 function AccountDock() {
@@ -121,7 +122,7 @@ function Routes() {
     <Route path="/account">{() => <SignedInRoute><Account /></SignedInRoute>}</Route>
     <Route path="/admin/members">{() => <PremiumRoute><AdminMembers /></PremiumRoute>}</Route>
     <Route path="/indexes" component={StockIndexes} />
-    <Route path="/watchlist">{() => <SignedInRoute><Watchlist /></SignedInRoute>}</Route>
+    <Route path="/watchlist">{() => <SignedInRoute signedOutFallback={<StockWatchSignInNotice />}><Watchlist /></SignedInRoute>}</Route>
 
     <Route path="/model-portfolios" component={ModelPortfolios} />
     <Route path="/model-portfolios/blind-trust" component={ModelPortfolios} />

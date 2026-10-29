@@ -5,7 +5,7 @@ description: User-defined Free versus Premium boundaries for stock pages, screen
 
 Stock Insights and its entire Overview sub-tab are Free-tier. Every other Stock Insights sub-tab remains Premium.
 
-Stock Watch is Free-tier but requires sign-in or sign-up. Keep watchlists private to each signed-in user. Position Stock Watch at the end of the main tabs.
+Stock Watch is Free-tier but requires sign-in or sign-up. Signed-out visitors stay on the Stock Watch page and see an explanation with Sign in and Sign up options, not an automatic login redirect. Keep watchlists private to each signed-in user. Position Stock Watch at the end of the main tabs.
 
 Algo-Portfolios is publicly accessible with all five sub-tabs. Free visitors see only a strategy introduction and a Premium notice; holdings, rankings, performance, ledgers and backtests remain Premium.
 

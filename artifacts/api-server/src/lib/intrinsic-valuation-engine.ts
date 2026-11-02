@@ -11,8 +11,37 @@ const finite = (v: unknown): v is number => typeof v === "number" && Number.isFi
 /** g is in percentage points: 20 means 20%, not 0.20. */
 export function intrinsicTargetPe(g: number | null): number | null {
   if (g == null || !finite(g)) return null;
-  const pe = g < 5 ? Math.min(15, 8.5 + 2 * g) : g <= 15 ? 15 : g;
+  const pe = g < 0 ? 15 : g < 5 ? Math.min(15, 8.5 + 2 * g) : g <= 15 ? 15 : g;
   return pe > 0 && finite(pe) ? pe : null;
+}
+
+/** Revalue the displayed window using one CAGR between its EPS endpoints. */
+export function intrinsicValuationWindow(
+  history: IntrinsicValuationPoint[], startDate = "",
+): IntrinsicValuationPoint[] {
+  const rows = history.filter(p => p.date >= startDate);
+  const endpoints = rows.filter(p => p.blendedEps != null && finite(p.blendedEps));
+  const first = endpoints[0];
+  const last = endpoints.at(-1);
+  const years = first && last ? (Date.parse(last.date) - Date.parse(first.date)) / (365.25 * DAY) : 0;
+  // A signed/zero starting EPS or negative ending EPS has no conventional
+  // earnings CAGR. Loss-making nodes still receive the explicit 15x override.
+  const growth = years > 0 && first?.blendedEps != null && first.blendedEps > 0
+    && last?.blendedEps != null && last.blendedEps >= 0
+    ? ((last.blendedEps / first.blendedEps) ** (1 / years) - 1) * 100 : null;
+  const g = growth != null && finite(growth) ? growth : null;
+  return rows.map(p => {
+    const eps = p.blendedEps;
+    const pe = eps != null && eps < 0 ? 15 : intrinsicTargetPe(g);
+    const reason = eps == null ? p.unavailableReason
+      : pe == null ? "Endpoint EPS CAGR requires two dated observations, a positive starting EPS and a nonnegative ending EPS."
+      : null;
+    return {
+      ...p, growthPercent: g, targetPe: pe,
+      fairValue: eps != null && pe != null ? eps * pe : null,
+      unavailableReason: reason,
+    };
+  });
 }
 
 function consecutive(rows: QuarterlyEps[]): boolean {
@@ -35,23 +64,10 @@ export function intrinsicValuationHistory(
     return { ...row, ttm: consecutive(window) ? window.reduce((sum, q) => sum + q.eps, 0) : null };
   });
   const history: IntrinsicValuationPoint[] = ttms.map(row => {
-    const target = new Date(`${row.date}T00:00:00Z`);
-    target.setUTCFullYear(target.getUTCFullYear() - 3);
-    const prior = ttms.find(q => Math.abs(Date.parse(q.date) - target.getTime()) <= 35 * DAY);
-    let growth: number | null = null;
-    let reason: string | null = null;
-    if (row.ttm == null) reason = "Four consecutive reported quarters are required for TTM EPS.";
-    else if (row.ttm <= 0) reason = "Nonpositive TTM EPS: an earnings-multiple valuation is not meaningful.";
-    else if (prior?.ttm == null) reason = "A comparable TTM EPS observation three years earlier is unavailable.";
-    else if (prior.ttm <= 0) reason = "Three-year EPS CAGR is undefined with a nonpositive starting EPS.";
-    else growth = ((row.ttm / prior.ttm) ** (1 / 3) - 1) * 100;
-    const pe = intrinsicTargetPe(growth);
-    if (growth != null && pe == null) reason = "The formula produces a nonpositive target P/E.";
     return {
       date: row.date, periodEnd: row.date, reportedTtmEps: row.ttm, projectedTtmEps: null,
-      blendedEps: row.ttm, growthPercent: growth, targetPe: pe,
-      fairValue: row.ttm != null && row.ttm > 0 && pe != null ? row.ttm * pe : null,
-      isBlended: false, unavailableReason: reason,
+      blendedEps: row.ttm, growthPercent: null, targetPe: null, fairValue: null,
+      isBlended: false, unavailableReason: row.ttm == null ? "Four consecutive reported quarters are required for TTM EPS." : null,
     };
   });
   const latest = history.at(-1);
@@ -68,13 +84,12 @@ export function intrinsicValuationHistory(
   let reason = latest.unavailableReason;
   if (stale) reason = "The most recent reported quarter is stale; no current valuation is shown.";
   else if (!estimateIsNext) reason = "Consensus EPS for the immediately following fiscal quarter is unavailable.";
-  else if (blended != null && blended <= 0) reason = "Blended TTM EPS is nonpositive.";
   history.push({
     ...latest, date: asOf, projectedTtmEps: projected, blendedEps: blended, isBlended: true,
-    fairValue: !stale && blended != null && blended > 0 && latest.targetPe != null ? blended * latest.targetPe : null,
+    fairValue: null,
     unavailableReason: reason,
   });
-  return history;
+  return intrinsicValuationWindow(history);
 }
 
 export interface EpsFact {

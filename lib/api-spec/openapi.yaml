@@ -390,9 +390,15 @@ paths:
           required: true
           schema:
             type: string
+        - name: startDate
+          in: query
+          description: First date in the displayed price range; growth uses the first and last available EPS points within this window.
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2}$'
       responses:
         "200":
-          description: Quarterly TTM EPS valuation with three-year growth and a blended latest point
+          description: Quarterly TTM EPS valuation with endpoint CAGR and a blended latest point
           content:
             application/json:
               schema:

@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  ReferenceLine,
 } from "recharts";
 import { AlertTriangle, RefreshCw, Sigma } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +32,7 @@ const RANGES: { label: string; value: GetStockChartRange }[] = [
 
 const CURVE = "#f59e0b";
 const PRICE = "#38bdf8";
+const EPS = "#DD83C9";
 
 const usd = (v: number | null | undefined) => (v == null ? "—" : `$${v.toFixed(2)}`);
 const num = (v: number | null | undefined, d = 2) => (v == null ? "—" : v.toFixed(d));
@@ -54,16 +56,19 @@ function IntrinsicValuationIntro() {
           </p>
           <p className="text-xs text-muted-foreground leading-relaxed">
             Historical quarterly points use reported TTM EPS. The latest point blends reported TTM EPS with projected TTM EPS
-            incorporating next quarter’s consensus. Growth is the three-year CAGR of reported TTM EPS.
+            incorporating next quarter’s consensus. Growth is the CAGR between the first and last available EPS points in the selected
+            chart range, including the latest blended point when available. This one growth rate applies to every node; changing the range recalculates the curve.
           </p>
         </div>
         <div className="rounded-lg border border-border bg-muted/30 p-4 font-mono text-xs space-y-1.5" data-testid="text-formula">
-          <p className="text-muted-foreground uppercase tracking-wider text-[10px]">Target P/E, g = 3-yr EPS CAGR (pct. points)</p>
-          <p>g &lt; 5 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ MIN(15, 8.5 + 2g)</p>
+          <p className="text-muted-foreground uppercase tracking-wider text-[10px]">Target P/E, g = endpoint EPS CAGR (pct. points)</p>
+          <p>g &lt; 0 or EPS &lt; 0 → 15</p>
+          <p>0 ≤ g &lt; 5 &nbsp;&nbsp;→ MIN(15, 8.5 + 2g)</p>
           <p>5 ≤ g ≤ 15 &nbsp;&nbsp;→ 15</p>
           <p>g &gt; 15 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ g &nbsp;(not capped)</p>
           <p className="pt-1 border-t border-border">Fair value = EPS × target P/E</p>
-          <p className="text-muted-foreground">Nonpositive EPS or multiple → unavailable</p>
+          <p className="text-muted-foreground">Negative EPS × 15 → negative fair value</p>
+          <p className="text-muted-foreground">Undefined CAGR leaves positive-EPS nodes unavailable.</p>
         </div>
       </CardContent>
     </Card>
@@ -76,6 +81,7 @@ interface Row {
   curve?: number | null;
   node?: number | null;
   latest?: number | null;
+  eps?: number | null;
   point?: IntrinsicValuationPoint;
 }
 
@@ -83,14 +89,19 @@ export default function IntrinsicValuation({ symbol }: { symbol: string }) {
   const [range, setRange] = useState<GetStockChartRange>("5y");
   const [selected, setSelected] = useState<string | null>(null);
 
-  const val = useGetIntrinsicValuation(symbol, {
-    query: { enabled: !!symbol, queryKey: getGetIntrinsicValuationQueryKey(symbol) },
-  });
   const chart = useGetStockChart(
     symbol,
     { range },
     { query: { enabled: !!symbol, queryKey: getGetStockChartQueryKey(symbol, { range }) } },
   );
+  const startDate = chart.data?.data?.map(d => d.date.slice(0, 10)).sort()[0];
+  const valuationParams = startDate ? { startDate } : undefined;
+  const val = useGetIntrinsicValuation(symbol, valuationParams, {
+    query: {
+      enabled: !!symbol && !chart.isLoading,
+      queryKey: getGetIntrinsicValuationQueryKey(symbol, valuationParams),
+    },
+  });
 
   const history = useMemo(
     () =>
@@ -116,6 +127,7 @@ export default function IntrinsicValuation({ symbol }: { symbol: string }) {
           curve: p.fairValue,
           node: !p.isBlended ? p.fairValue : null,
           latest: p.isBlended ? p.fairValue : null,
+          eps: p.blendedEps,
           point: p,
         });
       });
@@ -128,10 +140,10 @@ export default function IntrinsicValuation({ symbol }: { symbol: string }) {
   const latest = history.length ? history[history.length - 1].p : null;
   const lastClose = [...(chart.data?.data ?? [])].reverse().find((d) => d.close != null)?.close ?? null;
   const gap =
-    latest?.fairValue != null && lastClose != null ? ((lastClose - latest.fairValue) / latest.fairValue) * 100 : null;
+    latest?.fairValue != null && latest.fairValue > 0 && lastClose != null ? ((lastClose - latest.fairValue) / latest.fairValue) * 100 : null;
   const selectedPoint = history.find((h) => h.p.date === selected)?.p ?? latest;
 
-  if (val.isLoading) {
+  if (val.isLoading || chart.isLoading) {
     return (
       <div className="space-y-4" data-testid="status-intrinsic-loading">
         <IntrinsicValuationIntro />
@@ -198,7 +210,7 @@ export default function IntrinsicValuation({ symbol }: { symbol: string }) {
       {/* Chart */}
       <Card>
         <CardHeader className="pb-2 flex flex-row flex-wrap items-center justify-between gap-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Price vs Intrinsic Value ({data.currency})</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Price, Intrinsic Value & EPS ({data.currency})</CardTitle>
           <div className="flex gap-1">
             {RANGES.map((r) => (
               <Button
@@ -218,6 +230,7 @@ export default function IntrinsicValuation({ symbol }: { symbol: string }) {
           <div className="flex flex-wrap gap-4 text-[11px] font-mono text-muted-foreground mb-2">
             <span className="flex items-center gap-1.5"><span className="h-0.5 w-4" style={{ background: PRICE }} />Price</span>
             <span className="flex items-center gap-1.5"><span className="h-0.5 w-4" style={{ background: CURVE }} />Intrinsic curve (quarterly nodes)</span>
+            <span className="flex items-center gap-1.5"><span className="h-0.5 w-4" style={{ background: EPS }} />EPS used (left axis, USD/share)</span>
             <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rotate-45 border-2" style={{ borderColor: CURVE }} />Latest blended estimate</span>
           </div>
           <div className="h-[400px]">
@@ -259,6 +272,7 @@ export default function IntrinsicValuation({ symbol }: { symbol: string }) {
                     tickLine={false}
                   />
                   <YAxis
+                    yAxisId="valuation"
                     domain={["auto", "auto"]}
                     tickFormatter={(v) => `$${v}`}
                     stroke="hsl(var(--muted-foreground))"
@@ -268,6 +282,18 @@ export default function IntrinsicValuation({ symbol }: { symbol: string }) {
                     orientation="right"
                     width={55}
                   />
+                  <YAxis
+                    yAxisId="eps"
+                    orientation="left"
+                    domain={["auto", "auto"]}
+                    tickFormatter={(v) => `$${Number(v).toFixed(2)}`}
+                    stroke={EPS}
+                    fontSize={10}
+                    width={55}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <ReferenceLine yAxisId="valuation" y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
                   <Tooltip
                     content={({ active, payload, label }) => {
                       if (!active || !payload?.length) return null;
@@ -283,7 +309,8 @@ export default function IntrinsicValuation({ symbol }: { symbol: string }) {
                                 {p.isBlended ? "Latest estimate" : "Fair value"} {usd(p.fairValue)}
                               </p>
                               <p className="text-muted-foreground">Period end {fmtDate(p.periodEnd)}</p>
-                              <p>EPS {num(p.isBlended ? p.blendedEps : p.reportedTtmEps)} · g {num(p.growthPercent, 1)}% · P/E {num(p.targetPe, 1)}</p>
+                              <p style={{ color: EPS }}>EPS used (USD/share) {num(p.blendedEps)}</p>
+                              <p>Endpoint g {num(p.growthPercent, 1)}% · P/E {num(p.targetPe, 1)}</p>
                               {p.unavailableReason && <p className="text-destructive max-w-[220px]">{p.unavailableReason}</p>}
                               <p className="text-muted-foreground">Click to inspect</p>
                             </>
@@ -292,10 +319,12 @@ export default function IntrinsicValuation({ symbol }: { symbol: string }) {
                       );
                     }}
                   />
-                  <Area type="linear" dataKey="close" data={rows.filter((r) => r.close !== undefined)} stroke={PRICE} strokeWidth={1.75} fill="url(#ivPrice)" isAnimationActive={false} dot={false} connectNulls={false} />
-                  <Line type="linear" dataKey="curve" data={curveRows} stroke={CURVE} strokeWidth={2.5} isAnimationActive={false} connectNulls={false} dot={false} activeDot={false} />
-                  <Scatter dataKey="node" data={curveRows} fill={CURVE} shape="circle" isAnimationActive={false} />
+                  <Area yAxisId="valuation" type="linear" dataKey="close" data={rows.filter((r) => r.close !== undefined)} stroke={PRICE} strokeWidth={1.75} fill="url(#ivPrice)" isAnimationActive={false} dot={false} connectNulls={false} />
+                  <Line yAxisId="valuation" type="linear" dataKey="curve" data={curveRows} stroke={CURVE} strokeWidth={2.5} isAnimationActive={false} connectNulls={false} dot={false} activeDot={false} />
+                  <Line yAxisId="eps" type="linear" dataKey="eps" data={curveRows} stroke={EPS} strokeWidth={1.75} strokeDasharray="5 3" isAnimationActive={false} connectNulls={false} dot={false} activeDot={{ r: 4 }} />
+                  <Scatter yAxisId="valuation" dataKey="node" data={curveRows} fill={CURVE} shape="circle" isAnimationActive={false} />
                   <Scatter
+                    yAxisId="valuation"
                     dataKey="latest"
                     data={curveRows}
                     isAnimationActive={false}
@@ -311,7 +340,9 @@ export default function IntrinsicValuation({ symbol }: { symbol: string }) {
           </div>
           <p className="mt-2 text-xs text-muted-foreground font-mono">
             Straight segments join adjacent quarterly nodes only; breaks mark quarters where fair value is unavailable. Historical nodes use
-            restated data and are not a point-in-time backtest.
+            restated data and are not a point-in-time backtest. EPS uses the separate left axis; price and fair value share the right axis.
+            {latest?.growthPercent != null && ` Range EPS CAGR: ${latest.growthPercent.toFixed(2)}%.`}
+            {" "}Growth endpoints are the first and last available EPS nodes, not necessarily the first and last price dates.
           </p>
         </CardContent>
       </Card>
@@ -337,7 +368,7 @@ export default function IntrinsicValuation({ symbol }: { symbol: string }) {
                     <dt className="text-muted-foreground">Next qtr consensus</dt><dd className="text-right">{num(data.nextQuarterEstimate)}{data.nextQuarterEnd ? ` (${fmtDate(data.nextQuarterEnd)})` : ""}</dd>
                   </>
                 )}
-                <dt className="text-muted-foreground">3-yr EPS CAGR</dt><dd className="text-right">{selectedPoint.growthPercent == null ? "—" : `${selectedPoint.growthPercent.toFixed(2)}%`}</dd>
+                <dt className="text-muted-foreground">Range EPS CAGR</dt><dd className="text-right">{selectedPoint.growthPercent == null ? "—" : `${selectedPoint.growthPercent.toFixed(2)}%`}</dd>
                 <dt className="text-muted-foreground">Target P/E</dt><dd className="text-right">{selectedPoint.targetPe == null ? "—" : `${selectedPoint.targetPe.toFixed(2)}x`}</dd>
                 <dt className="text-muted-foreground border-t border-border pt-1.5">Fair value</dt><dd className="text-right border-t border-border pt-1.5 font-bold" style={{ color: CURVE }}>{usd(selectedPoint.fairValue)}</dd>
                 {selectedPoint.unavailableReason && <dd className="col-span-2 text-xs text-destructive pt-1">{selectedPoint.unavailableReason}</dd>}
@@ -374,7 +405,7 @@ export default function IntrinsicValuation({ symbol }: { symbol: string }) {
                 <th className="font-medium">TTM EPS</th>
                 <th className="font-medium">Projected</th>
                 <th className="font-medium">EPS used</th>
-                <th className="font-medium">CAGR</th>
+                <th className="font-medium">Range CAGR</th>
                 <th className="font-medium">P/E</th>
                 <th className="font-medium">Fair value</th>
                 <th className="pl-4 text-left font-medium">Note</th>

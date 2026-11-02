@@ -71,6 +71,7 @@ export * from "./fundamentalTrendPoint";
 export * from "./get13fFundHoldingsParams";
 export * from "./get13fPriceInfoParams";
 export * from "./getInsiderTransactionsParams";
+export * from "./getIntrinsicValuationParams";
 export * from "./getMacroSeriesObservationsParams";
 export * from "./getMacroSeriesObservationsUnits";
 export * from "./getStockChartParams";

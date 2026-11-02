@@ -32,6 +32,7 @@ import type {
   Get13fFundHoldingsParams,
   Get13fPriceInfoParams,
   GetInsiderTransactionsParams,
+  GetIntrinsicValuationParams,
   GetMacroSeriesObservationsParams,
   GetStockChartParams,
   GetStockFinancialsParams,
@@ -1615,16 +1616,32 @@ export function useGetStockFinancials<
 /**
  * @summary Premium quarterly earnings-based intrinsic valuation
  */
-export const getGetIntrinsicValuationUrl = (symbol: string) => {
-  return `/api/stock/${symbol}/intrinsic-valuation`;
+export const getGetIntrinsicValuationUrl = (
+  symbol: string,
+  params?: GetIntrinsicValuationParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/stock/${symbol}/intrinsic-valuation?${stringifiedParams}`
+    : `/api/stock/${symbol}/intrinsic-valuation`;
 };
 
 export const getIntrinsicValuation = async (
   symbol: string,
+  params?: GetIntrinsicValuationParams,
   options?: RequestInit,
 ): Promise<IntrinsicValuationResponse> => {
   return customFetch<IntrinsicValuationResponse>(
-    getGetIntrinsicValuationUrl(symbol),
+    getGetIntrinsicValuationUrl(symbol, params),
     {
       ...options,
       method: "GET",
@@ -1632,8 +1649,14 @@ export const getIntrinsicValuation = async (
   );
 };
 
-export const getGetIntrinsicValuationQueryKey = (symbol: string) => {
-  return [`/api/stock/${symbol}/intrinsic-valuation`] as const;
+export const getGetIntrinsicValuationQueryKey = (
+  symbol: string,
+  params?: GetIntrinsicValuationParams,
+) => {
+  return [
+    `/api/stock/${symbol}/intrinsic-valuation`,
+    ...(params ? [params] : []),
+  ] as const;
 };
 
 export const getGetIntrinsicValuationQueryOptions = <
@@ -1641,6 +1664,7 @@ export const getGetIntrinsicValuationQueryOptions = <
   TError = ErrorType<void>,
 >(
   symbol: string,
+  params?: GetIntrinsicValuationParams,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getIntrinsicValuation>>,
@@ -1653,12 +1677,12 @@ export const getGetIntrinsicValuationQueryOptions = <
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getGetIntrinsicValuationQueryKey(symbol);
+    queryOptions?.queryKey ?? getGetIntrinsicValuationQueryKey(symbol, params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getIntrinsicValuation>>
   > = ({ signal }) =>
-    getIntrinsicValuation(symbol, { signal, ...requestOptions });
+    getIntrinsicValuation(symbol, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -1686,6 +1710,7 @@ export function useGetIntrinsicValuation<
   TError = ErrorType<void>,
 >(
   symbol: string,
+  params?: GetIntrinsicValuationParams,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getIntrinsicValuation>>,
@@ -1695,7 +1720,11 @@ export function useGetIntrinsicValuation<
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetIntrinsicValuationQueryOptions(symbol, options);
+  const queryOptions = getGetIntrinsicValuationQueryOptions(
+    symbol,
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

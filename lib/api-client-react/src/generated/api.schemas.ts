@@ -1632,6 +1632,14 @@ export const GetStockFinancialsPeriod = {
   annual: "annual",
 } as const;
 
+export type GetIntrinsicValuationParams = {
+  /**
+   * First date in the displayed price range; growth uses the first and last available EPS points within this window.
+   * @pattern ^\d{4}-\d{2}-\d{2}$
+   */
+  startDate?: string;
+};
+
 export type GetInsiderTransactionsParams = {
   /**
    * Zero-based three-month filing window, with page 0 being the newest window

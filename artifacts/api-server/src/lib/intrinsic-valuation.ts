@@ -3,7 +3,7 @@ import { execFile } from "node:child_process";
 import type { IntrinsicValuationResponse } from "@workspace/api-zod";
 import { getUsdRate, resolveFinancialCurrency } from "./currency";
 import {
-  intrinsicValuationHistory, reconciledListingEps, secQuarterlyEps,
+  intrinsicValuationHistory, intrinsicValuationWindow, reconciledListingEps, secQuarterlyEps,
   type EpsFact, type QuarterlyEps,
 } from "./intrinsic-valuation-engine";
 
@@ -85,7 +85,7 @@ async function compile(symbol: string, cik: string | null): Promise<IntrinsicVal
     }
   }
   // Use listing EPS only if extended reported history is absent. Four Yahoo
-  // quarters alone cannot establish a three-year CAGR; gaps remain explicit.
+  // quarters alone may not establish two TTM endpoints; gaps remain explicit.
   if (!quarters.length) {
     quarters = listingEps;
     source = "Yahoo Finance reported listing EPS and consensus";
@@ -115,22 +115,25 @@ async function compile(symbol: string, cik: string | null): Promise<IntrinsicVal
   const estimate = candidates[0] ?? null;
   const history = intrinsicValuationHistory(quarters, estimate, asOf);
   if (!history.some(p => p.fairValue != null)) {
-    warnings.push("There are not enough comparable positive EPS observations to calculate a three-year CAGR and a reliable intrinsic value curve.");
+    warnings.push("There are not enough comparable EPS observations to calculate endpoint CAGR. Negative earnings can still be valued at the specified 15× multiple.");
   }
   if (!estimate) warnings.push("The latest blended value requires consensus EPS for the immediately following fiscal quarter; no substitute estimate is used.");
   return {
     symbol, currency: "USD", generatedAt: new Date().toISOString(), source,
-    methodology: "Historical points use four consecutive diluted EPS quarters and three-year reported TTM EPS CAGR. Latest projected TTM = reported TTM − oldest of those four quarters + next-quarter consensus EPS; blended TTM = (reported TTM + projected TTM) / 2. Growth remains based on reported TTM. Historical facts may be restated; missing Q4 EPS is derived from annual minus nine-month EPS and can differ due to weighted shares/rounding. This is a retrospective valuation illustration, not a point-in-time backtest. Formula-based estimates have no statistical confidence interval.",
+    methodology: "Historical EPS uses four consecutive diluted EPS quarters. Latest projected TTM = reported TTM − oldest of those four quarters + next-quarter consensus EPS; blended TTM = (reported TTM + projected TTM) / 2. One growth rate applies across the selected chart range: g = ((last plotted EPS / first plotted EPS)^(1 / elapsed years) − 1) × 100, using actual dates and the latest blended EPS when available. Changing the range recalculates g and the entire curve. Negative g or negative EPS uses a 15× multiple; negative fair values are retained. Otherwise g below 5 uses MIN(15, 8.5 + 2g), 5 through 15 uses 15, and above 15 uses g. CAGR is undefined for a nonpositive starting EPS or negative ending EPS; negative earnings still use 15×. Historical facts may be restated; missing Q4 EPS is derived from annual minus nine-month EPS and can differ due to weighted shares/rounding. This is a retrospective valuation illustration, not a point-in-time backtest. Formula-based estimates have no statistical confidence interval.",
     warnings, nextQuarterEnd: estimate?.date ?? null, nextQuarterEstimate: estimate?.eps ?? null,
     history: history.filter(p => p.date >= new Date(Date.now() - 10 * 365.25 * DAY).toISOString().slice(0, 10)),
   };
 }
 
-export function getIntrinsicValuation(symbol: string, cik: string | null): Promise<IntrinsicValuationResponse> {
+export async function getIntrinsicValuation(symbol: string, cik: string | null, startDate?: string): Promise<IntrinsicValuationResponse> {
+  const windowed = (data: IntrinsicValuationResponse): IntrinsicValuationResponse => ({
+    ...data, history: intrinsicValuationWindow(data.history, startDate),
+  });
   const hit = cache.get(symbol);
-  if (hit && Date.now() - hit.at < TTL) return Promise.resolve(hit.data);
+  if (hit && Date.now() - hit.at < TTL) return windowed(hit.data);
   const pending = inFlight.get(symbol);
-  if (pending) return pending;
+  if (pending) return windowed(await pending);
   const job = compile(symbol, cik).then(data => {
     // Keep memory bounded across arbitrary requested symbols.
     if (cache.size >= 200) cache.delete(cache.keys().next().value!);
@@ -138,5 +141,5 @@ export function getIntrinsicValuation(symbol: string, cik: string | null): Promi
     return data;
   }).finally(() => inFlight.delete(symbol));
   inFlight.set(symbol, job);
-  return job;
+  return windowed(await job);
 }

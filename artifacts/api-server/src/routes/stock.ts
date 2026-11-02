@@ -23,6 +23,7 @@ import {
   GetStockIndicatorsParams,
   GetStockScreenerRatingsParams,
   GetIntrinsicValuationParams,
+  GetIntrinsicValuationQueryParams,
   GetIntrinsicValuationResponse,
 } from "@workspace/api-zod";
 import { getIntrinsicValuation } from "../lib/intrinsic-valuation";
@@ -629,8 +630,16 @@ router.get("/stock/:symbol/buyback-history", async (req, res): Promise<void> => 
 
 router.get("/stock/:symbol/intrinsic-valuation", async (req, res): Promise<void> => {
   const params = GetIntrinsicValuationParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: "bad_request", message: params.error.message });
+  const query = GetIntrinsicValuationQueryParams.safeParse(req.query);
+  if (!params.success || !query.success) {
+    res.status(400).json({ error: "bad_request", message: "Invalid ticker or chart start date." });
+    return;
+  }
+  if (query.data.startDate && (
+    !Number.isFinite(Date.parse(query.data.startDate))
+    || new Date(query.data.startDate).toISOString().slice(0, 10) !== query.data.startDate
+  )) {
+    res.status(400).json({ error: "bad_request", message: "Invalid chart start date." });
     return;
   }
   const symbol = getSymbol(params.data.symbol);
@@ -640,7 +649,7 @@ router.get("/stock/:symbol/intrinsic-valuation", async (req, res): Promise<void>
   }
   try {
     const cik = await lookupCik(symbol).catch(() => null);
-    res.json(GetIntrinsicValuationResponse.parse(await getIntrinsicValuation(symbol, cik)));
+    res.json(GetIntrinsicValuationResponse.parse(await getIntrinsicValuation(symbol, cik, query.data.startDate)));
   } catch (err) {
     req.log.error({ err, symbol }, "Failed to fetch intrinsic valuation");
     res.status(502).json({ error: "upstream_unavailable", message: "Intrinsic valuation inputs could not be retrieved. Please retry." });

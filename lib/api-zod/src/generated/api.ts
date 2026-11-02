@@ -978,6 +978,20 @@ export const GetIntrinsicValuationParams = zod.object({
   symbol: zod.coerce.string(),
 });
 
+export const getIntrinsicValuationQueryStartDateRegExp = new RegExp(
+  "^\\d{4}-\\d{2}-\\d{2}$",
+);
+
+export const GetIntrinsicValuationQueryParams = zod.object({
+  startDate: zod.coerce
+    .string()
+    .regex(getIntrinsicValuationQueryStartDateRegExp)
+    .optional()
+    .describe(
+      "First date in the displayed price range; growth uses the first and last available EPS points within this window.",
+    ),
+});
+
 export const GetIntrinsicValuationResponse = zod.object({
   symbol: zod.string(),
   currency: zod.string(),

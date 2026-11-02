@@ -17,7 +17,7 @@ test("all Overview data is free, including earnings overlays and financial state
 });
 
 test("every other stock sub-tab requires Premium on the API", () => {
-  for (const section of ["indicators", "fundamentals", "screener-ratings", "board-leadership", "buyback-history", "insider-transactions", "analysis", "models"]) {
+  for (const section of ["intrinsic-valuation", "indicators", "fundamentals", "screener-ratings", "board-leadership", "buyback-history", "insider-transactions", "analysis", "models"]) {
     assert.deepEqual(check(section), { premiumChecks: 1, passed: 0 }, section);
   }
 });

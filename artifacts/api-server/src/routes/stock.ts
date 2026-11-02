@@ -22,7 +22,10 @@ import {
   GetStockModelsParams,
   GetStockIndicatorsParams,
   GetStockScreenerRatingsParams,
+  GetIntrinsicValuationParams,
+  GetIntrinsicValuationResponse,
 } from "@workspace/api-zod";
+import { getIntrinsicValuation } from "../lib/intrinsic-valuation";
 import { getBuybackHistory } from "../lib/buyback-history";
 import { getBoardLeadership } from "../lib/board-leadership";
 import {
@@ -621,6 +624,26 @@ router.get("/stock/:symbol/buyback-history", async (req, res): Promise<void> => 
       error: "server_error",
       message: "Failed to fetch buyback history",
     });
+  }
+});
+
+router.get("/stock/:symbol/intrinsic-valuation", async (req, res): Promise<void> => {
+  const params = GetIntrinsicValuationParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "bad_request", message: params.error.message });
+    return;
+  }
+  const symbol = getSymbol(params.data.symbol);
+  if (!/^[A-Z0-9^][A-Z0-9.^=-]{0,19}$/.test(symbol)) {
+    res.status(400).json({ error: "bad_request", message: "Unsupported ticker syntax." });
+    return;
+  }
+  try {
+    const cik = await lookupCik(symbol).catch(() => null);
+    res.json(GetIntrinsicValuationResponse.parse(await getIntrinsicValuation(symbol, cik)));
+  } catch (err) {
+    req.log.error({ err, symbol }, "Failed to fetch intrinsic valuation");
+    res.status(502).json({ error: "upstream_unavailable", message: "Intrinsic valuation inputs could not be retrieved. Please retry." });
   }
 });
 

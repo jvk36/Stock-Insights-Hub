@@ -20,6 +20,7 @@ import BuybacksTab from "@/components/stock/BuybacksTab";
 import AnalysisTab from "@/components/stock/AnalysisTab";
 import ModelsTab from "@/components/stock/ModelsTab";
 import BoardLeadershipTab from "@/components/stock/BoardLeadershipTab";
+import IntrinsicValuation from "@/components/stock/IntrinsicValuation";
 
 function SectionDivider({ children }: { children: React.ReactNode }) {
   return (
@@ -265,6 +266,7 @@ export default function StockDetail() {
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="bg-card border border-border h-auto p-1 flex flex-wrap gap-0.5 w-full lg:w-auto lg:inline-flex lg:flex-nowrap overflow-x-auto">
             <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
+            <TabsTrigger value="intrinsic-valuation" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Intrinsic Valuation</TabsTrigger>
             <TabsTrigger value="indicators" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Indicators</TabsTrigger>
             <TabsTrigger value="screener" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Ratings</TabsTrigger>
             <TabsTrigger value="board-leadership" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Board & Leadership</TabsTrigger>
@@ -299,6 +301,10 @@ export default function StockDetail() {
               <SectionDivider>SEC Filings</SectionDivider>
               <SecFilings symbol={symbol!} />
 
+            </TabsContent>
+
+            <TabsContent value="intrinsic-valuation" className="mt-0">
+              <PremiumStockContent><IntrinsicValuation symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
 
             <TabsContent value="indicators" className="mt-0">

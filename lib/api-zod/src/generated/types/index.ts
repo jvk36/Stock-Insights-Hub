@@ -92,6 +92,8 @@ export * from "./insiderTransaction";
 export * from "./insiderTransactionsCoverage";
 export * from "./insiderTransactionsCoverageSource";
 export * from "./insiderTransactionsResponse";
+export * from "./intrinsicValuationPoint";
+export * from "./intrinsicValuationResponse";
 export * from "./katsenelsonData";
 export * from "./lazyAsset";
 export * from "./lazyHolding";

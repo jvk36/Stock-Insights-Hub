@@ -702,6 +702,40 @@ export interface ChartStockSplitEvent {
   label: string;
 }
 
+export interface IntrinsicValuationPoint {
+  date: string;
+  periodEnd: string;
+  /** @nullable */
+  reportedTtmEps: number | null;
+  /** @nullable */
+  projectedTtmEps: number | null;
+  /** @nullable */
+  blendedEps: number | null;
+  /** @nullable */
+  growthPercent: number | null;
+  /** @nullable */
+  targetPe: number | null;
+  /** @nullable */
+  fairValue: number | null;
+  isBlended: boolean;
+  /** @nullable */
+  unavailableReason: string | null;
+}
+
+export interface IntrinsicValuationResponse {
+  symbol: string;
+  currency: string;
+  generatedAt: string;
+  source: string;
+  methodology: string;
+  warnings: string[];
+  /** @nullable */
+  nextQuarterEnd: string | null;
+  /** @nullable */
+  nextQuarterEstimate: number | null;
+  history: IntrinsicValuationPoint[];
+}
+
 export interface ChartData {
   symbol: string;
   range: string;

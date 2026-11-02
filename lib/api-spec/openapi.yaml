@@ -379,6 +379,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /stock/{symbol}/intrinsic-valuation:
+    get:
+      operationId: getIntrinsicValuation
+      tags: [stock]
+      summary: Premium quarterly earnings-based intrinsic valuation
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Quarterly TTM EPS valuation with three-year growth and a blended latest point
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntrinsicValuationResponse"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Premium required
+        "502":
+          description: Upstream financial data unavailable
+
   /stock/{symbol}/earnings-history:
     get:
       operationId: getEarningsHistory
@@ -1611,6 +1636,58 @@ components:
         - numerator
         - denominator
         - label
+
+    IntrinsicValuationPoint:
+      type: object
+      required: [date, periodEnd, reportedTtmEps, projectedTtmEps, blendedEps, growthPercent, targetPe, fairValue, isBlended, unavailableReason]
+      properties:
+        date:
+          type: string
+        periodEnd:
+          type: string
+        reportedTtmEps:
+          type: [number, "null"]
+        projectedTtmEps:
+          type: [number, "null"]
+        blendedEps:
+          type: [number, "null"]
+        growthPercent:
+          type: [number, "null"]
+        targetPe:
+          type: [number, "null"]
+        fairValue:
+          type: [number, "null"]
+        isBlended:
+          type: boolean
+        unavailableReason:
+          type: [string, "null"]
+
+    IntrinsicValuationResponse:
+      type: object
+      required: [symbol, currency, generatedAt, source, methodology, warnings, nextQuarterEnd, nextQuarterEstimate, history]
+      properties:
+        symbol:
+          type: string
+        currency:
+          type: string
+        generatedAt:
+          type: string
+        source:
+          type: string
+        methodology:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
+        nextQuarterEnd:
+          type: [string, "null"]
+        nextQuarterEstimate:
+          type: [number, "null"]
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/IntrinsicValuationPoint"
 
     ChartData:
       type: object

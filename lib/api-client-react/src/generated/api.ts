@@ -41,6 +41,7 @@ import type {
   IndexConstituentsResponse,
   IndexMetricsResponse,
   InsiderTransactionsResponse,
+  IntrinsicValuationResponse,
   LazyPortfolio,
   MacroIndicatorsResponse,
   MagicFormulaPortfolio,
@@ -1603,6 +1604,98 @@ export function useGetStockFinancials<
     params,
     options,
   );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Premium quarterly earnings-based intrinsic valuation
+ */
+export const getGetIntrinsicValuationUrl = (symbol: string) => {
+  return `/api/stock/${symbol}/intrinsic-valuation`;
+};
+
+export const getIntrinsicValuation = async (
+  symbol: string,
+  options?: RequestInit,
+): Promise<IntrinsicValuationResponse> => {
+  return customFetch<IntrinsicValuationResponse>(
+    getGetIntrinsicValuationUrl(symbol),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetIntrinsicValuationQueryKey = (symbol: string) => {
+  return [`/api/stock/${symbol}/intrinsic-valuation`] as const;
+};
+
+export const getGetIntrinsicValuationQueryOptions = <
+  TData = Awaited<ReturnType<typeof getIntrinsicValuation>>,
+  TError = ErrorType<void>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getIntrinsicValuation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetIntrinsicValuationQueryKey(symbol);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getIntrinsicValuation>>
+  > = ({ signal }) =>
+    getIntrinsicValuation(symbol, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!symbol,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getIntrinsicValuation>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetIntrinsicValuationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getIntrinsicValuation>>
+>;
+export type GetIntrinsicValuationQueryError = ErrorType<void>;
+
+/**
+ * @summary Premium quarterly earnings-based intrinsic valuation
+ */
+
+export function useGetIntrinsicValuation<
+  TData = Awaited<ReturnType<typeof getIntrinsicValuation>>,
+  TError = ErrorType<void>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getIntrinsicValuation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetIntrinsicValuationQueryOptions(symbol, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

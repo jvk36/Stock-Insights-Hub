@@ -18,4 +18,5 @@
 - [Magic Formula strategy](magic-formula-strategy.md) — fifth tab; standard Greenblatt ROC, annual frozen rankings and four staggered groups with dividend reinvestment
 - [Portfolio price refresh](portfolio-price-refresh.md) — intraday marks do not trade; reads wake refreshes and recovered feeds must clear old warnings.
 - [Stock access tiers](stock-insights-access.md) — Free Overview, portfolio intros and sector screens; Stock Watch requires sign-in and appears last.
+- [Intrinsic valuation](intrinsic-valuation-methodology.md) — user confirmed TTM EPS and three-year CAGR; keep the latest consensus blend on the same annual earnings basis.
 - [Database pool resilience](database-pool-resilience.md) — handle idle-pool errors without crashing; active query failures must still reject.

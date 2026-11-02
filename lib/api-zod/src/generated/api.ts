@@ -972,6 +972,38 @@ export const GetStockFinancialsResponse = zod.object({
 });
 
 /**
+ * @summary Premium quarterly earnings-based intrinsic valuation
+ */
+export const GetIntrinsicValuationParams = zod.object({
+  symbol: zod.coerce.string(),
+});
+
+export const GetIntrinsicValuationResponse = zod.object({
+  symbol: zod.string(),
+  currency: zod.string(),
+  generatedAt: zod.string(),
+  source: zod.string(),
+  methodology: zod.string(),
+  warnings: zod.array(zod.string()),
+  nextQuarterEnd: zod.string().nullable(),
+  nextQuarterEstimate: zod.number().nullable(),
+  history: zod.array(
+    zod.object({
+      date: zod.string(),
+      periodEnd: zod.string(),
+      reportedTtmEps: zod.number().nullable(),
+      projectedTtmEps: zod.number().nullable(),
+      blendedEps: zod.number().nullable(),
+      growthPercent: zod.number().nullable(),
+      targetPe: zod.number().nullable(),
+      fairValue: zod.number().nullable(),
+      isBlended: zod.boolean(),
+      unavailableReason: zod.string().nullable(),
+    }),
+  ),
+});
+
+/**
  * @summary Get historical quarterly EPS data for earnings overlay
  */
 export const GetEarningsHistoryParams = zod.object({

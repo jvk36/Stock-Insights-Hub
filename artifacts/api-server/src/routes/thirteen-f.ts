@@ -15,7 +15,20 @@ const router = Router();
 router.get("/13f/funds", async (req: Request, res: Response) => {
   try {
     const funds = await db
-      .select({ cik: hedgeFundsTable.cik, name: hedgeFundsTable.name, slug: hedgeFundsTable.slug, proprietor: hedgeFundsTable.proprietor })
+      .select({
+        cik: hedgeFundsTable.cik,
+        name: hedgeFundsTable.name,
+        slug: hedgeFundsTable.slug,
+        proprietor: hedgeFundsTable.proprietor,
+        // A late amendment to an older quarter must not replace the newest
+        // report period. Include recorded filings even while holdings sync.
+        latestReportedQuarter: sql<string | null>`(
+          SELECT f.period_label FROM sec_13f_filings f
+          WHERE f.fund_cik = ${hedgeFundsTable.cik}
+          ORDER BY f.report_date DESC, f.filing_date DESC
+          LIMIT 1
+        )`,
+      })
       .from(hedgeFundsTable)
       .orderBy(hedgeFundsTable.name);
     return res.json({ funds });

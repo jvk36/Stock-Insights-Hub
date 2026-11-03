@@ -11,4 +11,9 @@ export interface HedgeFund {
   name: string;
   slug: string;
   proprietor?: string | null;
+  /**
+   * Latest SEC filing report quarter recorded for this fund, ordered by report period rather than filing date; null when no filing is recorded.
+   * @nullable
+   */
+  latestReportedQuarter?: string | null;
 }

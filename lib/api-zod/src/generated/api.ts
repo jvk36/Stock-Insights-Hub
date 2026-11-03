@@ -1875,6 +1875,12 @@ export const List13fFundsResponse = zod.object({
       name: zod.string(),
       slug: zod.string(),
       proprietor: zod.string().nullish(),
+      latestReportedQuarter: zod
+        .string()
+        .nullish()
+        .describe(
+          "Latest SEC filing report quarter recorded for this fund, ordered by report period rather than filing date; null when no filing is recorded.",
+        ),
     }),
   ),
 });

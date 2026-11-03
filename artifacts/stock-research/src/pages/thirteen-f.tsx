@@ -725,6 +725,16 @@ function FundHoldingsView({
 }) {
   const [quarterIndex, setQuarterIndex] = useState(0);
 
+  const fundList = useList13fFunds({
+    query: {
+      queryKey: getList13fFundsQueryKey(),
+      staleTime: 60_000,
+      refetchInterval: 60_000,
+      refetchOnWindowFocus: true,
+    },
+  });
+  const latestReportedQuarter = fundList.data?.funds.find(fund => fund.cik === cik)?.latestReportedQuarter;
+
   const { data: quartersData, isLoading: quartersLoading } = useGet13fFundQuarters(cik, {
     query: {
       queryKey: getGet13fFundQuartersQueryKey(cik),
@@ -766,7 +776,7 @@ function FundHoldingsView({
   return (
     <div className="space-y-4">
       {/* Back button + fund name */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={onBack}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md border border-border bg-background hover:bg-muted transition-colors"
@@ -774,7 +784,7 @@ function FundHoldingsView({
           <ArrowLeft className="w-3.5 h-3.5" />
           All Funds
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Building2 className="w-4 h-4 text-primary" />
           <h2 className="text-lg font-semibold">
             {fundName}
@@ -782,6 +792,16 @@ function FundHoldingsView({
               <span className="font-normal text-muted-foreground text-base"> ({holdingsData.proprietor})</span>
             )}
           </h2>
+          <span
+            className="rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+            data-testid="latest-reported-quarter"
+          >
+            {latestReportedQuarter
+              ? `Latest reported: ${latestReportedQuarter}`
+              : fundList.isLoading ? "Checking latest report…"
+              : fundList.isError ? "Latest report unavailable"
+              : "No reported quarter available"}
+          </span>
         </div>
       </div>
 
@@ -895,7 +915,9 @@ function FundListCard({
   const { data, isLoading, isError } = useList13fFunds({
     query: {
       queryKey: getList13fFundsQueryKey(),
-      staleTime: 10 * 60 * 1000,
+      staleTime: 60_000,
+      refetchInterval: 60_000,
+      refetchOnWindowFocus: true,
     },
   });
 
@@ -946,6 +968,9 @@ function FundListCard({
                   )}
                 </p>
                 <p className="text-xs text-muted-foreground">CIK {fund.cik}</p>
+                <p className="mt-1 text-xs font-medium text-primary" data-testid={`latest-quarter-${fund.cik}`}>
+                  {fund.latestReportedQuarter ? `Latest reported: ${fund.latestReportedQuarter}` : "No reported quarter available"}
+                </p>
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary transition-colors shrink-0" />
             </a>

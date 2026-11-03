@@ -3282,6 +3282,9 @@ components:
         proprietor:
           type: string
           nullable: true
+        latestReportedQuarter:
+          type: ["string", "null"]
+          description: Latest SEC filing report quarter recorded for this fund, ordered by report period rather than filing date; null when no filing is recorded.
       required:
         - cik
         - name

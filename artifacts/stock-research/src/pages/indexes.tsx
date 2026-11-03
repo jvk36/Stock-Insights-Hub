@@ -602,12 +602,6 @@ export default function StockIndexes() {
 
           <nav className="flex items-center gap-1 min-w-0 overflow-x-auto [scrollbar-width:none]">
             <Link
-              href="/macro"
-              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-            >
-              Macro Summary
-            </Link>
-            <Link
               href="/13f"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
             >
@@ -630,6 +624,7 @@ export default function StockIndexes() {
               Stock Screens
             </span>
             <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Watch</Link>
+            <Link href="/macro" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Macro Summary</Link>
           </nav>
 
           <div className="flex-1" />

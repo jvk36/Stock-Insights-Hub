@@ -5,12 +5,14 @@ description: User-defined Free versus Premium boundaries for stock pages, screen
 
 Stock Insights and its entire Overview sub-tab are Free-tier. Every other Stock Insights sub-tab remains Premium.
 
-Stock Watch is Free-tier but requires sign-in or sign-up. Signed-out visitors stay on the Stock Watch page and see an explanation with Sign in and Sign up options, not an automatic login redirect. Keep watchlists private to each signed-in user. Position Stock Watch at the end of the main tabs.
+Stock Watch is Free-tier but requires sign-in or sign-up. Signed-out visitors stay on the Stock Watch page and see an explanation with Sign in and Sign up options, not an automatic login redirect. Keep watchlists private to each signed-in user.
+
+Macro Summary belongs at the end of the main tabs, after Stock Watch. Preserve the relative order of the remaining tabs.
 
 Algo-Portfolios is publicly accessible with all five sub-tabs. Free visitors see only a strategy introduction and a Premium notice; holdings, rankings, performance, ledgers and backtests remain Premium.
 
 Stock Screens is publicly accessible with all six sub-tabs and sector filtering (country filtering for ADRs). Advanced screens (GARP, Deep Value, Momentum, Quality and Dividend) remain Premium; Free visitors can select them to see a Premium notice, not their controls or results.
 
-**Why:** The user explicitly requested these access boundaries and the latest request moves Stock Watch back to the end.
+**Why:** The user explicitly requested these access boundaries, then moved Macro Summary to the end after previously placing Stock Watch last.
 
 **How to apply:** Keep both client and API access rules aligned. Overview includes its price chart, earnings overlay, financial statements, news, company profile, and SEC filings; do not accidentally gate those behind Premium. Watchlist list/add/delete, metrics, and chart-history access require authentication but not payment. Public screen constituent lists must not expose Premium metrics, and free portfolio introductions must not fetch protected portfolio data.

@@ -78,12 +78,6 @@ export default function Watchlist() {
 
           <nav className="order-3 flex w-full items-center gap-1 overflow-x-auto md:order-none md:w-auto">
             <Link
-              href="/macro"
-              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
-            >
-              Macro Summary
-            </Link>
-            <Link
               href="/13f"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap"
             >
@@ -109,6 +103,7 @@ export default function Watchlist() {
               Stock Screens
             </Link>
             <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap">Stock Watch</span>
+            <Link href="/macro" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Macro Summary</Link>
           </nav>
 
           <div className="hidden flex-1 md:block" />

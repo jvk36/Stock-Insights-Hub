@@ -1023,12 +1023,6 @@ export default function ThirteenFInsights() {
           </div>
 
           <nav className="flex items-center gap-1 min-w-0 overflow-x-auto [scrollbar-width:none]">
-            <Link
-              href="/macro"
-              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-            >
-              Macro Summary
-            </Link>
             <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
               Hedge Fund Blueprint
             </span>
@@ -1052,6 +1046,7 @@ export default function ThirteenFInsights() {
               Stock Screens
             </Link>
             <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Watch</Link>
+            <Link href="/macro" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Macro Summary</Link>
           </nav>
 
           <div className="flex-1" />

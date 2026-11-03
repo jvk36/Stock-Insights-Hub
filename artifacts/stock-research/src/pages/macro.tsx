@@ -74,9 +74,6 @@ export default function MacroSummary() {
 
           {/* Nav menu */}
           <nav className="flex items-center gap-1 min-w-0 overflow-x-auto [scrollbar-width:none]">
-            <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
-              Macro Summary
-            </span>
             <Link
               href="/13f"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
@@ -103,6 +100,7 @@ export default function MacroSummary() {
               Stock Screens
             </Link>
             <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Watch</Link>
+            <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap">Macro Summary</span>
           </nav>
 
           <div className="flex-1" />

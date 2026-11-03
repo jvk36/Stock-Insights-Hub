@@ -12,7 +12,6 @@ export function StockWatchSignInNotice() {
           </div>
           <nav className="order-3 flex w-full items-center gap-1 overflow-x-auto md:order-none md:w-auto">
             {[
-              ["/macro", "Macro Summary"],
               ["/13f", "Hedge Fund Blueprint"],
               ["/stock", "Stock Insights"],
               ["/model-portfolios", "Algo-Portfolios"],
@@ -21,6 +20,7 @@ export function StockWatchSignInNotice() {
               <Link key={href} href={href} className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">{title}</Link>
             ))}
             <span aria-current="page" className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md whitespace-nowrap">Stock Watch</span>
+            <Link href="/macro" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Macro Summary</Link>
           </nav>
         </div>
       </header>

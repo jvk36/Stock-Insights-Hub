@@ -220,7 +220,7 @@ export function CloningView({ enabled }: { enabled: boolean }) {
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold">{p?.title ?? "Cloning"}</h2>
+          <h2 className="text-xl font-bold">WhaleShadow</h2>
           <p className="text-xs text-muted-foreground font-mono">cloning · USD{p ? ` · computed ${dateTime(p.result.refreshedAt)}` : ""}</p>
         </div>
         <button onClick={() => q.refetch()} disabled={q.isFetching} className={btn} data-testid="button-refresh-cloning"><RefreshCw className={`w-3.5 h-3.5 ${q.isFetching ? "animate-spin" : ""}`} />Refresh</button>
@@ -229,7 +229,7 @@ export function CloningView({ enabled }: { enabled: boolean }) {
       <section>
         <SectionTitle n="02" title="Model portfolio" sub={`Since inception (${date(p?.inceptionDate ?? "2026-08-15")}), reconstructed through the latest close`} />
         {q.isLoading ? <div className="space-y-3"><div className="grid grid-cols-2 lg:grid-cols-6 gap-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20" />)}</div><Skeleton className="h-64 w-full" /></div>
-          : q.isError || !p ? <ErrorBox what="the live Cloning portfolio" onRetry={() => q.refetch()} id="cloning" />
+          : q.isError || !p ? <ErrorBox what="the live WhaleShadow portfolio" onRetry={() => q.refetch()} id="cloning" />
           : <Live p={p} />}
       </section>
       <p className="text-xs leading-5 text-muted-foreground border-t border-border pt-4">Hypothetical, concentrated equity model for education only. Not investment advice. No outperformance or absolute return is promised. 13F data is delayed and incomplete. Excludes taxes, commissions, and slippage.</p>

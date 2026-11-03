@@ -2,7 +2,7 @@ import { PremiumFeatureNotice } from "@/components/premium-feature-notice";
 
 const INTROS = {
   cloning: {
-    title: "Cloning",
+    title: "WhaleShadow",
     rationale: "Follow the largest disclosed new buys and position increases of the superinvestors tracked by Hedge Fund Blueprint. The premise is to benefit from their research and conviction through a transparent, repeatable equity-selection process.",
     rules: "Each quarter, select each tracked manager’s largest buy or increase by added portfolio weight, skip managers with no qualifying activity, and rank the resulting picks. Buy ten distinct stocks with equal allocations from an initial $30,000. Sell all holdings and buy the newly selected portfolio 45 days after each quarter-end, using that session’s closing prices (or the next trading day’s close). The model begins August 15, 2026, with execution on the next trading session.",
     expectations: "A concentrated, long-only equity strategy seeking long-term capital appreciation—not guaranteed absolute or uncorrelated returns. 13F disclosures are delayed, omit shorts and other exposures, and may no longer reflect a manager’s current holdings. Market risk, concentration and copying at different prices can materially affect results.",

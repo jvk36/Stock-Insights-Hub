@@ -181,10 +181,10 @@ export default function ModelPortfolios() {
   useEffect(() => {
     const t = tab === "magic-formula" ? "Magic Formula Model Portfolio | Terminal" : tab === "cloning" ? "Cloning Model Portfolio | Terminal" : tab === "lazy" ? "Lazy Model Portfolio | Terminal" : tab === "momentum" ? "Momentum Model Portfolio | Terminal" : "Blind Trust Model Portfolio | Terminal";
     const d = tab === "magic-formula" ? "Magic Formula: Greenblatt's earnings yield and return on capital ranking of the S&P 500, bought in four staggered annual cohorts, with full ranking audit, holdings and ledger." : tab === "cloning" ? "Cloning: a quarterly point-in-time 13F model buying each tracked manager's largest new purchase by added weight, with holdings, allocation history, transaction ledger and performance since inception." : tab === "lazy" ? "Lazy: a Swensen-inspired fixed-weight six-ETF model, rebalanced quarterly, with target vs current weights, ledger and performance since inception." : tab === "momentum" ? "Quarterly 200-day SMA trend model across six Vanguard and iShares ETFs: signals, holdings, ledger and performance since inception." : "Blind Trust: an annual price-to-book model portfolio of permanent-capital businesses, with holdings, ledger and performance.";
-    document.title = t;
+    document.title = tab === "cloning" ? "WhaleShadow Model Portfolio | Terminal" : t;
     let m = document.querySelector('meta[name="description"]');
     if (!m) { m = document.createElement("meta"); m.setAttribute("name", "description"); document.head.appendChild(m); }
-    m.setAttribute("content", d);
+    m.setAttribute("content", tab === "cloning" ? d.replace(/^Cloning:/, "WhaleShadow:") : d);
   }, [tab]);
   const tabCls = (on: boolean) => `-mb-px border-b-2 px-3 py-2 text-sm whitespace-nowrap ${on ? "border-primary font-semibold text-foreground" : "border-transparent font-medium text-muted-foreground hover:text-foreground"}`;
   return (
@@ -195,7 +195,7 @@ export default function ModelPortfolios() {
           <div className="flex items-center gap-3 mb-1"><Briefcase className="w-6 h-6 text-primary" /><h1 className="text-2xl font-bold tracking-tight">Algo-Portfolios</h1></div>
           <p className="text-sm text-muted-foreground">Rules-based, fully auditable hypothetical portfolios. Every number traces to a dated source or ledger entry.</p>
           <div className="mt-4 flex gap-1 overflow-x-auto border-b border-border" role="tablist">
-            <Link href="/model-portfolios/cloning" role="tab" aria-selected={tab === "cloning"} data-testid="tab-cloning" className={tabCls(tab === "cloning")}>Cloning</Link>
+            <Link href="/model-portfolios/cloning" role="tab" aria-selected={tab === "cloning"} data-testid="tab-cloning" className={tabCls(tab === "cloning")}>WhaleShadow</Link>
             <Link href="/model-portfolios/magic-formula" role="tab" aria-selected={tab === "magic-formula"} data-testid="tab-magic-formula" className={tabCls(tab === "magic-formula")}>Magic Formula</Link>
             <Link href="/model-portfolios/blind-trust" role="tab" aria-selected={tab === "blind-trust"} data-testid="tab-blind-trust" className={tabCls(tab === "blind-trust")}>Blind Trust</Link>
             <Link href="/model-portfolios/momentum" role="tab" aria-selected={tab === "momentum"} data-testid="tab-momentum" className={tabCls(tab === "momentum")}>Momentum</Link>

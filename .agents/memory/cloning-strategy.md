@@ -3,7 +3,11 @@ name: Cloning strategy
 description: Confirmed manager-pick ranking and quarterly calendar, plus constraints on trustworthy historical reconstruction.
 ---
 
-Cloning is the fourth Model Portfolios tab, following Momentum, Lazy, Blind Trust. Use the managers tracked in Top Hedge Funds–Insights. Take each manager's largest new/increased purchase, ignore verified no-buy quarters, rank the manager winners, and equally fund up to ten distinct stocks from $30,000.
+The user renamed the Cloning sub-tab to WhaleShadow. This is a display-name change, not a change to strategy or existing routes.
+
+**Why:** The user explicitly requested the new name WhaleShadow.
+
+Use the managers tracked in Hedge Fund Blueprint. Take each manager's largest new/increased purchase, ignore verified no-buy quarters, rank the manager winners, and equally fund up to ten distinct stocks from $30,000.
 
 **Why:** The user requested the fourth strategy and explicitly chose “Added portfolio weight,” “Select ten distinct stocks,” and “Next trading day” in clarification.
 

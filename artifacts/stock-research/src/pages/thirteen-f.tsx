@@ -368,7 +368,7 @@ function fmtPct(val: number | null | undefined, decimals = 2): string {
 }
 
 function fmtChange(val: number | null | undefined): string {
-  if (val == null) return "New";
+  if (val == null) return "—";
   const sign = val >= 0 ? "+" : "";
   return `${sign}${val.toFixed(2)}%`;
 }
@@ -994,6 +994,9 @@ function FundListCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ThirteenFInsights() {
+  const { data: trackedFunds } = useList13fFunds({
+    query: { queryKey: getList13fFundsQueryKey(), refetchInterval: 60_000 },
+  });
   const [, setLocation] = useLocation();
   const { slug } = useParams<{ slug?: string }>();
   const [searchInput, setSearchInput] = useState("");
@@ -1108,7 +1111,7 @@ export default function ThirteenFInsights() {
         >
           <h1 className="text-3xl font-bold tracking-tight">13F Insights</h1>
           <p className="text-sm text-muted-foreground">
-            Institutional holdings from SEC 13F-HR filings — updated quarterly
+            Institutional holdings from {trackedFunds?.funds.length ?? "…"} SEC 13F-HR filings — updated quarterly
           </p>
         </motion.div>
 

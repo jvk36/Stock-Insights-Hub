@@ -13,9 +13,17 @@ test("SEC value units normalize to thousands, matching the existing dollar forma
   assert.equal(newReported * reportedValueMultiplier("2026-11-06") * 1000, 21_201_005_000);
 });
 
-test("all twelve new managers, and only those managers, have the retention policy", () => {
-  assert.equal(TOP_100_FUND_CIKS.size, 12);
+test("all 44 added managers, but not the original managers, have the retention policy", () => {
+  assert.equal(TOP_100_FUND_CIKS.size, 44);
   assert.equal(TOP_100_FUND_CIKS.has("850529"), true);
+  for (const cik of [
+    "1517137", "1039565", "1418814", "1138995", "860643", "883965",
+    "859804", "1096343", "1641864", "1050442", "948669", "1389403",
+    "937394", "1063296", "807985", "1791786", "1135778", "1631014",
+    "1697868", "1759760", "1317588", "934639", "1798849", "1631664",
+    "1559771", "1314620", "1142062", "1070134", "1766504", "1773994",
+    "1454502", "1657335",
+  ]) assert.equal(TOP_100_FUND_CIKS.has(cik), true, cik);
   assert.equal(TOP_100_FUND_CIKS.has("1067983"), false);
 });
 

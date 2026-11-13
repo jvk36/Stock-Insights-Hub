@@ -1745,11 +1745,16 @@ export async function seedFundFilings(cik: string, linkedCiks: string[] = [], la
   // tagging each with the fetch CIK so we use the right EDGAR URL.
   const allStubs: Array<{ accessionNumber: string; reportDate: string; filingDate: string; fetchCik: string }> =
     stubs.map((s) => ({ ...s, fetchCik: cik }));
+  const primaryPeriods = new Set(stubs.map(s => reportDateToQuarter(s.reportDate)));
 
   for (const linkedCik of linkedCiks) {
     try {
-      const linkedStubs = await fetch13fFilingStubs(linkedCik);
-      for (const s of linkedStubs) allStubs.push({ ...s, fetchCik: linkedCik });
+      const linkedStubs = await fetch13fFilingStubs(linkedCik, !latestOnly && TOP_100_FUND_CIKS.has(cik));
+      for (const s of linkedStubs) {
+        if (!primaryPeriods.has(reportDateToQuarter(s.reportDate))) {
+          allStubs.push({ ...s, fetchCik: linkedCik });
+        }
+      }
     } catch (err) {
       logger.error({ err, linkedCik }, "Failed to fetch linked CIK EDGAR submissions — skipping");
     }
@@ -2046,6 +2051,38 @@ const TRACKED_FUNDS = [
   { cik: "898382", name: "Cooperman Leon G (Omega Advisors)", slug: "leon-cooperman", proprietor: "Leon Cooperman" },
   { cik: "1017918", name: "BAMCO Inc. (Baron Capital Management)", slug: "bamco", proprietor: "Ron Baron" },
   { cik: "813917", name: "Harris Associates LP", slug: "harris-associates", proprietor: null },
+  { cik: "1517137", name: "Starboard Value LP", slug: "starboard-value", proprietor: "Jeffrey Smith" },
+  { cik: "1039565", name: "Kahn Brothers Group Inc.", slug: "kahn-brothers", proprietor: null },
+  { cik: "1418814", name: "ValueAct Holdings LP", slug: "valueact-holdings", proprietor: null },
+  { cik: "1138995", name: "Glenview Capital Mgmt LLC", slug: "glenview-capital", proprietor: "Larry Robbins" },
+  { cik: "860643", name: "Gardner Russo & Quinn LLC (Semper Vic Partners)", slug: "gardner-russo-quinn", proprietor: "Tom Russo" },
+  { cik: "883965", name: "Weitz Investment Mgmt Inc.", slug: "weitz-investment-management", proprietor: "Wallace Weitz" },
+  { cik: "859804", name: "Wedgewood Partners Inc.", slug: "wedgewood-partners", proprietor: "David Rolfe" },
+  { cik: "1096343", name: "Markel Group Inc.", slug: "markel-group", proprietor: "Tom Gayner" },
+  { cik: "1641864", name: "Giverny Capital Inc.", slug: "giverny-capital", proprietor: "François Rochon" },
+  { cik: "1050442", name: "Disciplined Growth Investors Inc.", slug: "disciplined-growth-investors", proprietor: null },
+  { cik: "948669", name: "Parnassus Investments, LLC", slug: "parnassus-investments", proprietor: null },
+  { cik: "1389403", name: "Chou Associates Management", slug: "chou-associates", proprietor: "Francis Chou" },
+  { cik: "937394", name: "Heartland Advisors Inc.", slug: "heartland-advisors", proprietor: null },
+  { cik: "1063296", name: "Atlantic Investment Management", slug: "atlantic-investment-management", proprietor: "Alexander Roepers" },
+  { cik: "807985", name: "Southeastern Asset Management", slug: "southeastern-asset-management", proprietor: "Mason Hawkins" },
+  { cik: "1791786", name: "Elliott Investment Management L.P.", slug: "elliott-investment-management", proprietor: "Paul Singer", linkedCik: "1048445" },
+  { cik: "1135778", name: "Miller Value Partners", slug: "miller-value-partners", proprietor: null },
+  { cik: "1631014", name: "AltaRock Partners", slug: "altarock-partners", proprietor: "Mark Massey" },
+  { cik: "1697868", name: "Valley Forge Capital Management", slug: "valley-forge-capital", proprietor: "Dev Kantesaria" },
+  { cik: "1759760", name: "H&H International Investment", slug: "hh-international-investment", proprietor: "Duan Yongping" },
+  { cik: "1317588", name: "Abrams Bison Investments", slug: "abrams-bison-investments", proprietor: "Gavin Abrams" },
+  { cik: "934639", name: "Maverick Capital", slug: "maverick-capital", proprietor: "Lee Ainslie" },
+  { cik: "1798849", name: "Durable Capital Partners", slug: "durable-capital-partners", proprietor: "Henry Ellenbogen" },
+  { cik: "1631664", name: "Punch Card Management", slug: "punch-card-management", proprietor: "Norbert Lou" },
+  { cik: "1559771", name: "Engaged Capital", slug: "engaged-capital", proprietor: "Glenn Welling" },
+  { cik: "1314620", name: "Hillman Capital Management", slug: "hillman-capital-management", proprietor: null },
+  { cik: "1142062", name: "Century Management", slug: "century-management", proprietor: "Arnold Van Den Berg" },
+  { cik: "1070134", name: "Mairs & Power Funds", slug: "mairs-power", proprietor: null },
+  { cik: "1766504", name: "Greenlea Lane Capital", slug: "greenlea-lane-capital", proprietor: null },
+  { cik: "1773994", name: "Conifer Management", slug: "conifer-management", proprietor: null },
+  { cik: "1454502", name: "Triple Frond Partners", slug: "triple-frond-partners", proprietor: null },
+  { cik: "1657335", name: "Oakcliff Capital", slug: "oakcliff-capital", proprietor: null },
 ];
 
 export async function initEdgarFetcher(): Promise<void> {
@@ -2078,7 +2115,7 @@ export async function initEdgarFetcher(): Promise<void> {
     // single manager's ten-year archive. Requests remain sequential.
     for (const fund of funds.filter(fund => TOP_100_FUND_CIKS.has(fund.cik))) {
       try {
-        await seedFundFilings(fund.cik, [], true);
+        await seedFundFilings(fund.cik, linkedCikMap.get(fund.cik) ?? [], true);
       } catch (err) {
         logger.error({ err, cik: fund.cik }, "Latest 13F seed failed");
       }

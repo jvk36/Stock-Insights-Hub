@@ -239,6 +239,134 @@ from = "/13f/vulcan-value-partners"
 to = "/13f/vulcan-value-partners/index.html"
 
 [[services.production.rewrites]]
+from = "/13f/starboard-value"
+to = "/13f/starboard-value/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/kahn-brothers"
+to = "/13f/kahn-brothers/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/valueact-holdings"
+to = "/13f/valueact-holdings/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/glenview-capital"
+to = "/13f/glenview-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/gardner-russo-quinn"
+to = "/13f/gardner-russo-quinn/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/weitz-investment-management"
+to = "/13f/weitz-investment-management/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/wedgewood-partners"
+to = "/13f/wedgewood-partners/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/markel-group"
+to = "/13f/markel-group/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/giverny-capital"
+to = "/13f/giverny-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/disciplined-growth-investors"
+to = "/13f/disciplined-growth-investors/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/parnassus-investments"
+to = "/13f/parnassus-investments/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/chou-associates"
+to = "/13f/chou-associates/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/heartland-advisors"
+to = "/13f/heartland-advisors/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/atlantic-investment-management"
+to = "/13f/atlantic-investment-management/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/southeastern-asset-management"
+to = "/13f/southeastern-asset-management/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/elliott-investment-management"
+to = "/13f/elliott-investment-management/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/miller-value-partners"
+to = "/13f/miller-value-partners/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/altarock-partners"
+to = "/13f/altarock-partners/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/valley-forge-capital"
+to = "/13f/valley-forge-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/hh-international-investment"
+to = "/13f/hh-international-investment/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/abrams-bison-investments"
+to = "/13f/abrams-bison-investments/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/maverick-capital"
+to = "/13f/maverick-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/durable-capital-partners"
+to = "/13f/durable-capital-partners/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/punch-card-management"
+to = "/13f/punch-card-management/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/engaged-capital"
+to = "/13f/engaged-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/hillman-capital-management"
+to = "/13f/hillman-capital-management/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/century-management"
+to = "/13f/century-management/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/mairs-power"
+to = "/13f/mairs-power/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/greenlea-lane-capital"
+to = "/13f/greenlea-lane-capital/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/conifer-management"
+to = "/13f/conifer-management/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/triple-frond-partners"
+to = "/13f/triple-frond-partners/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/oakcliff-capital"
+to = "/13f/oakcliff-capital/index.html"
+
+[[services.production.rewrites]]
 from = "/*"
 to = "/index.html"
 

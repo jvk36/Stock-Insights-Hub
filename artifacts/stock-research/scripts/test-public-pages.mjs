@@ -8,8 +8,17 @@ const output = path.join(root, "dist/public");
 const publicRoutes = ["/macro", "/13f", "/pricing", ...public13fFunds.map(([slug]) => `/13f/${slug}`)];
 const privateRoutes = ["/account", "/admin/members", "/sign-in", "/sign-up", "/stock", "/watchlist", "/indexes"];
 
+const adsenseMeta = '<meta name="google-adsense-account" content="ca-pub-0681600473886225"';
+const homeHtml = await readFile(path.join(output, "index.html"), "utf8");
+if (!homeHtml.includes(adsenseMeta)) throw new Error("Home page is missing the static AdSense verification meta tag");
+const adsTxt = await readFile(path.join(output, "ads.txt"), "utf8");
+if (adsTxt.trim() !== "google.com, pub-0681600473886225, DIRECT, f08c47fec0942fa0") {
+  throw new Error("ads.txt does not contain the expected authorized Google publisher entry");
+}
+
 for (const route of publicRoutes) {
   const html = await readFile(path.join(output, route.slice(1), "index.html"), "utf8");
+  if (!html.includes(adsenseMeta)) throw new Error(`${route} is missing the static AdSense verification meta tag`);
   for (const marker of ["<title>", '<link rel="canonical"', "<h1>", '<meta name="description"', 'data-route-schema']) {
     if (!html.includes(marker)) throw new Error(`${route} is missing ${marker}`);
   }

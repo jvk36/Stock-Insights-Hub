@@ -15,6 +15,10 @@ Stock Screens is publicly accessible with all six sub-tabs and sector filtering 
 
 AdSense ads are for Free mode only, including signed-out visitors. Premium subscribers must remain ad-free.
 
+AdSense ownership verification is separate from serving ads: keep verification metadata and authorized-seller information public and readable without JavaScript, regardless of membership.
+
+**Why:** Google's verification could not see the membership-gated, dynamically loaded ad script. Public verification does not require loading ads for Premium members.
+
 **Why:** The user explicitly requested these access boundaries, then moved Macro Summary to the end after previously placing Stock Watch last, and requested advertising only in Free mode.
 
 **How to apply:** Keep both client and API access rules aligned. Overview includes its price chart, earnings overlay, financial statements, news, company profile, and SEC filings; do not accidentally gate those behind Premium. Watchlist list/add/delete, metrics, and chart-history access require authentication but not payment. Public screen constituent lists must not expose Premium metrics, and free portfolio introductions must not fetch protected portfolio data.

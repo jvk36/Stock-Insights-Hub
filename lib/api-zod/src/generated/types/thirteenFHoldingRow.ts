@@ -7,6 +7,10 @@
  */
 
 export interface ThirteenFHoldingRow {
+  /** Aggregate of positions outside the retained top 100, not a tradable security. */
+  isMiscellaneous?: boolean;
+  /** Prior holding may have been outside the retained top 100; do not label it as a new buy. */
+  comparisonUnavailable?: boolean;
   /** Issuer name from 13F (deduplicated) */
   name: string;
   /** Resolved ticker symbol (null if CUSIP lookup failed) */

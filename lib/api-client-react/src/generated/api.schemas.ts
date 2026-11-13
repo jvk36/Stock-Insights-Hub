@@ -1549,6 +1549,10 @@ export interface ThirteenFQuartersResponse {
 }
 
 export interface ThirteenFHoldingRow {
+  /** Aggregate of positions outside the retained top 100, not a tradable security. */
+  isMiscellaneous?: boolean;
+  /** Prior holding may have been outside the retained top 100; do not label it as a new buy. */
+  comparisonUnavailable?: boolean;
   /** Issuer name from 13F (deduplicated) */
   name: string;
   /** Resolved ticker symbol (null if CUSIP lookup failed) */
@@ -1573,6 +1577,8 @@ export interface ThirteenFHoldingRow {
 }
 
 export interface ThirteenFHoldingsResponse {
+  /** Only the top 100 current positions are retained, with remaining market value aggregated. */
+  holdingsLimited?: boolean;
   fundName: string;
   proprietor?: string | null;
   cik: string;

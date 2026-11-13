@@ -18,6 +18,7 @@ import {
 } from "@workspace/db";
 import { logger } from "./logger";
 import YahooFinance from "yahoo-finance2";
+import { MISCELLANEOUS_CUSIP, TOP_100_FUND_CIKS, reportedValueMultiplier, retainTopPositions, tenYearReportCutoff } from "./thirteen-f-retention";
 
 const _yf = new YahooFinance();
 
@@ -1495,6 +1496,7 @@ export async function retryUnresolvedTickers(cik: string): Promise<void> {
 
   const cusipNames = new Map<string, string>();
   for (const row of rows) {
+    if (row.cusip === MISCELLANEOUS_CUSIP) continue;
     if (!cusipNames.has(row.cusip)) cusipNames.set(row.cusip, row.name);
   }
   if (cusipNames.size === 0) return;
@@ -1526,7 +1528,7 @@ interface RawHolding {
   shares: number;
 }
 
-function parseInfoTable(xml: string): { holdings: RawHolding[]; computedTotalThousands: number } {
+function parseInfoTable(xml: string, valueMultiplier?: number): { holdings: RawHolding[]; computedTotalThousands: number } {
   // Strip namespace prefixes so cheerio selectors work uniformly
   // e.g. <ns1:infoTable> → <infoTable>, </ns1:nameOfIssuer> → </nameOfIssuer>
   const cleanXml = xml.replace(/<(\/?)\s*\w+:/g, "<$1");
@@ -1540,7 +1542,7 @@ function parseInfoTable(xml: string): { holdings: RawHolding[]; computedTotalTho
 
     const name   = $(el).find("nameOfIssuer").text().trim();
     const cusip  = $(el).find("cusip").text().trim();
-    const value  = parseInt($(el).find("value").text().trim() || "0", 10);
+    const value  = parseInt($(el).find("value").text().trim() || "0", 10) * (valueMultiplier ?? 1);
     const shares = parseInt($(el).find("sshPrnamt").text().trim() || "0", 10);
     if (!name || !cusip) return;
 
@@ -1554,13 +1556,16 @@ function parseInfoTable(xml: string): { holdings: RawHolding[]; computedTotalTho
   });
 
   const holdings = [...byName.values()];
+  if (valueMultiplier !== undefined) {
+    for (const holding of holdings) holding.marketValueThousands = Math.round(holding.marketValueThousands);
+  }
   let computedTotalThousands = holdings.reduce((s, h) => s + h.marketValueThousands, 0);
 
   // Auto-detect dollar vs thousands units.
   // The 13F spec mandates thousands, but some filers (e.g. Himalaya) report raw dollars.
   // Heuristic: if the average per-holding value exceeds $10B (10,000,000 in thousands)
   // the filing used dollar units — divide every value by 1,000 to normalise.
-  if (holdings.length > 0 && computedTotalThousands / holdings.length > 10_000_000) {
+  if (valueMultiplier === undefined && holdings.length > 0 && computedTotalThousands / holdings.length > 10_000_000) {
     for (const h of holdings) h.marketValueThousands = Math.round(h.marketValueThousands / 1000);
     computedTotalThousands = Math.round(computedTotalThousands / 1000);
   }
@@ -1654,6 +1659,7 @@ interface SubmissionsData {
       filingDate: string[];
       primaryDocument: string[];
     };
+    files?: Array<{ name: string; filingFrom: string; filingTo: string }>;
   };
 }
 
@@ -1663,13 +1669,24 @@ function padCik(cik: string): string {
 
 async function fetch13fFilingStubs(
   cik: string,
+  includeArchives = TOP_100_FUND_CIKS.has(cik),
 ): Promise<Array<{ accessionNumber: string; reportDate: string; filingDate: string }>> {
   const url = `https://data.sec.gov/submissions/CIK${padCik(cik)}.json`;
   const res = await secFetch(url);
   const data = (await res.json()) as SubmissionsData;
-  const { accessionNumber, form, reportDate, filingDate } = data.filings.recent;
+  const histories = [data.filings.recent];
+  // Busy managers' recent arrays can cover fewer than ten years.
+  if (includeArchives) {
+    for (const file of data.filings.files ?? []) {
+      if (file.filingTo < tenYearReportCutoff()) continue;
+      const archive = await secFetch(`https://data.sec.gov/submissions/${file.name}`);
+      histories.push(await archive.json() as SubmissionsData["filings"]["recent"]);
+      await sleep(300);
+    }
+  }
 
   const stubs: Array<{ accessionNumber: string; reportDate: string; filingDate: string }> = [];
+  for (const { accessionNumber, form, reportDate, filingDate } of histories) {
   for (let i = 0; i < form.length; i++) {
     if (form[i] === "13F-HR" && reportDate[i]) {
       stubs.push({
@@ -1679,7 +1696,8 @@ async function fetch13fFilingStubs(
       });
     }
   }
-  return stubs;
+  }
+  return [...new Map(stubs.map(stub => [stub.accessionNumber, stub])).values()];
 }
 
 // ─── Core fetcher ─────────────────────────────────────────────────────────────
@@ -1696,7 +1714,7 @@ const FETCH_DELAY_MS = 3_000;
  */
 const GAP_RETRY_DELAY_MS = 8_000;
 
-export async function seedFundFilings(cik: string, linkedCiks: string[] = []): Promise<void> {
+export async function seedFundFilings(cik: string, linkedCiks: string[] = [], latestOnly = false): Promise<void> {
   logger.info({ cik, linkedCiks }, "Starting 13F filing seed");
 
   const fund = await db.select().from(hedgeFundsTable).where(eq(hedgeFundsTable.cik, cik)).limit(1);
@@ -1717,7 +1735,7 @@ export async function seedFundFilings(cik: string, linkedCiks: string[] = []): P
   // Gather stubs from the primary CIK
   let stubs;
   try {
-    stubs = await fetch13fFilingStubs(cik);
+    stubs = await fetch13fFilingStubs(cik, !latestOnly && TOP_100_FUND_CIKS.has(cik));
   } catch (err) {
     logger.error({ err, cik }, "Failed to fetch EDGAR submissions");
     return;
@@ -1739,6 +1757,7 @@ export async function seedFundFilings(cik: string, linkedCiks: string[] = []): P
 
   const toProcess = allStubs.filter((s) => {
     if (s.reportDate < MIN_REPORT_DATE) return false;
+    if (TOP_100_FUND_CIKS.has(cik) && s.reportDate < tenYearReportCutoff()) return false;
     if (existingSet.has(s.accessionNumber)) return false;
     // For linked-CIK stubs, skip quarters already covered by the primary CIK filing
     // to prevent duplicate period rows when both entities filed the same quarter.
@@ -1748,7 +1767,8 @@ export async function seedFundFilings(cik: string, linkedCiks: string[] = []): P
 
   logger.info({ cik, total: allStubs.length, toProcess: toProcess.length }, "13F stubs found");
 
-  for (const stub of toProcess) {
+  toProcess.sort((a, b) => b.reportDate.localeCompare(a.reportDate) || b.filingDate.localeCompare(a.filingDate));
+  for (const stub of latestOnly ? toProcess.slice(0, 1) : toProcess) {
     try {
       await processFiling(stub.fetchCik, stub, cik /* storeCik */);
       await sleep(FETCH_DELAY_MS);
@@ -1807,6 +1827,7 @@ export async function retryGapFilings(cik: string): Promise<void> {
   // 4. Build the gap list — stubs within the date window that are missing OR have empty holdings
   const gaps = stubs.filter((s) => {
     if (s.reportDate < MIN_REPORT_DATE) return false; // outside the historical cutoff
+    if (TOP_100_FUND_CIKS.has(cik) && s.reportDate < tenYearReportCutoff()) return false;
     const filingId = existingByAccession.get(s.accessionNumber);
     if (filingId === undefined) return true;          // category 1: not in DB at all
     return !filingIdsWithHoldings.has(filingId);      // category 2: in DB but no holdings
@@ -1862,10 +1883,15 @@ async function processFiling(
     return;
   }
 
-  const { holdings, computedTotalThousands } = parseInfoTable(infotableXml);
+  const limited = TOP_100_FUND_CIKS.has(fundCikForDb);
+  // SEC changed Form 13F values from thousands to dollars for reports filed
+  // starting January 3, 2023. Preserve the existing funds' parsing behavior.
+  const { holdings, computedTotalThousands } = parseInfoTable(
+    infotableXml, limited ? reportedValueMultiplier(stub.filingDate) : undefined,
+  );
 
   let totalValueThousands = computedTotalThousands;
-  if (primaryXml) {
+  if (primaryXml && !limited) {
     const headerTotal = parsePrimaryDocTotal(primaryXml);
     if (headerTotal && headerTotal > 0) {
       // Guard against dollar-unit filings where the header total is ~1000x our
@@ -1882,52 +1908,48 @@ async function processFiling(
     return;
   }
 
-  // Resolve CUSIPs → tickers (pass names so Yahoo Finance search can be used)
-  const tickerMap = await resolveCusips(new Map(holdings.map((h) => [h.cusip, h.name])));
+  const retained = limited ? retainTopPositions(holdings) : { positions: holdings, miscellaneous: null };
+  // Never resolve discarded positions or the synthetic summary as securities.
+  const tickerMap = await resolveCusips(new Map(retained.positions.map((h) => [h.cusip, h.name])));
 
-  // Upsert filing record
-  const [filing] = await db
-    .insert(sec13fFilingsTable)
-    .values({
-      fundCik: fundCikForDb,
-      periodLabel,
-      reportDate: stub.reportDate,
-      filingDate: stub.filingDate,
-      accessionNumber: stub.accessionNumber,
-      totalValueThousands,
-    })
-    .onConflictDoUpdate({
-      target: sec13fFilingsTable.accessionNumber,
-      set: { totalValueThousands },
-    })
-    .returning();
+  await db.transaction(async (tx) => {
+    const [filing] = await tx
+      .insert(sec13fFilingsTable)
+      .values({
+        fundCik: fundCikForDb,
+        periodLabel,
+        reportDate: stub.reportDate,
+        filingDate: stub.filingDate,
+        accessionNumber: stub.accessionNumber,
+        totalValueThousands,
+      })
+      .onConflictDoUpdate({
+        target: sec13fFilingsTable.accessionNumber,
+        set: { totalValueThousands },
+      })
+      .returning();
 
-  if (!filing) {
-    logger.error({ cik, period: periodLabel }, "Failed to upsert filing record");
-    return;
-  }
+    if (!filing) throw new Error(`Failed to upsert ${cik} ${periodLabel}`);
 
-  // Upsert holdings in chunks
-  const holdingRows = holdings.map((h) => ({
-    filingId: filing.id,
-    name: h.name,
-    ticker: tickerMap.get(h.cusip) ?? null,
-    cusip: h.cusip,
-    marketValueThousands: h.marketValueThousands,
-    shares: h.shares,
-  }));
+    const holdingRows = [...retained.positions, ...(retained.miscellaneous ? [retained.miscellaneous] : [])].map((h) => ({
+      filingId: filing.id,
+      name: h.name,
+      ticker: h.cusip === MISCELLANEOUS_CUSIP ? null : tickerMap.get(h.cusip) ?? null,
+      cusip: h.cusip,
+      marketValueThousands: h.marketValueThousands,
+      shares: h.shares,
+    }));
 
-  const CHUNK = 50;
-  for (let i = 0; i < holdingRows.length; i += CHUNK) {
-    const chunk = holdingRows.slice(i, i + CHUNK);
-    for (const row of chunk) {
-      try {
-        await db.insert(sec13fHoldingsTable).values(row).onConflictDoNothing();
-      } catch { /* ignore */ }
+    // Atomic replacement prevents partially populated quarters from becoming
+    // browsable and ensures a re-import cannot leave old lower-ranked rows.
+    await tx.delete(sec13fHoldingsTable).where(eq(sec13fHoldingsTable.filingId, filing.id));
+    const CHUNK = 50;
+    for (let i = 0; i < holdingRows.length; i += CHUNK) {
+      await tx.insert(sec13fHoldingsTable).values(holdingRows.slice(i, i + CHUNK));
     }
-  }
+  });
 
-  logger.info({ cik, period: periodLabel, holdings: holdings.length }, "13F filing processed");
+  logger.info({ cik, period: periodLabel, holdings: holdings.length, retained: retained.positions.length }, "13F filing processed");
 }
 
 // ─── Quarterly refresh scheduler ──────────────────────────────────────────────
@@ -2012,6 +2034,18 @@ const TRACKED_FUNDS = [
   { cik: "1115373", name: "Semper Augustus Investment Group", slug: "semper-augustus",        proprietor: "Christopher Bloomstran"   },
   { cik: "1089755", name: "SouthernSun Asset Management",    slug: "southernsun",             proprietor: "Michael Cook"             },
   { cik: "1556785", name: "Vulcan Value Partners",           slug: "vulcan-value-partners",   proprietor: "C.T. Fitzpatrick"         },
+  { cik: "850529", name: "Fisher Asset Management", slug: "fisher-asset-management", proprietor: "Ken Fisher" },
+  { cik: "1088875", name: "Baillie Gifford", slug: "baillie-gifford", proprietor: null },
+  { cik: "1081407", name: "Gabelli Funds LLC", slug: "gabelli-funds", proprietor: "Mario Gabelli" },
+  { cik: "1037389", name: "Renaissance Technologies LLC", slug: "renaissance-technologies", proprietor: null },
+  { cik: "1352662", name: "Grantham, Mayo, Van Otterloo & Co.", slug: "gmo", proprietor: "Jeremy Grantham" },
+  { cik: "936753", name: "Ariel Investments LLC", slug: "ariel-investments", proprietor: "John Rogers" },
+  { cik: "1697748", name: "ARK Investment Management LLC", slug: "ark-investment-management", proprietor: "Cathie Wood" },
+  { cik: "1029160", name: "Soros Fund Management", slug: "soros-fund-management", proprietor: "George Soros" },
+  { cik: "1350694", name: "Bridgewater Associates", slug: "bridgewater-associates", proprietor: "Ray Dalio" },
+  { cik: "898382", name: "Cooperman Leon G (Omega Advisors)", slug: "leon-cooperman", proprietor: "Leon Cooperman" },
+  { cik: "1017918", name: "BAMCO Inc. (Baron Capital Management)", slug: "bamco", proprietor: "Ron Baron" },
+  { cik: "813917", name: "Harris Associates LP", slug: "harris-associates", proprietor: null },
 ];
 
 export async function initEdgarFetcher(): Promise<void> {
@@ -2040,6 +2074,15 @@ export async function initEdgarFetcher(): Promise<void> {
   // tickers for any holdings that had null tickers from prior runs.
   setTimeout(async () => {
     const funds = await db.select().from(hedgeFundsTable);
+    // Make every new manager's latest filing visible before walking any
+    // single manager's ten-year archive. Requests remain sequential.
+    for (const fund of funds.filter(fund => TOP_100_FUND_CIKS.has(fund.cik))) {
+      try {
+        await seedFundFilings(fund.cik, [], true);
+      } catch (err) {
+        logger.error({ err, cik: fund.cik }, "Latest 13F seed failed");
+      }
+    }
     for (const fund of funds) {
       const linkedCiks = linkedCikMap.get(fund.cik) ?? [];
       try {

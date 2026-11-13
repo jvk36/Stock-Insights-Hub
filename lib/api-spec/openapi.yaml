@@ -3347,6 +3347,12 @@ components:
     ThirteenFHoldingRow:
       type: object
       properties:
+        isMiscellaneous:
+          type: boolean
+          description: Aggregate of positions outside the retained top 100, not a tradable security.
+        comparisonUnavailable:
+          type: boolean
+          description: Prior holding may have been outside the retained top 100; do not label it as a new buy.
         name:
           type: string
           description: Issuer name from 13F (deduplicated)
@@ -3398,6 +3404,9 @@ components:
     ThirteenFHoldingsResponse:
       type: object
       properties:
+        holdingsLimited:
+          type: boolean
+          description: Only the top 100 current positions are retained, with remaining market value aggregated.
         fundName:
           type: string
         proprietor:

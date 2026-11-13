@@ -6,9 +6,11 @@ id = "n_30NfJ_2H8g-NkMrjpY9"
 uri = "file://summary.md"
 type = "text"
 title = "Project Summary & Code Decisions"
+logical_id = "3ceea5a8-ffa6-4da0-b97b-9882ac7e80be"
 
 [[outputs]]
 id = "a82O77TPx5BPHByYeIKBy"
 uri = "file://README.md"
 type = "text"
 title = "README"
+logical_id = "96cbe879-3788-4fa8-be82-946c82f4e339"

@@ -8,6 +8,8 @@
 import type { ThirteenFHoldingRow } from "./thirteenFHoldingRow";
 
 export interface ThirteenFHoldingsResponse {
+  /** Only the top 100 current positions are retained, with remaining market value aggregated. */
+  holdingsLimited?: boolean;
   fundName: string;
   proprietor?: string | null;
   cik: string;

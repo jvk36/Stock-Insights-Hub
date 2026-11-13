@@ -27,6 +27,54 @@ from = "/macro"
 to = "/macro/index.html"
 
 [[services.production.rewrites]]
+from = "/13f/fisher-asset-management"
+to = "/13f/fisher-asset-management/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/baillie-gifford"
+to = "/13f/baillie-gifford/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/gabelli-funds"
+to = "/13f/gabelli-funds/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/renaissance-technologies"
+to = "/13f/renaissance-technologies/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/gmo"
+to = "/13f/gmo/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/ariel-investments"
+to = "/13f/ariel-investments/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/ark-investment-management"
+to = "/13f/ark-investment-management/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/soros-fund-management"
+to = "/13f/soros-fund-management/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/bridgewater-associates"
+to = "/13f/bridgewater-associates/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/leon-cooperman"
+to = "/13f/leon-cooperman/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/bamco"
+to = "/13f/bamco/index.html"
+
+[[services.production.rewrites]]
+from = "/13f/harris-associates"
+to = "/13f/harris-associates/index.html"
+
+[[services.production.rewrites]]
 from = "/13f"
 to = "/13f/index.html"
 

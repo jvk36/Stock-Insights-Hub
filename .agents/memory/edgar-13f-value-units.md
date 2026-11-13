@@ -4,6 +4,12 @@ description: SEC 13F <value> fields may be in dollars (not thousands) despite th
 ---
 
 ## The problem
+
+**Important correction:** Do not interpret the historical note below as saying all source values or stored values are dollars. SEC Release 22.4.1 changed reported 13F values from thousands to dollars on January 3, 2023. The existing holdings display multiplies stored thousands by 1,000. Normalize source units to that storage/display convention exactly once. Use filing date, not report date, for the new-format boundary.
+
+**Why:** The large-manager expansion initially displayed portfolios 1,000 times too large when dollar source values were treated as stored thousands. An average-position heuristic is also unreliable for managers with hundreds or thousands of positions.
+
+**How to apply:** Inspect both the filing format and downstream display convention before importing another manager. Do not change legacy-manager values wholesale based on the older note; verify them against the original filing first.
 The SEC 13F spec says `<value>` in the information table should be in thousands of dollars. In practice, all three funds we track (Berkshire Hathaway, Pershing Square, Himalaya Capital) file raw dollar values instead. Storing the number as-is produces values 1,000× too large (e.g. AAPL at $57.8 trillion instead of $57.8 billion).
 
 The filings use the `xslForm13F_X02` schema with namespace-prefixed elements (`<ns1:infoTable>`, `<ns1:value>`, etc.).

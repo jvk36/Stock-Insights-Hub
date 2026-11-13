@@ -2,7 +2,8 @@
 - [Yahoo Finance module quirks](yahoo-finance-module-quirks.md) — key gotchas for yahoo-finance2 v3 field names, units, and availability
 - [FRED API rate limiting on Replit](fred-rate-limit.md) — Akamai CDN burst-limits FRED requests; batched enrichment strategy
 - [EDGAR 13F value units](edgar-13f-value-units.md) — all tracked funds file raw dollars (not thousands); auto-detection + namespace parsing fix for ns1:-prefixed XML
-- [13F tracker fund roster](thirteen-f-fund-roster.md) — all 10 seeded funds, CIKs, slugs, proprietors, and ticker-fix patterns by fund
+- [13F tracker fund roster](thirteen-f-fund-roster.md) — historical manager identity and ticker-resolution lessons; verify the current roster in code.
+- [Large-manager 13F limits](thirteen-f-retention-policy.md) — twelve added managers use top 100 plus Miscellaneous; skip missing quarters without inventing trades.
 - [SEC Form 4 parsing](sec-form4-parsing.md) — raw-document paths, conservative 10b5-1 scope, and holdings-percentage rules
 - [Multi-class share-count history](berkshire-share-count-history.md) — aggregate Company Facts may omit class-dimensioned counts; recover filing-level classes and archived submissions
 - [Split-adjusted EPS basis](split-adjusted-eps-basis.md) — normalize quarterly EPS before TTM; use filing dates to avoid re-adjusting restated comparatives

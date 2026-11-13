@@ -75,6 +75,9 @@ export function selectCloningPicks(
           const matches = prior.holdings.filter((p) => nameKey(p.name) === nameKey(holding.name));
           return matches.length === 1 ? matches[0] : undefined;
         })();
+      // A prior position outside the retained top 100 is not proof of a
+      // new purchase. Never introduce false buys into WhaleShadow.
+      if (!old && prior.holdings.some(p => p.cusip === "__MISC__")) continue;
       const ticker = holding.ticker ? canonicalTicker(holding.ticker) : "";
       const factor = actions.filter((a) => a.ticker === ticker && a.type === "split"
         && a.date > priorDate && a.date <= reportDate).reduce((f, a) => f * a.value, 1);

@@ -1930,6 +1930,12 @@ export const Get13fFundHoldingsQueryParams = zod.object({
 });
 
 export const Get13fFundHoldingsResponse = zod.object({
+  holdingsLimited: zod
+    .boolean()
+    .optional()
+    .describe(
+      "Only the top 100 current positions are retained, with remaining market value aggregated.",
+    ),
   fundName: zod.string(),
   proprietor: zod.string().nullish(),
   cik: zod.string(),
@@ -1949,6 +1955,18 @@ export const Get13fFundHoldingsResponse = zod.object({
     ),
   holdings: zod.array(
     zod.object({
+      isMiscellaneous: zod
+        .boolean()
+        .optional()
+        .describe(
+          "Aggregate of positions outside the retained top 100, not a tradable security.",
+        ),
+      comparisonUnavailable: zod
+        .boolean()
+        .optional()
+        .describe(
+          "Prior holding may have been outside the retained top 100; do not label it as a new buy.",
+        ),
       name: zod.string().describe("Issuer name from 13F (deduplicated)"),
       ticker: zod
         .string()

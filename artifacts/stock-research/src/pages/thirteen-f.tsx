@@ -451,8 +451,9 @@ function HoldingsTable({
             return (
               <tr
                 key={`${row.name}-${i}`}
-                className="border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer"
-                onClick={() => setSelectedRow({
+                className={`border-b border-border/50 transition-colors ${row.isMiscellaneous ? "bg-muted/40 font-semibold" : "hover:bg-muted/30"} ${!row.isMiscellaneous && !row.comparisonUnavailable ? "cursor-pointer" : ""}`}
+                title={row.isMiscellaneous ? "Combined market value of all positions outside the top 100." : row.comparisonUnavailable ? "Prior position may have been outside the retained top 100; buy/increase status is unavailable." : undefined}
+                onClick={() => !row.isMiscellaneous && !row.comparisonUnavailable && setSelectedRow({
                   name: row.name,
                   ticker: row.ticker ?? null,
                   colorClass: row.colorClass,
@@ -745,7 +746,8 @@ function FundHoldingsView({
       refetchInterval: (query) =>
         (query.state.data as { seedingInProgress?: boolean } | undefined)?.seedingInProgress
           ? 10_000
-          : false,
+          : 60_000,
+      refetchOnWindowFocus: true,
     },
   });
 
@@ -844,7 +846,8 @@ function FundHoldingsView({
 
         {holdingsData && !holdingsData.seedingInProgress && (
           <span className="text-xs text-muted-foreground ml-2">
-            {holdingsData.holdings.length} positions
+            {holdingsData.holdings.filter(row => !row.isMiscellaneous && row.currentMarketValue !== null).length} positions
+            {holdingsData.holdings.some(row => row.isMiscellaneous) && " + Miscellaneous"}
             {holdingsData.currentTotalValue > 0 && (
               <> · Portfolio: {fmtMktVal(holdingsData.currentTotalValue)}</>
             )}
@@ -857,6 +860,13 @@ function FundHoldingsView({
       </div>
 
       {/* Holdings table */}
+      {holdingsData?.holdingsLimited && (
+        <p className="text-xs text-muted-foreground">
+          Showing up to 100 positions ranked by market value. Miscellaneous combines all remaining equity positions.
+          Quarters without available filings are skipped. Missing prior top-100 positions are not labeled as new buys,
+          and positions falling out of the top 100 are not labeled as sales.
+        </p>
+      )}
       {isLoading ? (
         <div className="rounded-xl border border-border bg-card p-4 space-y-2">
           {Array.from({ length: 12 }).map((_, i) => (

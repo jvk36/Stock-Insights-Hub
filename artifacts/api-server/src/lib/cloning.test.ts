@@ -66,6 +66,12 @@ test("no purchases is different from an unavailable prior comparison", () => {
   assert.equal(missing.picks.length, 0);
   assert.match(missing.issues[0], /previous quarter/);
 });
+test("entering the top 100 is not treated as a new WhaleShadow purchase", () => {
+  const f = pair();
+  f[0].holdings.push({ ...holding("MISC", 0, 500), ticker: null, cusip: "__MISC__", name: "Miscellaneous" });
+  const picks = selectCloningPicks(f, "2026-06-30", "2026-08-17").picks;
+  assert.equal(picks.some(pick => pick.ticker === "AAA"), false);
+});
 test("reject future and same-day filings, and retain the original available filing", () => {
   const f = pair();
   const later = { ...f[1], filingDate: "2026-08-16", holdings: [holding("FUTURE", 1, 999)] };

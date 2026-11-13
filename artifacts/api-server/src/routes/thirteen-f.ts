@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { eq, desc, exists, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import YahooFinance from "yahoo-finance2";
+import { MISCELLANEOUS_CUSIP, TOP_100_FUND_CIKS, tenYearReportCutoff } from "../lib/thirteen-f-retention";
 import {
   hedgeFundsTable,
   sec13fFilingsTable,
@@ -58,7 +59,10 @@ router.get("/13f/funds/:cik/quarters", async (req: Request, res: Response) => {
           SELECT 1 FROM sec_13f_holdings h WHERE h.filing_id = ${sec13fFilingsTable.id}
         )`
       )
-      .orderBy(desc(sec13fFilingsTable.reportDate));
+      .orderBy(desc(sec13fFilingsTable.reportDate), desc(sec13fFilingsTable.filingDate));
+    const quarters = [...new Set(filings
+      .filter(f => !TOP_100_FUND_CIKS.has(cik) || f.reportDate >= tenYearReportCutoff())
+      .map(f => f.periodLabel))];
 
     // If no populated filings yet, check whether the fund is registered at all.
     // When it is, the seed is still running — tell the client to poll.
@@ -75,7 +79,7 @@ router.get("/13f/funds/:cik/quarters", async (req: Request, res: Response) => {
 
     return res.json({
       cik,
-      quarters: filings.map((f) => f.periodLabel),
+      quarters,
       seedingInProgress: false,
     });
   } catch (err) {
@@ -105,7 +109,7 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
     }
 
     // Get all filings that have holdings (skip empty stubs still being seeded)
-    const allFilings = await db
+    const populatedFilings = await db
       .select()
       .from(sec13fFilingsTable)
       .where(
@@ -113,7 +117,14 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
           SELECT 1 FROM sec_13f_holdings h WHERE h.filing_id = ${sec13fFilingsTable.id}
         )`
       )
-      .orderBy(desc(sec13fFilingsTable.reportDate));
+      .orderBy(desc(sec13fFilingsTable.reportDate), desc(sec13fFilingsTable.filingDate));
+    const limited = TOP_100_FUND_CIKS.has(cik);
+    const seen = new Set<string>();
+    const allFilings = populatedFilings.filter(f => {
+      if ((limited && f.reportDate < tenYearReportCutoff()) || seen.has(f.periodLabel)) return false;
+      seen.add(f.periodLabel);
+      return true;
+    });
 
     // If no filings yet, return seeding-in-progress response
     if (allFilings.length === 0) {
@@ -165,6 +176,8 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
           .where(eq(sec13fHoldingsTable.filingId, priorFiling.id))
       : [];
 
+    const currentMisc = currentHoldings.find(h => h.cusip === MISCELLANEOUS_CUSIP);
+    const priorMisc = priorHoldingsRaw.find(h => h.cusip === MISCELLANEOUS_CUSIP);
     // Build lookup maps keyed by CUSIP (stable across quarters, unlike name strings)
     const currentByCusip = new Map(currentHoldings.map((h) => [h.cusip, h]));
     const priorByCusip   = new Map(priorHoldingsRaw.map((h) => [h.cusip, h]));
@@ -288,6 +301,8 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
 
       let pctChangeShares: number | null = null;
       let colorClass = "";
+      const isMiscellaneous = cusip === MISCELLANEOUS_CUSIP;
+      const comparisonUnavailable = !isMiscellaneous && !!curr && !prior && (!!priorMisc || (limited && !priorFiling));
 
       if (!curr) {
         colorClass = "decrease";
@@ -306,14 +321,16 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
 
       return {
         name, ticker, cusip,
+        isMiscellaneous,
+        comparisonUnavailable,
         currentMarketValue: currentMv,
-        currentShares,
+        currentShares: isMiscellaneous ? null : currentShares,
         currentPctAllocation: currentPct,
         priorMarketValue: priorMv,
-        priorShares,
+        priorShares: isMiscellaneous ? null : priorShares,
         priorPctAllocation: priorPct,
-        pctChangeShares,
-        colorClass,
+        pctChangeShares: isMiscellaneous || comparisonUnavailable ? null : pctChangeShares,
+        colorClass: isMiscellaneous || comparisonUnavailable ? "" : colorClass,
       };
     }
 
@@ -333,6 +350,7 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
 
     // Sort: active positions by current market value desc; exited positions at bottom by prior value desc
     rows.sort((a, b) => {
+      if (a.isMiscellaneous !== b.isMiscellaneous) return a.isMiscellaneous ? 1 : -1;
       if (a.currentMarketValue !== null && b.currentMarketValue !== null)
         return b.currentMarketValue - a.currentMarketValue;
       if (a.currentMarketValue !== null) return -1;
@@ -349,7 +367,12 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
       currentTotalValue,
       priorTotalValue,
       seedingInProgress: false,
-      holdings: rows,
+      holdingsLimited: limited,
+      // Only current top-100 positions plus the summary for capped managers;
+      // falling out of the top 100 is not evidence of a sale.
+      holdings: limited
+        ? rows.filter(row => row.currentMarketValue !== null && (row.cusip !== MISCELLANEOUS_CUSIP || !!currentMisc))
+        : rows,
     });
   } catch (err) {
     req.log.error({ err, cik }, "Failed to get 13F holdings");

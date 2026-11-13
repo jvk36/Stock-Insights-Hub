@@ -13,6 +13,8 @@ Algo-Portfolios is publicly accessible with all five sub-tabs. Free visitors see
 
 Stock Screens is publicly accessible with all six sub-tabs and sector filtering (country filtering for ADRs). Advanced screens (GARP, Deep Value, Momentum, Quality and Dividend) remain Premium; Free visitors can select them to see a Premium notice, not their controls or results.
 
-**Why:** The user explicitly requested these access boundaries, then moved Macro Summary to the end after previously placing Stock Watch last.
+AdSense ads are for Free mode only, including signed-out visitors. Premium subscribers must remain ad-free.
+
+**Why:** The user explicitly requested these access boundaries, then moved Macro Summary to the end after previously placing Stock Watch last, and requested advertising only in Free mode.
 
 **How to apply:** Keep both client and API access rules aligned. Overview includes its price chart, earnings overlay, financial statements, news, company profile, and SEC filings; do not accidentally gate those behind Premium. Watchlist list/add/delete, metrics, and chart-history access require authentication but not payment. Public screen constituent lists must not expose Premium metrics, and free portfolio introductions must not fetch protected portfolio data.

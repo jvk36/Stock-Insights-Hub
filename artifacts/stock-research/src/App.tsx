@@ -12,6 +12,7 @@ import MacroSummary from "@/pages/macro";
 import StockIndexes from "@/pages/indexes";
 import Watchlist from "@/pages/watchlist";
 import { StockWatchSignInNotice } from "@/components/stock-watch-sign-in-notice";
+import { FreeTierAds } from "@/components/free-tier-ads";
 
 import ThirteenFInsights from "@/pages/thirteen-f";
 import Pricing from "@/pages/pricing";
@@ -142,7 +143,7 @@ export default function App() {
   const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
   return (
     <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} afterSignOutUrl={`${basePath}/pricing`} appearance={{ theme: shadcn, variables: { colorPrimary: "hsl(145 52% 30%)" } }}>
-      <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={basePath}><MembershipProvider><Routes /><AccountDock /></MembershipProvider></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>
+      <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={basePath}><MembershipProvider><FreeTierAds /><Routes /><AccountDock /></MembershipProvider></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>
     </ClerkProvider>
   );
 }

@@ -572,17 +572,6 @@ function IndexTabContent({
 const STALE_TIME = 5 * 60 * 1000;
 
 export default function StockIndexes() {
-  const [, setLocation] = useLocation();
-  const [searchInput, setSearchInput] = useState("");
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchInput.trim()) {
-      setLocation(`/stock/${searchInput.trim().toUpperCase()}`);
-      setSearchInput("");
-    }
-  };
-
   const sp500     = useGetIndexSp500(    { query: { queryKey: getGetIndexSp500QueryKey(),     staleTime: STALE_TIME } });
   const nasdaq100 = useGetIndexNasdaq100({ query: { queryKey: getGetIndexNasdaq100QueryKey(), staleTime: STALE_TIME } });
   const sp400     = useGetIndexSp400(    { query: { queryKey: getGetIndexSp400QueryKey(),     staleTime: STALE_TIME } });
@@ -629,15 +618,6 @@ export default function StockIndexes() {
 
           <div className="flex-1" />
 
-          <form onSubmit={handleSearch} className="relative w-44">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value.toUpperCase())}
-              placeholder="Symbol…"
-              className="w-full pl-9 bg-background border-border font-mono h-9 uppercase text-sm"
-            />
-          </form>
         </div>
       </header>
 

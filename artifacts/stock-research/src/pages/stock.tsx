@@ -205,16 +205,6 @@ export default function StockDetail() {
 
           <div className="hidden flex-1 md:block" />
 
-          {/* Symbol search */}
-          <form onSubmit={handleSearch} className="relative ml-auto w-36 md:w-44">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value.toUpperCase())}
-              placeholder="Symbol…"
-              className="w-full pl-9 bg-background border-border font-mono h-9 uppercase text-sm"
-            />
-          </form>
         </div>
       </header>
 

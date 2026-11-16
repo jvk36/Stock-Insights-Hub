@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams, useSearch } from "wouter";
-import { Search, TrendingUp, ChevronLeft, ChevronRight, Building2, ArrowLeft, ExternalLink } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { TrendingUp, ChevronLeft, ChevronRight, Building2, ArrowLeft, ExternalLink } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -1003,7 +1002,6 @@ export default function ThirteenFInsights() {
   const requestedView = new URLSearchParams(search).get("view") ?? "activity";
   const activeView = ["activity", "bets", "buys", "stats", "portfolio"].includes(requestedView) ? requestedView : "activity";
   const { slug } = useParams<{ slug?: string }>();
-  const [searchInput, setSearchInput] = useState("");
   const [selectedFund, setSelectedFund] = useState<HedgeFund | null>(null);
 
   // Keep the displayed fund in sync when users navigate with browser back/forward
@@ -1019,14 +1017,6 @@ export default function ThirteenFInsights() {
   const handleSelectFund = (fund: HedgeFund) => {
     setSelectedFund(fund);
     setLocation(`/13f/${fund.slug}`);
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchInput.trim()) {
-      setLocation(`/stock/${searchInput.trim().toUpperCase()}`);
-      setSearchInput("");
-    }
   };
 
   const fundLabel = selectedFund?.name ?? (slug ? slug.split("-").map((part) => part[0]?.toUpperCase() + part.slice(1)).join(" ") : null);
@@ -1093,16 +1083,6 @@ export default function ThirteenFInsights() {
 
           <div className="flex-1" />
 
-          <form onSubmit={handleSearch} className="relative w-44">
-            <Search aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              aria-label="Search by stock symbol"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value.toUpperCase())}
-              placeholder="Symbol…"
-              className="w-full pl-9 bg-background border-border font-mono h-9 uppercase text-sm"
-            />
-          </form>
         </div>
       </header>
 

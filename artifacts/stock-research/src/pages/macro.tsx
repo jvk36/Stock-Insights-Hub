@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useLocation, Link } from "wouter";
-import { Search, TrendingUp } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { TrendingUp } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -21,16 +20,6 @@ import Seo from "@/components/Seo";
 
 export default function MacroSummary() {
   const [, setLocation] = useLocation();
-  const [searchInput, setSearchInput] = useState("");
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchInput.trim()) {
-      setLocation(`/stock/${searchInput.trim().toUpperCase()}`);
-      setSearchInput("");
-    }
-  };
-
   const { data, isLoading, isFetching, isError, error, refetch } = useGetMacroIndicators({
     query: {
       queryKey: getGetMacroIndicatorsQueryKey(),
@@ -105,17 +94,6 @@ export default function MacroSummary() {
 
           <div className="flex-1" />
 
-          {/* Symbol search */}
-          <form onSubmit={handleSearch} className="relative w-44">
-            <Search aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              aria-label="Search by stock symbol"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value.toUpperCase())}
-              placeholder="Symbol…"
-              className="w-full pl-9 bg-background border-border font-mono h-9 uppercase text-sm"
-            />
-          </form>
         </div>
       </header>
 

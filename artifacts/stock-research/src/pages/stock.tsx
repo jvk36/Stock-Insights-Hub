@@ -24,6 +24,9 @@ import BoardLeadershipTab from "@/components/stock/BoardLeadershipTab";
 import IntrinsicValuation from "@/components/stock/IntrinsicValuation";
 import PerformanceLab, { parsePerformanceView } from "@/components/stock/performance/PerformanceLab";
 import type { PerformanceView } from "@/components/stock/performance/PerformanceLab";
+import RiskLab from "@/components/stock/risk/RiskLab";
+import { parseRiskView } from "@/components/stock/risk/risk-shared";
+import type { RiskView } from "@/components/stock/risk/risk-shared";
 
 function SectionDivider({ children }: { children: React.ReactNode }) {
   return (
@@ -52,9 +55,9 @@ function PremiumStockContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-type LabValue = "valuation" | "performance";
+type LabValue = "valuation" | "performance" | "risk";
 
-function LabTabs({ value, onChange, performance, children }: { value: LabValue; onChange: (v: LabValue) => void; performance: React.ReactNode; children: React.ReactNode }) {
+function LabTabs({ value, onChange, performance, risk, children }: { value: LabValue; onChange: (v: LabValue) => void; performance: React.ReactNode; risk: React.ReactNode; children: React.ReactNode }) {
   const trig = "rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none";
   return (
     <Tabs value={value} onValueChange={(v) => onChange(v as LabValue)} className="w-full">
@@ -63,10 +66,12 @@ function LabTabs({ value, onChange, performance, children }: { value: LabValue; 
         <TabsList className="mt-1 h-auto max-w-full flex-wrap justify-start bg-transparent p-0">
           <TabsTrigger value="valuation" data-testid="tab-valuation-fundamentals" className={trig}>Valuation & Fundamentals</TabsTrigger>
           <TabsTrigger value="performance" data-testid="tab-performance" className={trig}>Performance</TabsTrigger>
+          <TabsTrigger value="risk" data-testid="tab-risk-analysis" className={trig}>Risk Analysis</TabsTrigger>
         </TabsList>
       </div>
       <TabsContent value="valuation" className="mt-0">{children}</TabsContent>
       <TabsContent value="performance" className="mt-0">{value === "performance" && performance}</TabsContent>
+      <TabsContent value="risk" className="mt-0">{value === "risk" && risk}</TabsContent>
     </Tabs>
   );
 }
@@ -79,12 +84,24 @@ export default function StockDetail() {
   const search = useSearch();
   const [, setLocation] = useLocation();
   const params = new URLSearchParams(search);
-  const lab: LabValue = params.get("lab") === "performance" ? "performance" : "valuation";
+  const labParam = params.get("lab");
+  const lab: LabValue = labParam === "performance" ? "performance" : labParam === "risk" ? "risk" : "valuation";
+  const riskView = parseRiskView(params.get("risk"));
+  const riskHref = (sym: string | undefined, v: RiskView) =>
+    `${sym ? `/stock/${encodeURIComponent(sym)}` : "/stock"}?lab=risk&risk=${v}`;
   const perfView = parsePerformanceView(params.get("performance"));
   const base = symbol ? `/stock/${encodeURIComponent(symbol)}` : "/stock";
   const perfHref = (sym: string | undefined, v: PerformanceView) =>
     `${sym ? `/stock/${encodeURIComponent(sym)}` : "/stock"}?lab=performance&performance=${v}`;
-  const setLab = (v: LabValue) => setLocation(v === "performance" ? perfHref(symbol, perfView) : base);
+  const setLab = (v: LabValue) => setLocation(v === "performance" ? perfHref(symbol, perfView) : v === "risk" ? riskHref(symbol, riskView) : base);
+  const risk = (
+    <RiskLab
+      symbol={symbol}
+      view={riskView}
+      onViewChange={(v) => setLocation(riskHref(symbol, v), { replace: true })}
+      onTickerChange={(s) => setLocation(riskHref(s, riskView))}
+    />
+  );
   const performance = (
     <PerformanceLab
       symbol={symbol}
@@ -95,8 +112,10 @@ export default function StockDetail() {
   );
   const seo = (
     <Seo
-      title={lab === "performance" ? (symbol ? `${symbol} Performance | Risk & Returns Lab` : "Risk & Returns Lab: Performance") : symbol ? `${symbol} Valuation & Fundamentals | Risk & Returns Lab` : "Risk & Returns Lab: Valuation & Fundamentals"}
-      description={lab === "performance"
+      title={lab === "risk" ? (symbol ? `${symbol} Risk Analysis | Risk & Returns Lab` : "Risk & Returns Lab: Risk Analysis") : lab === "performance" ? (symbol ? `${symbol} Performance | Risk & Returns Lab` : "Risk & Returns Lab: Performance") : symbol ? `${symbol} Valuation & Fundamentals | Risk & Returns Lab` : "Risk & Returns Lab: Valuation & Fundamentals"}
+      description={lab === "risk"
+        ? `Analyze ${symbol ?? "any ticker"} risk: historical drawdowns and recovery times, volatility vs index ETFs, Sharpe, Sortino and Calmar ratios, beta to the S&P 500 and correlation.`
+        : lab === "performance"
         ? `Analyze ${symbol ?? "any ticker"} with annualized returns, historical investment growth, monthly and annual return heat maps, and rolling returns.`
         : symbol
         ? `Research ${symbol} valuation and fundamentals: price history, financials, intrinsic value, ratings, buybacks, insider activity and SEC filings.`
@@ -151,7 +170,7 @@ export default function StockDetail() {
         </header>
 
         <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
-          <LabTabs key={`lab-${symbol ?? ""}-${resetNonce}`} value={lab} onChange={setLab} performance={performance}>
+          <LabTabs key={`lab-${symbol ?? ""}-${resetNonce}`} value={lab} onChange={setLab} performance={performance} risk={risk}>
           <div className="flex items-center justify-center py-12">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -229,7 +248,7 @@ export default function StockDetail() {
       </header>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
-        <LabTabs key={`lab-${symbol ?? ""}-${resetNonce}`} value={lab} onChange={setLab} performance={performance}>
+        <LabTabs key={`lab-${symbol ?? ""}-${resetNonce}`} value={lab} onChange={setLab} performance={performance} risk={risk}>
         <div className="space-y-6">
         <div className="max-w-2xl"><TickerSearch size="sm" onNavigate={bump} /></div>
         {/* Top Section: Title & Price */}

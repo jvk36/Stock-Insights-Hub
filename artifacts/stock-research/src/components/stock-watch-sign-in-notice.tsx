@@ -15,7 +15,7 @@ export function StockWatchSignInNotice() {
               ["/13f", "Hedge Fund Blueprint"],
               ["/model-portfolios", "Algo-Portfolios"],
               ["/indexes", "Stock Screens"],
-              ["/stock", "Stock Insights"],
+              ["/stock", "Risk & Returns Lab"],
             ].map(([href, title]) => (
               <Link key={href} href={href} className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">{title}</Link>
             ))}

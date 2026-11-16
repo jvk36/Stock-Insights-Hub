@@ -96,7 +96,7 @@ export default function Watchlist() {
             >
               Stock Screens
             </Link>
-            <Link href="/stock" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Insights</Link>
+            <Link href="/stock" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Risk &amp; Returns Lab</Link>
             <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap">Stock Watch</span>
             <Link href="/macro" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Macro Summary</Link>
           </nav>
@@ -174,7 +174,7 @@ export default function Watchlist() {
                     const m = metrics?.find(m => m.ticker === entry.ticker);
                     if (!m) return (
                       <tr key={entry.id} data-testid={`row-stock-${entry.ticker}`}>
-                        <td className="px-4 py-2 sticky left-0 z-10 bg-card border-r border-border font-bold">{entry.ticker}</td>
+                        <td className="px-4 py-2 sticky left-0 z-10 bg-card border-r border-border font-bold"><Link href={`/stock/${encodeURIComponent(entry.ticker)}`} className="text-primary hover:underline">{entry.ticker}</Link></td>
                         <td colSpan={COL_COUNT - 2} className="px-4 py-2 text-muted-foreground text-xs"><Skeleton className="h-5 w-24 bg-muted" /></td>
                         <td className="px-4 py-2 text-center">
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => removeMutation.mutate({ id: entry.id })}>
@@ -187,14 +187,15 @@ export default function Watchlist() {
                     return (
                       <tr key={entry.id} className="hover:bg-muted/20 transition-colors" data-testid={`row-stock-${entry.ticker}`}>
                         <td className="px-4 py-2 sticky left-0 z-10 bg-card border-r border-border transition-colors group-hover:bg-muted/20">
-                          <button 
+                          <Link
+                            href={`/stock/${encodeURIComponent(m.ticker)}`}
                             className="text-primary font-bold hover:underline cursor-pointer flex flex-col text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded"
-                            onClick={() => setSelectedTicker({ ticker: m.ticker, name: m.companyName })}
                             data-testid={`cell-ticker-${entry.ticker}`}
                           >
                             <span>{m.ticker}</span>
                             {m.companyName && <span className="text-[10px] text-muted-foreground font-sans font-normal truncate max-w-[120px]">{m.companyName}</span>}
-                          </button>
+                          </Link>
+                          <button type="button" onClick={() => setSelectedTicker({ ticker: m.ticker, name: m.companyName })} className="mt-1 text-[10px] text-muted-foreground hover:text-primary hover:underline" aria-label={`View price chart for ${m.ticker}`}>Price chart</button>
                         </td>
                         <td className="px-4 py-2">{formatCurrency(m.currentPrice)}</td>
                         <td className={`px-4 py-2 text-right ${getPeColor(m.peRatioForward)}`}>{formatNum(m.peRatioForward)}</td>

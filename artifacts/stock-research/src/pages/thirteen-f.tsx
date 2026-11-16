@@ -467,7 +467,7 @@ function HoldingsTable({
                   <span className={`font-medium ${badge}`}>
                     {row.name}
                     {row.ticker && (
-                      <span className="ml-1 font-mono text-[10px] opacity-80">({row.ticker})</span>
+                      <Link href={`/stock/${encodeURIComponent(row.ticker)}`} onClick={(event) => event.stopPropagation()} className="ml-1 font-mono text-[10px] opacity-80 hover:underline" aria-label={`Research ${row.ticker} in Risk & Returns Lab`}>({row.ticker})</Link>
                     )}
                   </span>
                 </td>
@@ -1071,7 +1071,7 @@ export default function ThirteenFInsights() {
             >
               Stock Screens
             </Link>
-            <Link href="/stock" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Insights</Link>
+            <Link href="/stock" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Risk &amp; Returns Lab</Link>
             <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Watch</Link>
             <Link href="/macro" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Macro Summary</Link>
           </nav>

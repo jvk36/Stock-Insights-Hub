@@ -213,16 +213,15 @@ function LoadMore({ shown, total, onMore }: { shown: number; total: number; onMo
 
 function TickerButton({ s, onOpen }: { s: { ticker: string | null; name: string; securityKey: string }; onOpen: (k: string) => void }) {
   return (
-    <button
-      onClick={() => onOpen(s.securityKey)}
-      className="text-left group"
-      aria-label={`View managers holding ${label(s)}`}
-    >
-      <span className={`font-mono font-semibold group-hover:text-primary group-hover:underline ${s.ticker ? "" : "text-amber-500"}`}>
-        {s.ticker ?? s.securityKey}
-      </span>
+    <div className="text-left">
+      {s.ticker ? (
+        <Link href={`/stock/${encodeURIComponent(s.ticker)}`} className="font-mono font-semibold hover:text-primary hover:underline" aria-label={`Research ${s.ticker} in Risk & Returns Lab`}>{s.ticker}</Link>
+      ) : (
+        <span className="font-mono font-semibold text-amber-500">{s.securityKey}</span>
+      )}
       <span className="block text-xs text-muted-foreground truncate max-w-[220px]">{s.name}</span>
-    </button>
+      <button type="button" onClick={() => onOpen(s.securityKey)} className="mt-1 text-[11px] text-muted-foreground hover:text-primary hover:underline" aria-label={`View managers holding ${label(s)}`}>Fund activity</button>
+    </div>
   );
 }
 
@@ -331,18 +330,18 @@ function CountGrid({ ctx, field }: { ctx: Ctx; field: CountField }) {
         {top.map((s: ThirteenFSummaryStock, i) => {
           const a = alpha(s[field]);
           return (
-            <button
+            <div
               key={s.securityKey}
               role="listitem"
-              onClick={() => ctx.openTicker(s.securityKey)}
-              aria-label={`Rank ${i + 1}: ${label(s)}, ${s[field]} ${meta.noun}. Open manager detail.`}
               title={`${s.name} - ${s[field]} ${meta.noun}`}
-              className="rounded-md border border-border/60 p-2 text-left transition-transform hover:scale-[1.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="rounded-md border border-border/60 p-2 text-left transition-transform hover:scale-[1.04]"
               style={{ background: `hsl(${meta.hue} / ${a})` }}
             >
-              <div className={`font-mono text-xs font-bold truncate ${a > 0.55 ? "text-white" : "text-foreground"}`}>{s.ticker ?? s.name}</div>
-              <div className={`font-mono text-lg tabular-nums leading-tight ${a > 0.55 ? "text-white" : "text-foreground"}`}>{s[field]}</div>
-            </button>
+              <div className={`font-mono text-xs font-bold truncate ${a > 0.55 ? "text-white" : "text-foreground"}`}>
+                {s.ticker ? <Link href={`/stock/${encodeURIComponent(s.ticker)}`} className="hover:underline" aria-label={`Research ${s.ticker} in Risk & Returns Lab`}>{s.ticker}</Link> : s.name}
+              </div>
+              <button type="button" onClick={() => ctx.openTicker(s.securityKey)} className={`font-mono text-lg tabular-nums leading-tight hover:underline focus-visible:ring-2 focus-visible:ring-primary rounded ${a > 0.55 ? "text-white" : "text-foreground"}`} aria-label={`Rank ${i + 1}: ${label(s)}, ${s[field]} ${meta.noun}. Open manager detail.`}>{s[field]}</button>
+            </div>
           );
         })}
       </div>

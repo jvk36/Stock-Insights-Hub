@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { useLocation, useParams, Link } from "wouter";
-import { ArrowRight, Lock, Search, TrendingUp } from "lucide-react";
+import { useParams, Link } from "wouter";
+import { Lock, Search, TrendingUp } from "lucide-react";
 import { useMembership } from "@/lib/membership";
-import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import Seo from "@/components/Seo";
+import TickerSearch from "@/components/stock/TickerSearch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGetStockQuote, getGetStockQuoteQueryKey } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
@@ -42,25 +43,45 @@ function PremiumStockContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-border bg-card p-8 text-center space-y-4">
       <Lock className="mx-auto h-6 w-6 text-primary" />
-      <h2 className="text-xl font-semibold">Premium stock insights</h2>
+      <h2 className="text-xl font-semibold">Premium Valuation & Fundamentals research</h2>
       <p className="text-muted-foreground">Overview is free. Upgrade to Premium to access this sub-tab.</p>
       <Link href="/pricing" className="inline-flex rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground">Explore Premium</Link>
     </div>
   );
 }
 
+function LabTabs({ children }: { children: React.ReactNode }) {
+  return (
+    <Tabs defaultValue="valuation-fundamentals" className="w-full">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-border">
+        <div className="pb-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary" data-testid="text-lab-title">Risk & Returns Lab</p>
+        </div>
+        <TabsList className="h-auto bg-transparent p-0">
+          <TabsTrigger value="valuation-fundamentals" data-testid="tab-valuation-fundamentals" className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none">
+            Valuation & Fundamentals
+          </TabsTrigger>
+        </TabsList>
+      </div>
+      <TabsContent value="valuation-fundamentals" className="mt-0">{children}</TabsContent>
+    </Tabs>
+  );
+}
+
 export default function StockDetail() {
   const { symbol } = useParams<{ symbol?: string }>();
-  const [, setLocation] = useLocation();
-  const [searchInput, setSearchInput] = useState("");
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchInput.trim()) {
-      setLocation(`/stock/${searchInput.trim().toUpperCase()}`);
-      setSearchInput("");
-    }
-  };
+  // Bumped on every View Insights submit so re-submitting the same ticker still resets to Overview.
+  const [resetNonce, setResetNonce] = useState(0);
+  const bump = () => setResetNonce((n) => n + 1);
+  const seo = (
+    <Seo
+      title={symbol ? `${symbol} Valuation & Fundamentals | Risk & Returns Lab` : "Risk & Returns Lab: Valuation & Fundamentals"}
+      description={symbol
+        ? `Research ${symbol} valuation and fundamentals: price history, financials, intrinsic value, ratings, buybacks, insider activity and SEC filings.`
+        : "Compare fundamental value and risk for any ticker: price history, financials, intrinsic valuation, ratings, buybacks, insider activity and SEC filings."}
+      path={symbol ? `/stock/${encodeURIComponent(symbol)}` : "/stock"}
+    />
+  );
 
   const { data: quote, isLoading: isLoadingQuote } = useGetStockQuote(symbol ?? "", {
     query: {
@@ -72,6 +93,7 @@ export default function StockDetail() {
   if (!symbol) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
+        {seo}
         <header className="border-b border-border bg-card sticky top-0 z-10">
           <div className="max-w-7xl mx-auto px-4 min-h-14 py-2 flex flex-wrap items-center gap-2 md:gap-6">
             <div className="flex items-center gap-2 shrink-0">
@@ -99,14 +121,16 @@ export default function StockDetail() {
               >
                 Stock Screens
               </Link>
-              <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap">Stock Insights</span>
+              <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap">Risk & Returns Lab</span>
               <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Watch</Link>
               <Link href="/macro" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Macro Summary</Link>
             </nav>
           </div>
         </header>
 
-        <main className="flex-1 flex items-center justify-center px-4 py-16">
+        <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
+          <LabTabs key={`lab-${symbol ?? ""}-${resetNonce}`}>
+          <div className="flex items-center justify-center py-12">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -116,47 +140,24 @@ export default function StockDetail() {
               <Search className="h-8 w-8 text-primary" />
             </div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-              Stock Insights
+              Risk & Returns Lab
             </p>
             <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">
-              Find your next insight
+              Valuation & Fundamentals
             </h1>
             <p className="mx-auto mt-4 max-w-lg text-base text-muted-foreground">
               Enter a ticker symbol to explore price history, financials, news,
               fundamentals, analyst ratings, and more.
             </p>
 
-            <form onSubmit={handleSearch} className="mt-8">
-              <label htmlFor="stock-search" className="sr-only">
-                Ticker symbol
-              </label>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <div className="relative flex-1">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="stock-search"
-                    autoFocus
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value.toUpperCase())}
-                    placeholder="Enter a ticker, e.g. AAPL"
-                    className="h-14 w-full border-2 border-primary/30 bg-card pl-12 font-mono text-lg uppercase shadow-sm focus-visible:border-primary focus-visible:ring-primary/20"
-                    aria-label="Ticker symbol"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="inline-flex h-14 items-center justify-center gap-2 rounded-md bg-primary px-6 text-base font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                >
-                  View insights
-                  <ArrowRight className="h-5 w-5" />
-                </button>
-              </div>
-            </form>
+            <div className="mt-8"><TickerSearch autoFocus onNavigate={bump} /></div>
 
             <p className="mt-4 text-xs text-muted-foreground">
-              Type a ticker symbol and press Enter to continue
+              Pick a suggestion or type any ticker and press Enter
             </p>
           </motion.div>
+          </div>
+          </LabTabs>
         </main>
       </div>
     );
@@ -164,6 +165,7 @@ export default function StockDetail() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
+        {seo}
       {/* Ribbon */}
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 min-h-14 py-2 flex flex-wrap items-center gap-2 md:flex-nowrap md:gap-6">
@@ -194,7 +196,7 @@ export default function StockDetail() {
             >
               Stock Screens
             </Link>
-            <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap">Stock Insights</span>
+            <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap">Risk & Returns Lab</span>
             <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Watch</Link>
             <Link href="/macro" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Macro Summary</Link>
           </nav>
@@ -204,7 +206,10 @@ export default function StockDetail() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6 space-y-6">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
+        <LabTabs key={`lab-${symbol ?? ""}-${resetNonce}`}>
+        <div className="space-y-6">
+        <div className="max-w-2xl"><TickerSearch size="sm" onNavigate={bump} /></div>
         {/* Top Section: Title & Price */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -239,7 +244,7 @@ export default function StockDetail() {
         </motion.div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs key={`${symbol}-${resetNonce}`} defaultValue="overview" className="w-full">
           <TabsList className="bg-card border border-border h-auto p-1 flex flex-wrap gap-0.5 w-full lg:w-auto lg:inline-flex lg:flex-nowrap overflow-x-auto">
             <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
             <TabsTrigger value="intrinsic-valuation" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Intrinsic Valuation</TabsTrigger>
@@ -251,7 +256,7 @@ export default function StockDetail() {
             <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Analysis</TabsTrigger>
             <TabsTrigger value="models" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Models</TabsTrigger>
           </TabsList>
-          <p className="mt-2 text-xs text-muted-foreground">Overview is free. All other sub-tabs require Premium.</p>
+          <p className="mt-2 text-xs text-muted-foreground">Overview is free. All other Valuation & Fundamentals sub-tabs require Premium.</p>
 
           <div className="mt-6">
             {/* Overview: chart + stats + all detail sections */}
@@ -312,6 +317,8 @@ export default function StockDetail() {
             </TabsContent>
           </div>
         </Tabs>
+        </div>
+        </LabTabs>
       </main>
     </div>
   );

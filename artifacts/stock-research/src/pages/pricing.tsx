@@ -61,7 +61,7 @@ export default function Pricing() {
           <div className="mx-auto mt-10 max-w-lg rounded-xl border border-primary/30 bg-primary/5 p-6 text-center">
             <Check className="mx-auto h-7 w-7 text-primary" />
             <h2 className="mt-2 font-semibold">Premium is active</h2>
-            <Link href="/stock" className="mt-4 inline-flex rounded-md bg-primary px-5 py-2.5 font-semibold text-primary-foreground">Open Stock Insights</Link>
+            <Link href="/stock" className="mt-4 inline-flex rounded-md bg-primary px-5 py-2.5 font-semibold text-primary-foreground">Open Risk &amp; Returns Lab</Link>
           </div>
         ) : (
           <div className="mx-auto mt-12 grid max-w-4xl gap-5 md:grid-cols-2">

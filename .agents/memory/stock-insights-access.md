@@ -3,7 +3,7 @@ name: Stock access tiers
 description: User-defined Free versus Premium boundaries for stock pages, screens and portfolios.
 ---
 
-Stock Insights and its entire Overview sub-tab are Free-tier. Every other Stock Insights sub-tab remains Premium.
+Risk & Returns Lab (formerly Stock Insights) is Free-tier. Its default sub-tab is Valuation & Fundamentals, which contains the existing research interface: the entire Overview sub-sub-tab is Free-tier, and every other research sub-sub-tab remains Premium.
 
 Stock Watch is Free-tier but requires sign-in or sign-up. Signed-out visitors stay on the Stock Watch page and see an explanation with Sign in and Sign up options, not an automatic login redirect. Keep watchlists private to each signed-in user.
 

@@ -86,9 +86,6 @@ export default function StockDetail() {
               >
                 Hedge Fund Blueprint
               </Link>
-              <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
-                Stock Insights
-              </span>
               <Link
                 href="/model-portfolios"
                 data-testid="link-nav-model-portfolios"
@@ -102,6 +99,7 @@ export default function StockDetail() {
               >
                 Stock Screens
               </Link>
+              <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap">Stock Insights</span>
               <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Watch</Link>
               <Link href="/macro" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Macro Summary</Link>
             </nav>
@@ -183,9 +181,6 @@ export default function StockDetail() {
             >
               Hedge Fund Blueprint
             </Link>
-            <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none">
-              Stock Insights
-            </span>
             <Link
               href="/model-portfolios"
               data-testid="link-nav-model-portfolios"
@@ -199,6 +194,7 @@ export default function StockDetail() {
             >
               Stock Screens
             </Link>
+            <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap">Stock Insights</span>
             <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Watch</Link>
             <Link href="/macro" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Macro Summary</Link>
           </nav>

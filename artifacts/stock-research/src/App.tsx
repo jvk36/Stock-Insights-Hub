@@ -1,4 +1,5 @@
-import { Redirect, Route, Router as WouterRouter, Switch } from "wouter";
+import { Redirect, Route, Router as WouterRouter, Switch, useLocation, useSearch } from "wouter";
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ClerkProvider, SignIn, SignUp, UserButton } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
@@ -20,6 +21,7 @@ import Account from "@/pages/account";
 import AdminMembers from "@/pages/admin-members";
 import ModelPortfolios from "@/pages/model-portfolios";
 import { MembershipProvider, useMembership } from "@/lib/membership";
+import { getAuthReturn, rememberAuthReturn, safeAuthReturn } from "@/lib/auth-return";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false, staleTime: 5 * 60 * 1000, retry: 1 } } });
 
@@ -38,11 +40,19 @@ function SignedInRoute({ children, signedOutFallback }: { children: React.ReactN
 }
 
 function AccountDock() {
+  const [location] = useLocation();
+  const search = useSearch();
+  const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const returnTo = safeAuthReturn(currentPath, basePath) ?? getAuthReturn(search, basePath);
+  useEffect(() => {
+    rememberAuthReturn(`${window.location.pathname}${window.location.search}${window.location.hash}`, basePath);
+  }, [location, search, basePath]);
   const { membership, authState } = useMembership();
   const signedIn = authState === "signed-in";
   return (
     <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full border bg-card/95 p-2 pl-3 shadow-lg backdrop-blur">
-      {!signedIn && <a href={`${import.meta.env.BASE_URL}sign-in`} className="text-sm font-semibold text-primary">Sign in</a>}
+      {!signedIn && <a href={`${basePath}/sign-in?redirect_url=${encodeURIComponent(returnTo)}`} className="text-sm font-semibold text-primary">Sign in</a>}
       {signedIn && <>
         <a href={`${import.meta.env.BASE_URL}account`} className="text-xs font-semibold text-muted-foreground hover:text-foreground">{membership?.role === "admin" ? "Admin" : membership?.premium ? "Premium" : membership ? "Free" : "Account"}</a>
         <UserButton />
@@ -53,6 +63,9 @@ function AccountDock() {
 
 function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const search = useSearch();
+  const returnTo = getAuthReturn(search, basePath);
+  const returnQuery = `?redirect_url=${encodeURIComponent(returnTo)}`;
   const Component = mode === "sign-in" ? SignIn : SignUp;
   return (
     <div className="min-h-screen bg-background px-4 py-10">
@@ -87,9 +100,10 @@ function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
           <Component
             routing="path"
             path={`${basePath}/${mode}`}
-            signUpUrl={`${basePath}/sign-up`}
-            signInUrl={`${basePath}/sign-in`}
-            fallbackRedirectUrl={`${basePath}/account`}
+            signUpUrl={`${basePath}/sign-up${returnQuery}`}
+            signInUrl={`${basePath}/sign-in${returnQuery}`}
+            forceRedirectUrl={returnTo}
+            fallbackRedirectUrl={returnTo}
             appearance={{
               elements: {
                 cardBox: "w-[440px] max-w-full shadow-xl",

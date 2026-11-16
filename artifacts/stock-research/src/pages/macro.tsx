@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useLocation, Link } from "wouter";
+import { Link } from "wouter";
 import { TrendingUp } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,7 +19,6 @@ import MacroDiyGuideTab from "@/components/macro/MacroDiyGuideTab";
 import Seo from "@/components/Seo";
 
 export default function MacroSummary() {
-  const [, setLocation] = useLocation();
   const { data, isLoading, isFetching, isError, error, refetch } = useGetMacroIndicators({
     query: {
       queryKey: getGetMacroIndicatorsQueryKey(),
@@ -69,12 +68,6 @@ export default function MacroSummary() {
             >
               Hedge Fund Blueprint
             </Link>
-            <button
-              onClick={() => setLocation("/stock")}
-              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors cursor-pointer"
-            >
-              Stock Insights
-            </button>
             <Link
               href="/model-portfolios"
               data-testid="link-nav-model-portfolios"
@@ -88,6 +81,7 @@ export default function MacroSummary() {
             >
               Stock Screens
             </Link>
+            <Link href="/stock" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Insights</Link>
             <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Watch</Link>
             <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap">Macro Summary</span>
           </nav>

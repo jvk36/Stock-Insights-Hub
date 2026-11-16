@@ -6,6 +6,7 @@
 - [Large-manager 13F limits](thirteen-f-retention-policy.md) — both added manager groups use top 100 plus Miscellaneous; skip missing quarters without inventing trades.
 - [Hedge fund summary rules](hedge-fund-summary-rules.md) — individual-position rankings, latest-quarter-only coverage, and top-100 combined holdings.
 - [Performance return basis](performance-return-basis.md) — dividend-adjusted returns, SPY benchmark proxy, honest horizon coverage and listing-currency limitations.
+- [Custom portfolio methodology](custom-portfolio-methodology.md) — simulated combined-path risk, explicit rebalancing, USD-only weighted values and weight-independent correlations.
 - [Generic JSX in previews](vite-preview-jsx-generics.md) — explicit JSX type arguments can break development instrumentation even when type checks and production builds pass.
 - [SEC Form 4 parsing](sec-form4-parsing.md) — raw-document paths, conservative 10b5-1 scope, and holdings-percentage rules
 - [Multi-class share-count history](berkshire-share-count-history.md) — aggregate Company Facts may omit class-dimensioned counts; recover filing-level classes and archived submissions

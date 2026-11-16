@@ -7,6 +7,8 @@ Risk & Returns Lab (formerly Stock Insights) is Free-tier. Its default sub-tab i
 
 The Performance and Risk Analysis sibling sub-tabs are Premium-only. Keep them visible with a Premium notice for Free visitors, but protect their analytics and shared historical-data API.
 
+Portfolio Tools is the fourth Premium sibling sub-tab. Its Portfolio Analyzer, Correlation Matrix and Portfolio Backtester are protected; Free visitors see an explanation and upgrade notice.
+
 Stock Watch is Free-tier but requires sign-in or sign-up. Signed-out visitors stay on the Stock Watch page and see an explanation with Sign in and Sign up options, not an automatic login redirect. Keep watchlists private to each signed-in user.
 
 Macro Summary belongs at the end of the main tabs, after Stock Watch. Preserve the relative order of the remaining tabs.

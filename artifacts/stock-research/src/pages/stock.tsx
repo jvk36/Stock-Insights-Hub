@@ -27,6 +27,9 @@ import type { PerformanceView } from "@/components/stock/performance/Performance
 import RiskLab from "@/components/stock/risk/RiskLab";
 import { parseRiskView } from "@/components/stock/risk/risk-shared";
 import type { RiskView } from "@/components/stock/risk/risk-shared";
+import PortfolioTools from "@/components/stock/portfolio-tools/PortfolioTools";
+import { parsePortfolioView } from "@/components/stock/portfolio-tools/portfolio-shared";
+import type { PortfolioView } from "@/components/stock/portfolio-tools/portfolio-shared";
 
 function SectionDivider({ children }: { children: React.ReactNode }) {
   return (
@@ -45,6 +48,8 @@ function PremiumStockContent({ children, feature = "Valuation & Fundamentals res
     ? "Explore a ticker’s annualized returns (CAGR), the historical growth of a $10,000 investment compared with the S&P 500 using SPY, monthly and annual return heat maps, and rolling returns across different investment horizons."
     : feature === "Risk Analysis"
     ? "Understand a ticker’s historical declines and recovery periods, compare its volatility with index ETFs, evaluate Sharpe, Sortino and Calmar ratios, and explore market beta relative to the S&P 500 using SPY plus correlation with another investment."
+    : feature === "Portfolio Tools"
+    ? "Combine 2 to 20 tickers with your own weights. The Portfolio Analyzer measures the combined portfolio's CAGR, volatility, maximum drawdown and Sharpe ratio; the Correlation Matrix shows a heat map of how each pair of holdings moves together; and the Portfolio Backtester shows how the portfolio would have grown over different time frames with optional rebalancing."
     : null;
   if (loading || authState === "unknown") {
     return <p className="text-muted-foreground">Checking membership…</p>;
@@ -61,9 +66,9 @@ function PremiumStockContent({ children, feature = "Valuation & Fundamentals res
   );
 }
 
-type LabValue = "valuation" | "performance" | "risk";
+type LabValue = "valuation" | "performance" | "risk" | "portfolio";
 
-function LabTabs({ value, onChange, performance, risk, children }: { value: LabValue; onChange: (v: LabValue) => void; performance: React.ReactNode; risk: React.ReactNode; children: React.ReactNode }) {
+function LabTabs({ value, onChange, performance, risk, portfolio, children }: { value: LabValue; onChange: (v: LabValue) => void; performance: React.ReactNode; risk: React.ReactNode; portfolio: React.ReactNode; children: React.ReactNode }) {
   const trig = "rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none";
   return (
     <Tabs value={value} onValueChange={(v) => onChange(v as LabValue)} className="w-full">
@@ -73,11 +78,13 @@ function LabTabs({ value, onChange, performance, risk, children }: { value: LabV
           <TabsTrigger value="valuation" data-testid="tab-valuation-fundamentals" className={trig}>Valuation & Fundamentals</TabsTrigger>
           <TabsTrigger value="performance" data-testid="tab-performance" className={trig}>Performance <Lock className="ml-1.5 h-3 w-3" aria-label="Premium" /></TabsTrigger>
           <TabsTrigger value="risk" data-testid="tab-risk-analysis" className={trig}>Risk Analysis <Lock className="ml-1.5 h-3 w-3" aria-label="Premium" /></TabsTrigger>
+          <TabsTrigger value="portfolio" data-testid="tab-portfolio-tools" className={trig}>Portfolio Tools <Lock className="ml-1.5 h-3 w-3" aria-label="Premium" /></TabsTrigger>
         </TabsList>
       </div>
       <TabsContent value="valuation" className="mt-0">{children}</TabsContent>
       <TabsContent value="performance" className="mt-0">{value === "performance" && <PremiumStockContent feature="Performance">{performance}</PremiumStockContent>}</TabsContent>
       <TabsContent value="risk" className="mt-0">{value === "risk" && <PremiumStockContent feature="Risk Analysis">{risk}</PremiumStockContent>}</TabsContent>
+      <TabsContent value="portfolio" className="mt-0">{value === "portfolio" && <PremiumStockContent feature="Portfolio Tools">{portfolio}</PremiumStockContent>}</TabsContent>
     </Tabs>
   );
 }
@@ -91,21 +98,31 @@ export default function StockDetail() {
   const [, setLocation] = useLocation();
   const params = new URLSearchParams(search);
   const labParam = params.get("lab");
-  const lab: LabValue = labParam === "performance" ? "performance" : labParam === "risk" ? "risk" : "valuation";
+  const lab: LabValue = labParam === "performance" ? "performance" : labParam === "risk" ? "risk" : labParam === "portfolio" ? "portfolio" : "valuation";
   const riskView = parseRiskView(params.get("risk"));
   const riskHref = (sym: string | undefined, v: RiskView) =>
     `${sym ? `/stock/${encodeURIComponent(sym)}` : "/stock"}?lab=risk&risk=${v}`;
+  const portfolioView = parsePortfolioView(params.get("portfolio"));
+  const portfolioHref = (sym: string | undefined, v: PortfolioView) =>
+    `${sym ? `/stock/${encodeURIComponent(sym)}` : "/stock"}?lab=portfolio&portfolio=${v}`;
   const perfView = parsePerformanceView(params.get("performance"));
   const base = symbol ? `/stock/${encodeURIComponent(symbol)}` : "/stock";
   const perfHref = (sym: string | undefined, v: PerformanceView) =>
     `${sym ? `/stock/${encodeURIComponent(sym)}` : "/stock"}?lab=performance&performance=${v}`;
-  const setLab = (v: LabValue) => setLocation(v === "performance" ? perfHref(symbol, perfView) : v === "risk" ? riskHref(symbol, riskView) : base);
+  const setLab = (v: LabValue) => setLocation(v === "performance" ? perfHref(symbol, perfView) : v === "risk" ? riskHref(symbol, riskView) : v === "portfolio" ? portfolioHref(symbol, portfolioView) : base);
   const risk = (
     <RiskLab
       symbol={symbol}
       view={riskView}
       onViewChange={(v) => setLocation(riskHref(symbol, v), { replace: true })}
       onTickerChange={(s) => setLocation(riskHref(s, riskView))}
+    />
+  );
+  const portfolio = (
+    <PortfolioTools
+      symbol={symbol}
+      view={portfolioView}
+      onViewChange={(v) => setLocation(portfolioHref(symbol, v), { replace: true })}
     />
   );
   const performance = (
@@ -118,8 +135,10 @@ export default function StockDetail() {
   );
   const seo = (
     <Seo
-      title={lab === "risk" ? (symbol ? `${symbol} Risk Analysis | Risk & Returns Lab` : "Risk & Returns Lab: Risk Analysis") : lab === "performance" ? (symbol ? `${symbol} Performance | Risk & Returns Lab` : "Risk & Returns Lab: Performance") : symbol ? `${symbol} Valuation & Fundamentals | Risk & Returns Lab` : "Risk & Returns Lab: Valuation & Fundamentals"}
-      description={lab === "risk"
+      title={lab === "portfolio" ? (symbol ? `${symbol} Portfolio Tools | Risk & Returns Lab` : "Risk & Returns Lab: Portfolio Tools") : lab === "risk" ? (symbol ? `${symbol} Risk Analysis | Risk & Returns Lab` : "Risk & Returns Lab: Risk Analysis") : lab === "performance" ? (symbol ? `${symbol} Performance | Risk & Returns Lab` : "Risk & Returns Lab: Performance") : symbol ? `${symbol} Valuation & Fundamentals | Risk & Returns Lab` : "Risk & Returns Lab: Valuation & Fundamentals"}
+      description={lab === "portfolio"
+        ? "Build a multi-ticker portfolio with custom weights: analyze CAGR, volatility, max drawdown and Sharpe, view a correlation matrix heat map, and backtest growth over different time frames with optional rebalancing."
+        : lab === "risk"
         ? `Analyze ${symbol ?? "any ticker"} risk: historical drawdowns and recovery times, volatility vs index ETFs, Sharpe, Sortino and Calmar ratios, beta to the S&P 500 and correlation.`
         : lab === "performance"
         ? `Analyze ${symbol ?? "any ticker"} with annualized returns, historical investment growth, monthly and annual return heat maps, and rolling returns.`
@@ -176,7 +195,7 @@ export default function StockDetail() {
         </header>
 
         <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
-          <LabTabs key={`lab-${symbol ?? ""}-${resetNonce}`} value={lab} onChange={setLab} performance={performance} risk={risk}>
+          <LabTabs key={`lab-${symbol ?? ""}-${resetNonce}`} value={lab} onChange={setLab} performance={performance} risk={risk} portfolio={portfolio}>
           <div className="flex items-center justify-center py-12">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -254,7 +273,7 @@ export default function StockDetail() {
       </header>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
-        <LabTabs key={`lab-${symbol ?? ""}-${resetNonce}`} value={lab} onChange={setLab} performance={performance} risk={risk}>
+        <LabTabs key={`lab-${symbol ?? ""}-${resetNonce}`} value={lab} onChange={setLab} performance={performance} risk={risk} portfolio={portfolio}>
         <div className="space-y-6">
         <div className="max-w-2xl"><TickerSearch size="sm" onNavigate={bump} /></div>
         {/* Top Section: Title & Price */}

@@ -5,6 +5,8 @@ description: User-defined Free versus Premium boundaries for stock pages, screen
 
 Risk & Returns Lab (formerly Stock Insights) is Free-tier. Its default sub-tab is Valuation & Fundamentals, which contains the existing research interface: the entire Overview sub-sub-tab is Free-tier, and every other research sub-sub-tab remains Premium.
 
+The Performance and Risk Analysis sibling sub-tabs are Premium-only. Keep them visible with a Premium notice for Free visitors, but protect their analytics and shared historical-data API.
+
 Stock Watch is Free-tier but requires sign-in or sign-up. Signed-out visitors stay on the Stock Watch page and see an explanation with Sign in and Sign up options, not an automatic login redirect. Keep watchlists private to each signed-in user.
 
 Macro Summary belongs at the end of the main tabs, after Stock Watch. Preserve the relative order of the remaining tabs.

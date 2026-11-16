@@ -18,7 +18,6 @@ router.use(healthRouter);
 router.use(membershipRouter);
 router.use(macroRouter);
 router.use(thirteenFRouter);
-router.use(performanceRouter);
 router.use("/stock/:symbol/:section", createStockAccess(requirePremium));
 router.use(stockRouter);
 // Watchlist routes enforce sign-in and ownership themselves, for all tiers.
@@ -30,6 +29,8 @@ router.use((req, res, next) => {
 });
 router.use(indexesRouter);
 router.use(requirePremium);
+// Performance and Risk Analysis share this history endpoint; both require Premium.
+router.use(performanceRouter);
 router.use(modelPortfoliosRouter);
 
 export default router;

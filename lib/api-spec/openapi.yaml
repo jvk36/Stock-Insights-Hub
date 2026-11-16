@@ -22,6 +22,7 @@ paths:
   /performance/{symbol}:
     get:
       operationId: getTickerPerformance
+      summary: Adjusted history for Performance and Risk Analysis (Premium)
       tags: [stock]
       parameters:
         - name: symbol
@@ -36,6 +37,10 @@ paths:
               schema: { $ref: "#/components/schemas/TickerPerformance" }
         "400":
           description: Invalid symbol
+        "401":
+          description: Sign in required
+        "403":
+          description: Premium required
         "404":
           description: No adjusted historical prices available
         "502":

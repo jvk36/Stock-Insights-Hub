@@ -74,6 +74,9 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
+/**
+ * @summary Adjusted history for Performance and Risk Analysis (Premium)
+ */
 export const getGetTickerPerformanceUrl = (symbol: string) => {
   return `/api/performance/${symbol}`;
 };
@@ -132,6 +135,10 @@ export type GetTickerPerformanceQueryResult = NonNullable<
   Awaited<ReturnType<typeof getTickerPerformance>>
 >;
 export type GetTickerPerformanceQueryError = ErrorType<void>;
+
+/**
+ * @summary Adjusted history for Performance and Risk Analysis (Premium)
+ */
 
 export function useGetTickerPerformance<
   TData = Awaited<ReturnType<typeof getTickerPerformance>>,

@@ -7,6 +7,9 @@
  */
 import * as zod from "zod";
 
+/**
+ * @summary Adjusted history for Performance and Risk Analysis (Premium)
+ */
 export const GetTickerPerformanceParams = zod.object({
   symbol: zod.coerce.string(),
 });

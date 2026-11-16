@@ -39,7 +39,7 @@ function SectionDivider({ children }: { children: React.ReactNode }) {
   );
 }
 
-function PremiumStockContent({ children }: { children: React.ReactNode }) {
+function PremiumStockContent({ children, feature = "Valuation & Fundamentals research" }: { children: React.ReactNode; feature?: string }) {
   const { membership, loading, authState } = useMembership();
   if (loading || authState === "unknown") {
     return <p className="text-muted-foreground">Checking membership…</p>;
@@ -48,8 +48,8 @@ function PremiumStockContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-border bg-card p-8 text-center space-y-4">
       <Lock className="mx-auto h-6 w-6 text-primary" />
-      <h2 className="text-xl font-semibold">Premium Valuation & Fundamentals research</h2>
-      <p className="text-muted-foreground">Overview is free. Upgrade to Premium to access this sub-tab.</p>
+      <h2 className="text-xl font-semibold">Premium {feature}</h2>
+      <p className="text-muted-foreground">{feature === "Valuation & Fundamentals research" ? "Overview is free. Upgrade to Premium to access this sub-tab." : `${feature} is available to Premium subscribers. Upgrade to access this sub-tab.`}</p>
       <Link href="/pricing" className="inline-flex rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground">Explore Premium</Link>
     </div>
   );
@@ -65,13 +65,13 @@ function LabTabs({ value, onChange, performance, risk, children }: { value: LabV
         <p className="pt-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary" data-testid="text-lab-title">Risk & Returns Lab</p>
         <TabsList className="mt-1 h-auto max-w-full flex-wrap justify-start bg-transparent p-0">
           <TabsTrigger value="valuation" data-testid="tab-valuation-fundamentals" className={trig}>Valuation & Fundamentals</TabsTrigger>
-          <TabsTrigger value="performance" data-testid="tab-performance" className={trig}>Performance</TabsTrigger>
-          <TabsTrigger value="risk" data-testid="tab-risk-analysis" className={trig}>Risk Analysis</TabsTrigger>
+          <TabsTrigger value="performance" data-testid="tab-performance" className={trig}>Performance <Lock className="ml-1.5 h-3 w-3" aria-label="Premium" /></TabsTrigger>
+          <TabsTrigger value="risk" data-testid="tab-risk-analysis" className={trig}>Risk Analysis <Lock className="ml-1.5 h-3 w-3" aria-label="Premium" /></TabsTrigger>
         </TabsList>
       </div>
       <TabsContent value="valuation" className="mt-0">{children}</TabsContent>
-      <TabsContent value="performance" className="mt-0">{value === "performance" && performance}</TabsContent>
-      <TabsContent value="risk" className="mt-0">{value === "risk" && risk}</TabsContent>
+      <TabsContent value="performance" className="mt-0">{value === "performance" && <PremiumStockContent feature="Performance">{performance}</PremiumStockContent>}</TabsContent>
+      <TabsContent value="risk" className="mt-0">{value === "risk" && <PremiumStockContent feature="Risk Analysis">{risk}</PremiumStockContent>}</TabsContent>
     </Tabs>
   );
 }

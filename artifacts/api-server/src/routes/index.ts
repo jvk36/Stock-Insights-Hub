@@ -10,6 +10,7 @@ import { createStockAccess } from "../lib/stock-access";
 import { createIndexAccess } from "../lib/index-access";
 import watchlistRouter from "./watchlist";
 import modelPortfoliosRouter from "./model-portfolios";
+import performanceRouter from "./performance";
 
 const router: IRouter = Router();
 
@@ -17,6 +18,7 @@ router.use(healthRouter);
 router.use(membershipRouter);
 router.use(macroRouter);
 router.use(thirteenFRouter);
+router.use(performanceRouter);
 router.use("/stock/:symbol/:section", createStockAccess(requirePremium));
 router.use(stockRouter);
 // Watchlist routes enforce sign-in and ownership themselves, for all tiers.

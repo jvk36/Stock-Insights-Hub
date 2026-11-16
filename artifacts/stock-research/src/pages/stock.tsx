@@ -1,4 +1,4 @@
-import { useParams, Link } from "wouter";
+import { useParams, Link, useSearch, useLocation } from "wouter";
 import { Lock, Search, TrendingUp } from "lucide-react";
 import { useMembership } from "@/lib/membership";
 import { useState } from "react";
@@ -22,6 +22,8 @@ import AnalysisTab from "@/components/stock/AnalysisTab";
 import ModelsTab from "@/components/stock/ModelsTab";
 import BoardLeadershipTab from "@/components/stock/BoardLeadershipTab";
 import IntrinsicValuation from "@/components/stock/IntrinsicValuation";
+import PerformanceLab, { parsePerformanceView } from "@/components/stock/performance/PerformanceLab";
+import type { PerformanceView } from "@/components/stock/performance/PerformanceLab";
 
 function SectionDivider({ children }: { children: React.ReactNode }) {
   return (
@@ -50,20 +52,21 @@ function PremiumStockContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-function LabTabs({ children }: { children: React.ReactNode }) {
+type LabValue = "valuation" | "performance";
+
+function LabTabs({ value, onChange, performance, children }: { value: LabValue; onChange: (v: LabValue) => void; performance: React.ReactNode; children: React.ReactNode }) {
+  const trig = "rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none";
   return (
-    <Tabs defaultValue="valuation-fundamentals" className="w-full">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-border">
-        <div className="pb-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary" data-testid="text-lab-title">Risk & Returns Lab</p>
-        </div>
-        <TabsList className="h-auto bg-transparent p-0">
-          <TabsTrigger value="valuation-fundamentals" data-testid="tab-valuation-fundamentals" className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none">
-            Valuation & Fundamentals
-          </TabsTrigger>
+    <Tabs value={value} onValueChange={(v) => onChange(v as LabValue)} className="w-full">
+      <div className="mb-4 border-b border-border">
+        <p className="pt-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary" data-testid="text-lab-title">Risk & Returns Lab</p>
+        <TabsList className="mt-1 h-auto max-w-full flex-wrap justify-start bg-transparent p-0">
+          <TabsTrigger value="valuation" data-testid="tab-valuation-fundamentals" className={trig}>Valuation & Fundamentals</TabsTrigger>
+          <TabsTrigger value="performance" data-testid="tab-performance" className={trig}>Performance</TabsTrigger>
         </TabsList>
       </div>
-      <TabsContent value="valuation-fundamentals" className="mt-0">{children}</TabsContent>
+      <TabsContent value="valuation" className="mt-0">{children}</TabsContent>
+      <TabsContent value="performance" className="mt-0">{value === "performance" && performance}</TabsContent>
     </Tabs>
   );
 }
@@ -73,10 +76,29 @@ export default function StockDetail() {
   // Bumped on every View Insights submit so re-submitting the same ticker still resets to Overview.
   const [resetNonce, setResetNonce] = useState(0);
   const bump = () => setResetNonce((n) => n + 1);
+  const search = useSearch();
+  const [, setLocation] = useLocation();
+  const params = new URLSearchParams(search);
+  const lab: LabValue = params.get("lab") === "performance" ? "performance" : "valuation";
+  const perfView = parsePerformanceView(params.get("performance"));
+  const base = symbol ? `/stock/${encodeURIComponent(symbol)}` : "/stock";
+  const perfHref = (sym: string | undefined, v: PerformanceView) =>
+    `${sym ? `/stock/${encodeURIComponent(sym)}` : "/stock"}?lab=performance&performance=${v}`;
+  const setLab = (v: LabValue) => setLocation(v === "performance" ? perfHref(symbol, perfView) : base);
+  const performance = (
+    <PerformanceLab
+      symbol={symbol}
+      view={perfView}
+      onViewChange={(v) => setLocation(perfHref(symbol, v), { replace: true })}
+      onTickerChange={(s) => setLocation(perfHref(s, perfView))}
+    />
+  );
   const seo = (
     <Seo
-      title={symbol ? `${symbol} Valuation & Fundamentals | Risk & Returns Lab` : "Risk & Returns Lab: Valuation & Fundamentals"}
-      description={symbol
+      title={lab === "performance" ? (symbol ? `${symbol} Performance | Risk & Returns Lab` : "Risk & Returns Lab: Performance") : symbol ? `${symbol} Valuation & Fundamentals | Risk & Returns Lab` : "Risk & Returns Lab: Valuation & Fundamentals"}
+      description={lab === "performance"
+        ? `Analyze ${symbol ?? "any ticker"} with annualized returns, historical investment growth, monthly and annual return heat maps, and rolling returns.`
+        : symbol
         ? `Research ${symbol} valuation and fundamentals: price history, financials, intrinsic value, ratings, buybacks, insider activity and SEC filings.`
         : "Compare fundamental value and risk for any ticker: price history, financials, intrinsic valuation, ratings, buybacks, insider activity and SEC filings."}
       path={symbol ? `/stock/${encodeURIComponent(symbol)}` : "/stock"}
@@ -85,7 +107,7 @@ export default function StockDetail() {
 
   const { data: quote, isLoading: isLoadingQuote } = useGetStockQuote(symbol ?? "", {
     query: {
-      enabled: !!symbol,
+      enabled: !!symbol && lab === "valuation",
       queryKey: getGetStockQuoteQueryKey(symbol ?? "")
     }
   });
@@ -129,7 +151,7 @@ export default function StockDetail() {
         </header>
 
         <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
-          <LabTabs key={`lab-${symbol ?? ""}-${resetNonce}`}>
+          <LabTabs key={`lab-${symbol ?? ""}-${resetNonce}`} value={lab} onChange={setLab} performance={performance}>
           <div className="flex items-center justify-center py-12">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -207,7 +229,7 @@ export default function StockDetail() {
       </header>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
-        <LabTabs key={`lab-${symbol ?? ""}-${resetNonce}`}>
+        <LabTabs key={`lab-${symbol ?? ""}-${resetNonce}`} value={lab} onChange={setLab} performance={performance}>
         <div className="space-y-6">
         <div className="max-w-2xl"><TickerSearch size="sm" onNavigate={bump} /></div>
         {/* Top Section: Title & Price */}

@@ -7,6 +7,39 @@
  */
 import * as zod from "zod";
 
+export const GetTickerPerformanceParams = zod.object({
+  symbol: zod.coerce.string(),
+});
+
+export const GetTickerPerformanceResponse = zod.object({
+  stock: zod.object({
+    symbol: zod.string(),
+    currency: zod.string().nullable(),
+    prices: zod.array(
+      zod.object({
+        date: zod.string(),
+        adjustedClose: zod.number(),
+      }),
+    ),
+  }),
+  benchmark: zod.union([
+    zod.object({
+      symbol: zod.string(),
+      currency: zod.string().nullable(),
+      prices: zod.array(
+        zod.object({
+          date: zod.string(),
+          adjustedClose: zod.number(),
+        }),
+      ),
+    }),
+    zod.null(),
+  ]),
+  warnings: zod.array(zod.string()),
+  fetchedAt: zod.string(),
+  returnBasis: zod.string(),
+});
+
 /**
  * @summary Staggered annual Magic Formula portfolio (Premium)
  */

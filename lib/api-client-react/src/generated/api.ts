@@ -60,6 +60,7 @@ import type {
   ThirteenFHoldingsResponse,
   ThirteenFQuartersResponse,
   ThirteenFSummary,
+  TickerPerformance,
   WatchlistEntry,
   WatchlistMetrics,
 } from "./api.schemas";
@@ -72,6 +73,88 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+export const getGetTickerPerformanceUrl = (symbol: string) => {
+  return `/api/performance/${symbol}`;
+};
+
+export const getTickerPerformance = async (
+  symbol: string,
+  options?: RequestInit,
+): Promise<TickerPerformance> => {
+  return customFetch<TickerPerformance>(getGetTickerPerformanceUrl(symbol), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTickerPerformanceQueryKey = (symbol: string) => {
+  return [`/api/performance/${symbol}`] as const;
+};
+
+export const getGetTickerPerformanceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTickerPerformance>>,
+  TError = ErrorType<void>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTickerPerformance>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTickerPerformanceQueryKey(symbol);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getTickerPerformance>>
+  > = ({ signal }) =>
+    getTickerPerformance(symbol, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!symbol,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTickerPerformance>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTickerPerformanceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTickerPerformance>>
+>;
+export type GetTickerPerformanceQueryError = ErrorType<void>;
+
+export function useGetTickerPerformance<
+  TData = Awaited<ReturnType<typeof getTickerPerformance>>,
+  TError = ErrorType<void>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTickerPerformance>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTickerPerformanceQueryOptions(symbol, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Staggered annual Magic Formula portfolio (Premium)

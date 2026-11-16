@@ -5,6 +5,26 @@
  * Stock Research Platform API
  * OpenAPI spec version: 0.1.0
  */
+export interface PerformancePrice {
+  date: string;
+  adjustedClose: number;
+}
+
+export interface PerformanceSeries {
+  symbol: string;
+  /** @nullable */
+  currency: string | null;
+  prices: PerformancePrice[];
+}
+
+export interface TickerPerformance {
+  stock: PerformanceSeries;
+  benchmark: PerformanceSeries | null;
+  warnings: string[];
+  fetchedAt: string;
+  returnBasis: string;
+}
+
 export type BlindTrustCandidateStatus =
   (typeof BlindTrustCandidateStatus)[keyof typeof BlindTrustCandidateStatus];
 

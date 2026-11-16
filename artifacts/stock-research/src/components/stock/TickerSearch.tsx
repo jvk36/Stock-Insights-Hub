@@ -30,7 +30,15 @@ function useConstituentSuggestions() {
   return { all, failed, loading, total: qs.length };
 }
 
-export default function TickerSearch({ size = "lg", autoFocus = false, onNavigate }: { size?: "lg" | "sm"; autoFocus?: boolean; onNavigate?: (symbol: string) => void }) {
+export default function TickerSearch({ size = "lg", autoFocus = false, onNavigate, onSelect, buttonLabel = "View Insights", placeholder = "Ticker or company, e.g. AAPL or Apple" }: {
+  size?: "lg" | "sm";
+  autoFocus?: boolean;
+  onNavigate?: (symbol: string) => void;
+  /** When provided, called instead of navigating to /stock/:symbol. */
+  onSelect?: (symbol: string) => void;
+  buttonLabel?: string;
+  placeholder?: string;
+}) {
   const [, setLocation] = useLocation();
   const [value, setValue] = useState("");
   const [open, setOpen] = useState(false);
@@ -45,8 +53,11 @@ export default function TickerSearch({ size = "lg", autoFocus = false, onNavigat
   const go = (raw: string) => {
     const path = tickerPath(raw);
     if (!path) return;
-    setLocation(path);
-    onNavigate?.(raw.trim().toUpperCase());
+    if (onSelect) onSelect(raw.trim().toUpperCase());
+    else {
+      setLocation(path);
+      onNavigate?.(raw.trim().toUpperCase());
+    }
     setValue("");
     setOpen(false);
     setActive(-1);
@@ -99,7 +110,7 @@ export default function TickerSearch({ size = "lg", autoFocus = false, onNavigat
             onFocus={() => setOpen(true)}
             onBlur={() => setTimeout(() => setOpen(false), 120)}
             onKeyDown={onKeyDown}
-            placeholder="Ticker or company, e.g. AAPL or Apple"
+            placeholder={placeholder}
             data-testid="input-ticker-search"
             className={`w-full border-2 border-primary/30 bg-card font-mono shadow-sm focus-visible:border-primary focus-visible:ring-primary/20 ${lg ? "h-14 pl-12 text-lg" : "h-10 pl-10 text-sm"}`}
           />
@@ -129,7 +140,7 @@ export default function TickerSearch({ size = "lg", autoFocus = false, onNavigat
           data-testid="button-view-insights"
           className={`inline-flex items-center justify-center gap-2 rounded-md bg-primary font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${lg ? "h-14 px-6 text-base" : "h-10 px-4 text-sm whitespace-nowrap"}`}
         >
-          View Insights
+          {buttonLabel}
           <ArrowRight className={lg ? "h-5 w-5" : "h-4 w-4"} />
         </button>
       </div>

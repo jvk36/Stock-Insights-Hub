@@ -49,7 +49,7 @@ function PremiumStockContent({ children, feature = "Valuation & Fundamentals res
     : feature === "Risk Analysis"
     ? "Understand a ticker’s historical declines and recovery periods, compare its volatility with index ETFs, evaluate Sharpe, Sortino and Calmar ratios, and explore market beta relative to the S&P 500 using SPY plus correlation with another investment."
     : feature === "Portfolio Tools"
-    ? "Combine 2 to 20 tickers with your own weights. The Portfolio Analyzer measures the combined portfolio's CAGR, volatility, maximum drawdown and Sharpe ratio; the Correlation Matrix shows a heat map of how each pair of holdings moves together; and the Portfolio Backtester shows how the portfolio would have grown over different time frames with optional rebalancing."
+    ? "Combine 2 to 20 tickers with your own weights. The Portfolio Analyzer measures the combined portfolio's CAGR, volatility, maximum drawdown and Sharpe ratio; the Correlation Matrix shows a heat map of how each pair of holdings moves together; the Portfolio Backtester shows how the portfolio would have grown over different time frames with optional rebalancing; the Crisis Simulator replays the dot-com crash, calendar 2008, the 2020 COVID crash and the 2022 bear market; and Recovery Time lists every major drawdown with how long it took to regain the prior high."
     : null;
   if (loading || authState === "unknown") {
     return <p className="text-muted-foreground">Checking membership…</p>;
@@ -137,7 +137,7 @@ export default function StockDetail() {
     <Seo
       title={lab === "portfolio" ? (symbol ? `${symbol} Portfolio Tools | Risk & Returns Lab` : "Risk & Returns Lab: Portfolio Tools") : lab === "risk" ? (symbol ? `${symbol} Risk Analysis | Risk & Returns Lab` : "Risk & Returns Lab: Risk Analysis") : lab === "performance" ? (symbol ? `${symbol} Performance | Risk & Returns Lab` : "Risk & Returns Lab: Performance") : symbol ? `${symbol} Valuation & Fundamentals | Risk & Returns Lab` : "Risk & Returns Lab: Valuation & Fundamentals"}
       description={lab === "portfolio"
-        ? "Build a multi-ticker portfolio with custom weights: analyze CAGR, volatility, max drawdown and Sharpe, view a correlation matrix heat map, and backtest growth over different time frames with optional rebalancing."
+        ? "Build a multi-ticker portfolio with custom weights: analyze CAGR, volatility, max drawdown and Sharpe, view a correlation matrix heat map, backtest growth with optional rebalancing, simulate historical crises, and measure drawdown recovery times."
         : lab === "risk"
         ? `Analyze ${symbol ?? "any ticker"} risk: historical drawdowns and recovery times, volatility vs index ETFs, Sharpe, Sortino and Calmar ratios, beta to the S&P 500 and correlation.`
         : lab === "performance"

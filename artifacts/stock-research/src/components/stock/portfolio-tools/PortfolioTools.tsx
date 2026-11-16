@@ -13,10 +13,12 @@ import type { Row } from "./HoldingsEditor";
 import AnalyzerView from "./AnalyzerView";
 import BacktesterView from "./BacktesterView";
 import CorrelationMatrixView from "./CorrelationMatrixView";
+import CrisisSimulatorView from "./CrisisSimulatorView";
+import RecoveryTimeView from "./RecoveryTimeView";
 import { PORTFOLIO_LABELS, PORTFOLIO_VIEWS, REBALANCE_LABELS, fmtWeight } from "./portfolio-shared";
 import type { PortfolioView, Submission } from "./portfolio-shared";
 
-const SUBMIT: Record<PortfolioView, string> = { analyzer: "Analyze portfolio", correlation: "Calculate matrix", backtester: "Run backtest" };
+const SUBMIT: Record<PortfolioView, string> = { analyzer: "Analyze portfolio", correlation: "Calculate matrix", backtester: "Run backtest", crisis: "Simulate crises", recovery: "Measure recovery" };
 const dateCls = "mt-1 block h-9 rounded-md border border-input bg-background px-2 font-mono text-xs text-foreground";
 
 export default function PortfolioTools({ symbol, view, onViewChange }: { symbol?: string; view: PortfolioView; onViewChange: (v: PortfolioView) => void }) {
@@ -64,12 +66,13 @@ export default function PortfolioTools({ symbol, view, onViewChange }: { symbol?
   const tenYr = overlap ? (subtractYears(commonLast, 10) < commonFirst ? commonFirst : subtractYears(commonLast, 10)) : "";
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const isRec = view === "recovery";
   const [clipNote, setClipNote] = useState<string | null>(null);
   useEffect(() => {
     if (!overlap) { setStart(""); setEnd(""); setClipNote(null); return; }
-    setStart(tenYr); setEnd(commonLast);
-    setClipNote(tenYr && tenYr === commonFirst && subtractYears(commonLast, 10) < commonFirst ? "Default 10-year window clipped to the shortest common history." : null);
-  }, [tenYr, commonLast, commonFirst, overlap]);
+    setStart(isRec ? commonFirst : tenYr); setEnd(commonLast);
+    setClipNote(isRec ? "Recovery Time defaults to all common history." : tenYr && tenYr === commonFirst && subtractYears(commonLast, 10) < commonFirst ? "Default 10-year window clipped to the shortest common history." : null);
+  }, [tenYr, commonLast, commonFirst, overlap, isRec]);
   const preset = (y: number | null) => {
     if (!overlap) return;
     const want = y === null ? commonFirst : subtractYears(commonLast, y);
@@ -79,8 +82,8 @@ export default function PortfolioTools({ symbol, view, onViewChange }: { symbol?
   };
   const rangeError = start && end && start >= end ? "Start date must be before end date." : null;
   const outcome = useMemo(
-    () => (ready && sub?.weighted && start && end && !rangeError ? simulatePortfolio(sub.holdings, histories, { start, end, rebalance: sub.rebalance, initialValue: sub.initialValue, annualRiskFree: sub.annualRiskFree }) : null),
-    [ready, sub, histories, start, end, rangeError],
+    () => (ready && sub?.weighted && view !== "crisis" && start && end && !rangeError ? simulatePortfolio(sub.holdings, histories, { start, end, rebalance: sub.rebalance, initialValue: sub.initialValue, annualRiskFree: sub.annualRiskFree }) : null),
+    [ready, sub, histories, start, end, rangeError, view],
   );
   const warnings = queries.flatMap((q, i) => (q.data?.warnings ?? []).map((w) => `${symbols[i]}: ${w}`));
 
@@ -115,6 +118,8 @@ export default function PortfolioTools({ symbol, view, onViewChange }: { symbol?
                 {view === "analyzer" && "Enter tickers and weights totaling 100%, then press Analyze to see CAGR, volatility, maximum drawdown and Sharpe for the combined portfolio."}
                 {view === "correlation" && "Enter at least two tickers and press Calculate to see how their daily returns move together. Weights are not needed."}
                 {view === "backtester" && "Enter tickers and weights, choose a rebalancing rule, and run the backtest to see how the portfolio would have grown over any date range."}
+                {view === "crisis" && "Enter tickers and weights, then simulate the same starting amount and target weights through four named historical crises: 2000 to 2002 dot-com, calendar 2008, the February to March 2020 COVID crash, and calendar 2022. Each window runs independently and explains itself if any holding lacks history for it."}
+                {view === "recovery" && "Enter tickers and weights, then measure every major drawdown of the combined portfolio: peak, trough, depth, how long the decline took, and how long it took to regain the old high, or whether it is still underwater."}
               </p>
               <p className="mt-2 text-xs text-muted-foreground">Nothing is calculated until you submit. Editing any input clears previous results.</p>
             </div>
@@ -142,6 +147,7 @@ export default function PortfolioTools({ symbol, view, onViewChange }: { symbol?
                 </div>
               ) : ready && (
                 <>
+                  {view !== "crisis" && <>
                   <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-3" data-testid="panel-portfolio-range">
                     <label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Start
                       <input type="date" value={start} onChange={(e) => { setStart(e.target.value); setClipNote(null); }} className={dateCls} data-testid="input-portfolio-start" />
@@ -159,19 +165,22 @@ export default function PortfolioTools({ symbol, view, onViewChange }: { symbol?
                   </div>
                   {!overlap && <Notice tone="warn" testId="status-portfolio-no-overlap">These holdings have no overlapping price history, so no date range can be applied. Edit the tickers and resubmit.</Notice>}
                   {rangeError && <Notice tone="warn" testId="status-portfolio-range-invalid">{rangeError}</Notice>}
+                  </>}
                   {warnings.length > 0 && (
                     <ul className="space-y-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300" data-testid="list-portfolio-warnings">
                       {warnings.map((w, i) => <li key={i}>{w}</li>)}
                     </ul>
                   )}
-                  {overlap && !rangeError && start && end && (view === "correlation" ? (
+                  {view === "crisis" ? (!sub.weighted ? (
+                    <Notice tone="warn" testId="status-portfolio-needs-weights">These results were submitted for the Correlation Matrix, where weights are not checked. Enter weights totaling 100% and press {SUBMIT[view]}.</Notice>
+                  ) : <CrisisSimulatorView sub={sub} histories={histories} />) : overlap && !rangeError && start && end && (view === "correlation" ? (
                     <CorrelationMatrixView holdings={sub.holdings} histories={histories} start={start} end={end} />
                   ) : !sub.weighted ? (
                     <Notice tone="warn" testId="status-portfolio-needs-weights">These results were submitted for the Correlation Matrix, where weights are not checked. Enter weights totaling 100% and press {SUBMIT[view]}.</Notice>
                   ) : outcome && !outcome.ok ? (
                     <Notice tone="warn" testId="status-portfolio-sim-error">{outcome.reason}</Notice>
                   ) : outcome?.ok ? (
-                    view === "analyzer" ? <AnalyzerView result={outcome} sub={sub} /> : <BacktesterView result={outcome} sub={sub} />
+                    view === "analyzer" ? <AnalyzerView result={outcome} sub={sub} /> : view === "recovery" ? <RecoveryTimeView result={outcome} sub={sub} /> : <BacktesterView result={outcome} sub={sub} />
                   ) : null)}
                   <p className="text-[11px] text-muted-foreground">Basis: adjusted closes (dividends reinvested). Fetched {queries[0]?.data ? new Date(queries[0].data.fetchedAt).toLocaleString() : ""}. Historical results do not guarantee future results. Not investment advice.</p>
                 </>

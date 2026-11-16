@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useParams } from "wouter";
+import { Link, useLocation, useParams, useSearch } from "wouter";
 import { Search, TrendingUp, ChevronLeft, ChevronRight, Building2, ArrowLeft, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
 import Seo from "@/components/Seo";
+import { BiggestBetsTab, TopBuysTab, SummaryStatsTab, SummaryPortfolioTab } from "@/components/thirteen-f/summary-tabs";
 import {
   useList13fFunds,
   getList13fFundsQueryKey,
@@ -998,6 +999,9 @@ export default function ThirteenFInsights() {
     query: { queryKey: getList13fFundsQueryKey(), refetchInterval: 60_000 },
   });
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const requestedView = new URLSearchParams(search).get("view") ?? "activity";
+  const activeView = ["activity", "bets", "buys", "stats", "portfolio"].includes(requestedView) ? requestedView : "activity";
   const { slug } = useParams<{ slug?: string }>();
   const [searchInput, setSearchInput] = useState("");
   const [selectedFund, setSelectedFund] = useState<HedgeFund | null>(null);
@@ -1116,14 +1120,18 @@ export default function ThirteenFInsights() {
         </motion.div>
 
         {/* Tabs */}
-        <Tabs defaultValue="activity" className="w-full">
-          <TabsList className="bg-card border border-border h-auto p-1">
+        <Tabs value={activeView} onValueChange={(view) => setLocation(view === "activity" ? "/13f" : `/13f?view=${view}`)} className="w-full">
+          <TabsList className="bg-card border border-border h-auto p-1 flex-wrap justify-start">
             <TabsTrigger
               value="activity"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm"
             >
-              Top Hedge Fund Activity
+              Top Hedge Funds
             </TabsTrigger>
+            <TabsTrigger value="bets" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm">Biggest Bets</TabsTrigger>
+            <TabsTrigger value="buys" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm">Top Buys (%)</TabsTrigger>
+            <TabsTrigger value="stats" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm">Summary Stats</TabsTrigger>
+            <TabsTrigger value="portfolio" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm">Summary Portfolio</TabsTrigger>
           </TabsList>
 
           <div className="mt-6">
@@ -1144,6 +1152,10 @@ export default function ThirteenFInsights() {
                 />
               )}
             </TabsContent>
+            <TabsContent value="bets" className="mt-0"><BiggestBetsTab /></TabsContent>
+            <TabsContent value="buys" className="mt-0"><TopBuysTab /></TabsContent>
+            <TabsContent value="stats" className="mt-0"><SummaryStatsTab /></TabsContent>
+            <TabsContent value="portfolio" className="mt-0"><SummaryPortfolioTab /></TabsContent>
           </div>
         </Tabs>
       </main>

@@ -1866,6 +1866,75 @@ export const GetSecFilingsResponse = zod.object({
 });
 
 /**
+ * @summary Latest-quarter top-100 holdings and cross-manager statistics
+ */
+export const Get13fSummaryResponse = zod.object({
+  quarter: zod.string().nullable(),
+  previousQuarter: zod.string().nullable(),
+  trackedFundCount: zod.number(),
+  reportingFundCount: zod.number(),
+  comparisonFundCount: zod.number(),
+  retainedPositionCount: zod.number(),
+  unresolvedPositionCount: zod.number(),
+  totalValue: zod
+    .number()
+    .describe("Sum of current retained top-100 holdings only"),
+  pendingFunds: zod.array(zod.string()),
+  positions: zod.array(
+    zod.object({
+      securityKey: zod.string(),
+      ticker: zod.string().nullable(),
+      name: zod.string(),
+      fundCik: zod.string(),
+      fundName: zod.string(),
+      fundSlug: zod.string(),
+      marketValue: zod
+        .number()
+        .describe("Current retained market value in USD; zero for exits"),
+      priorMarketValue: zod.number().nullable(),
+      portfolioPct: zod
+        .number()
+        .describe("Percent of full reported individual portfolio"),
+      buyPct: zod
+        .number()
+        .nullable()
+        .describe(
+          "Added shares valued at current quarter-end price divided by current full portfolio",
+        ),
+      sellPct: zod
+        .number()
+        .nullable()
+        .describe(
+          "Reduced shares valued at prior quarter-end price divided by prior full portfolio",
+        ),
+      activity: zod.enum([
+        "buy",
+        "increase",
+        "decrease",
+        "sell",
+        "unchanged",
+        "unavailable",
+      ]),
+    }),
+  ),
+  stocks: zod.array(
+    zod.object({
+      securityKey: zod.string(),
+      ticker: zod.string().nullable(),
+      name: zod.string(),
+      marketValue: zod.number().describe("Sum of retained positions in USD"),
+      portfolioPct: zod
+        .number()
+        .describe("Percent of combined retained portfolio"),
+      ownershipCount: zod.number(),
+      buyCount: zod.number(),
+      sellCount: zod.number(),
+    }),
+  ),
+  generatedAt: zod.string(),
+});
+
+/**
  * @summary List all tracked hedge funds
  */
 export const List13fFundsResponse = zod.object({

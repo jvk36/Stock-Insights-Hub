@@ -2,6 +2,8 @@ import { Router, type Request, type Response } from "express";
 import { eq, desc, exists, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import YahooFinance from "yahoo-finance2";
+import { get13fSummary } from "../lib/thirteen-f-summary-service";
+import { Get13fSummaryResponse } from "@workspace/api-zod";
 import { MISCELLANEOUS_CUSIP, TOP_100_FUND_CIKS, tenYearReportCutoff } from "../lib/thirteen-f-retention";
 import {
   hedgeFundsTable,
@@ -10,6 +12,15 @@ import {
 } from "@workspace/db";
 
 const router = Router();
+
+router.get("/13f/summary", async (req, res): Promise<void> => {
+  try {
+    res.json(Get13fSummaryResponse.parse(await get13fSummary()));
+  } catch (err) {
+    req.log.error({ err }, "Failed to calculate latest-quarter 13F summary");
+    res.status(500).json({ error: "Failed to calculate summary" });
+  }
+});
 
 // ─── GET /13f/funds ───────────────────────────────────────────────────────────
 

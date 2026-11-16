@@ -59,6 +59,7 @@ import type {
   StockQuote,
   ThirteenFHoldingsResponse,
   ThirteenFQuartersResponse,
+  ThirteenFSummary,
   WatchlistEntry,
   WatchlistMetrics,
 } from "./api.schemas";
@@ -3298,6 +3299,81 @@ export function useGetSecFilings<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetSecFilingsQueryOptions(symbol, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Latest-quarter top-100 holdings and cross-manager statistics
+ */
+export const getGet13fSummaryUrl = () => {
+  return `/api/13f/summary`;
+};
+
+export const get13fSummary = async (
+  options?: RequestInit,
+): Promise<ThirteenFSummary> => {
+  return customFetch<ThirteenFSummary>(getGet13fSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGet13fSummaryQueryKey = () => {
+  return [`/api/13f/summary`] as const;
+};
+
+export const getGet13fSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof get13fSummary>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof get13fSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGet13fSummaryQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof get13fSummary>>> = ({
+    signal,
+  }) => get13fSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof get13fSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type Get13fSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof get13fSummary>>
+>;
+export type Get13fSummaryQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Latest-quarter top-100 holdings and cross-manager statistics
+ */
+
+export function useGet13fSummary<
+  TData = Awaited<ReturnType<typeof get13fSummary>>,
+  TError = ErrorType<ApiError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof get13fSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGet13fSummaryQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

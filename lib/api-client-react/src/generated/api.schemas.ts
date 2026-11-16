@@ -1523,6 +1523,77 @@ export interface HedgeFund {
   latestReportedQuarter?: string | null;
 }
 
+export type ThirteenFSummaryPositionActivity =
+  (typeof ThirteenFSummaryPositionActivity)[keyof typeof ThirteenFSummaryPositionActivity];
+
+export const ThirteenFSummaryPositionActivity = {
+  buy: "buy",
+  increase: "increase",
+  decrease: "decrease",
+  sell: "sell",
+  unchanged: "unchanged",
+  unavailable: "unavailable",
+} as const;
+
+export interface ThirteenFSummaryPosition {
+  securityKey: string;
+  /** @nullable */
+  ticker: string | null;
+  name: string;
+  fundCik: string;
+  fundName: string;
+  fundSlug: string;
+  /** Current retained market value in USD; zero for exits */
+  marketValue: number;
+  /** @nullable */
+  priorMarketValue: number | null;
+  /** Percent of full reported individual portfolio */
+  portfolioPct: number;
+  /**
+   * Added shares valued at current quarter-end price divided by current full portfolio
+   * @nullable
+   */
+  buyPct: number | null;
+  /**
+   * Reduced shares valued at prior quarter-end price divided by prior full portfolio
+   * @nullable
+   */
+  sellPct: number | null;
+  activity: ThirteenFSummaryPositionActivity;
+}
+
+export interface ThirteenFSummaryStock {
+  securityKey: string;
+  /** @nullable */
+  ticker: string | null;
+  name: string;
+  /** Sum of retained positions in USD */
+  marketValue: number;
+  /** Percent of combined retained portfolio */
+  portfolioPct: number;
+  ownershipCount: number;
+  buyCount: number;
+  sellCount: number;
+}
+
+export interface ThirteenFSummary {
+  /** @nullable */
+  quarter: string | null;
+  /** @nullable */
+  previousQuarter: string | null;
+  trackedFundCount: number;
+  reportingFundCount: number;
+  comparisonFundCount: number;
+  retainedPositionCount: number;
+  unresolvedPositionCount: number;
+  /** Sum of current retained top-100 holdings only */
+  totalValue: number;
+  pendingFunds: string[];
+  positions: ThirteenFSummaryPosition[];
+  stocks: ThirteenFSummaryStock[];
+  generatedAt: string;
+}
+
 export interface HedgeFundsResponse {
   funds: HedgeFund[];
 }

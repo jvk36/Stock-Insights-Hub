@@ -859,6 +859,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /13f/summary:
+    get:
+      operationId: get13fSummary
+      tags: [thirteenf]
+      summary: Latest-quarter top-100 holdings and cross-manager statistics
+      responses:
+        "200":
+          description: Latest reported quarter only, with reporting and comparison coverage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ThirteenFSummary"
+        "500":
+          description: Summary could not be calculated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /13f/funds:
     get:
       operationId: list13fFunds
@@ -3289,6 +3308,59 @@ components:
         - cik
         - name
         - slug
+
+    ThirteenFSummaryPosition:
+      type: object
+      required: [securityKey, ticker, name, fundCik, fundName, fundSlug, marketValue, priorMarketValue, portfolioPct, buyPct, sellPct, activity]
+      properties:
+        securityKey: { type: string }
+        ticker: { type: ["string", "null"] }
+        name: { type: string }
+        fundCik: { type: string }
+        fundName: { type: string }
+        fundSlug: { type: string }
+        marketValue: { type: number, description: Current retained market value in USD; zero for exits }
+        priorMarketValue: { type: ["number", "null"] }
+        portfolioPct: { type: number, description: Percent of full reported individual portfolio }
+        buyPct: { type: ["number", "null"], description: Added shares valued at current quarter-end price divided by current full portfolio, percent }
+        sellPct: { type: ["number", "null"], description: Reduced shares valued at prior quarter-end price divided by prior full portfolio, percent }
+        activity:
+          type: string
+          enum: [buy, increase, decrease, sell, unchanged, unavailable]
+    ThirteenFSummaryStock:
+      type: object
+      required: [securityKey, ticker, name, marketValue, portfolioPct, ownershipCount, buyCount, sellCount]
+      properties:
+        securityKey: { type: string }
+        ticker: { type: ["string", "null"] }
+        name: { type: string }
+        marketValue: { type: number, description: Sum of retained positions in USD }
+        portfolioPct: { type: number, description: Percent of combined retained portfolio }
+        ownershipCount: { type: integer }
+        buyCount: { type: integer }
+        sellCount: { type: integer }
+    ThirteenFSummary:
+      type: object
+      required: [quarter, previousQuarter, trackedFundCount, reportingFundCount, comparisonFundCount, retainedPositionCount, unresolvedPositionCount, totalValue, pendingFunds, positions, stocks, generatedAt]
+      properties:
+        quarter: { type: ["string", "null"] }
+        previousQuarter: { type: ["string", "null"] }
+        trackedFundCount: { type: integer }
+        reportingFundCount: { type: integer }
+        comparisonFundCount: { type: integer }
+        retainedPositionCount: { type: integer }
+        unresolvedPositionCount: { type: integer }
+        totalValue: { type: number, description: Sum of current retained top-100 holdings only, USD }
+        pendingFunds:
+          type: array
+          items: { type: string }
+        positions:
+          type: array
+          items: { $ref: "#/components/schemas/ThirteenFSummaryPosition" }
+        stocks:
+          type: array
+          items: { $ref: "#/components/schemas/ThirteenFSummaryStock" }
+        generatedAt: { type: string }
 
     HedgeFundsResponse:
       type: object

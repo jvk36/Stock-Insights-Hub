@@ -41,6 +41,11 @@ function SectionDivider({ children }: { children: React.ReactNode }) {
 
 function PremiumStockContent({ children, feature = "Valuation & Fundamentals research" }: { children: React.ReactNode; feature?: string }) {
   const { membership, loading, authState } = useMembership();
+  const description = feature === "Performance"
+    ? "Explore a ticker’s annualized returns (CAGR), the historical growth of a $10,000 investment compared with the S&P 500 using SPY, monthly and annual return heat maps, and rolling returns across different investment horizons."
+    : feature === "Risk Analysis"
+    ? "Understand a ticker’s historical declines and recovery periods, compare its volatility with index ETFs, evaluate Sharpe, Sortino and Calmar ratios, and explore market beta relative to the S&P 500 using SPY plus correlation with another investment."
+    : null;
   if (loading || authState === "unknown") {
     return <p className="text-muted-foreground">Checking membership…</p>;
   }
@@ -49,6 +54,7 @@ function PremiumStockContent({ children, feature = "Valuation & Fundamentals res
     <div className="rounded-xl border border-border bg-card p-8 text-center space-y-4">
       <Lock className="mx-auto h-6 w-6 text-primary" />
       <h2 className="text-xl font-semibold">Premium {feature}</h2>
+      {description && <p className="mx-auto max-w-3xl text-muted-foreground" data-testid="text-premium-feature-description">{description}</p>}
       <p className="text-muted-foreground">{feature === "Valuation & Fundamentals research" ? "Overview is free. Upgrade to Premium to access this sub-tab." : `${feature} is available to Premium subscribers. Upgrade to access this sub-tab.`}</p>
       <Link href="/pricing" className="inline-flex rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground">Explore Premium</Link>
     </div>

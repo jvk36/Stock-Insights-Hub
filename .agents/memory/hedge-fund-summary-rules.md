@@ -12,3 +12,9 @@ Summaries consider at most the top 100 positions per manager, exclude Miscellane
 **Why:** The user requested latest-quarter-only summary statistics even while some of the 83 managers have not yet supplied current data.
 
 **How to apply:** Keep reporting coverage visible. Quarterly activity requires the adjacent previous quarter, and unmatched positions at a retention boundary are unknown, not inferred new buys or exits. Flow percentages are share-change estimates valued at the relevant quarter-end, not actual trading cash flows; do not describe them as verified executions.
+
+Ticker-specific ownership drill-downs use every stored individual holding, not the summaries' display/ranking limit of 100. Imported Miscellaneous tails remain unidentified.
+
+**Why:** Original managers can have full filings stored beyond rank 100. Omitting those positions would incorrectly imply that a fund does not hold the selected ticker.
+
+**How to apply:** Preserve the summary ranking limit separately. Keep the same latest-quarter-only coverage, adjacent-quarter comparisons and uncertainty rules. Separate reported current holders from confirmed exits and prior positions whose current status cannot be determined.

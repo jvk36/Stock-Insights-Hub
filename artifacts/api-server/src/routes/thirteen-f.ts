@@ -2,8 +2,9 @@ import { Router, type Request, type Response } from "express";
 import { eq, desc, exists, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import YahooFinance from "yahoo-finance2";
-import { get13fSummary } from "../lib/thirteen-f-summary-service";
-import { Get13fSummaryResponse } from "@workspace/api-zod";
+import { get13fSummary, get13fTickerOwnership } from "../lib/thirteen-f-summary-service";
+import { canonicalTicker } from "../lib/thirteen-f-summary-engine";
+import { Get13fSummaryResponse, Get13fTickerOwnershipParams, Get13fTickerOwnershipResponse } from "@workspace/api-zod";
 import { MISCELLANEOUS_CUSIP, TOP_100_FUND_CIKS, tenYearReportCutoff } from "../lib/thirteen-f-retention";
 import {
   hedgeFundsTable,
@@ -12,6 +13,21 @@ import {
 } from "@workspace/db";
 
 const router = Router();
+
+router.get("/13f/tickers/:ticker", async (req, res): Promise<void> => {
+  const params = Get13fTickerOwnershipParams.safeParse(req.params);
+  const ticker = params.success ? canonicalTicker(params.data.ticker) : null;
+  if (!ticker || !/^[A-Z0-9^][A-Z0-9.^=_-]{0,31}$/.test(ticker)) {
+    res.status(400).json({ error: "Enter a valid ticker symbol." });
+    return;
+  }
+  try {
+    res.json(Get13fTickerOwnershipResponse.parse(await get13fTickerOwnership(ticker)));
+  } catch (err) {
+    req.log.error({ err, ticker }, "Failed to load latest-quarter ticker ownership");
+    res.status(500).json({ error: "Failed to load ticker ownership" });
+  }
+});
 
 router.get("/13f/summary", async (req, res): Promise<void> => {
   try {

@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "wouter";
+import { TickerOwnershipLink } from "@/components/thirteen-f/ticker-link";
 import { AlertTriangle, ChevronDown, RefreshCw, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -215,7 +216,7 @@ function TickerButton({ s, onOpen }: { s: { ticker: string | null; name: string;
   return (
     <div className="text-left">
       {s.ticker ? (
-        <Link href={`/stock/${encodeURIComponent(s.ticker)}`} className="font-mono font-semibold hover:text-primary hover:underline" aria-label={`Research ${s.ticker} in Risk & Returns Lab`}>{s.ticker}</Link>
+        <TickerOwnershipLink ticker={s.ticker} className="font-mono font-semibold hover:text-primary hover:underline" />
       ) : (
         <span className="font-mono font-semibold text-amber-500">{s.securityKey}</span>
       )}
@@ -338,7 +339,7 @@ function CountGrid({ ctx, field }: { ctx: Ctx; field: CountField }) {
               style={{ background: `hsl(${meta.hue} / ${a})` }}
             >
               <div className={`font-mono text-xs font-bold truncate ${a > 0.55 ? "text-white" : "text-foreground"}`}>
-                {s.ticker ? <Link href={`/stock/${encodeURIComponent(s.ticker)}`} className="hover:underline" aria-label={`Research ${s.ticker} in Risk & Returns Lab`}>{s.ticker}</Link> : s.name}
+                {s.ticker ? <TickerOwnershipLink ticker={s.ticker} className="hover:underline" /> : s.name}
               </div>
               <button type="button" onClick={() => ctx.openTicker(s.securityKey)} className={`font-mono text-lg tabular-nums leading-tight hover:underline focus-visible:ring-2 focus-visible:ring-primary rounded ${a > 0.55 ? "text-white" : "text-foreground"}`} aria-label={`Rank ${i + 1}: ${label(s)}, ${s[field]} ${meta.noun}. Open manager detail.`}>{s[field]}</button>
             </div>
@@ -440,7 +441,7 @@ function TickerDetailDialog({ data, securityKey, onClose }: { data: ThirteenFSum
     <Dialog open={securityKey != null} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-mono">{head ? head.ticker ?? head.securityKey : securityKey}</DialogTitle>
+          <DialogTitle className="font-mono">{head?.ticker ? <TickerOwnershipLink ticker={head.ticker} className="hover:text-primary hover:underline" /> : head ? head.securityKey : securityKey}</DialogTitle>
           <DialogDescription>
             {head?.name ?? "Unknown security"} {DASH} {data.quarter}
             {stock && <> {DASH} {stock.ownershipCount} owners, {stock.buyCount} buys, {stock.sellCount} sells, {fmtUsd(stock.marketValue)} combined</>}

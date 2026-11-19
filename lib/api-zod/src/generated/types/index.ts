@@ -151,6 +151,7 @@ export * from "./thirteenFSummary";
 export * from "./thirteenFSummaryPosition";
 export * from "./thirteenFSummaryPositionActivity";
 export * from "./thirteenFSummaryStock";
+export * from "./thirteenFTickerOwnership";
 export * from "./tickerPerformance";
 export * from "./watchlistEntry";
 export * from "./watchlistMetrics";

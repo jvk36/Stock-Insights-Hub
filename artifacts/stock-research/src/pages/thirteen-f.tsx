@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
 import Seo from "@/components/Seo";
+import { TickerOwnershipLink } from "@/components/thirteen-f/ticker-link";
 import { BiggestBetsTab, TopBuysTab, SummaryStatsTab, SummaryPortfolioTab } from "@/components/thirteen-f/summary-tabs";
 import {
   useList13fFunds,
@@ -467,7 +468,7 @@ function HoldingsTable({
                   <span className={`font-medium ${badge}`}>
                     {row.name}
                     {row.ticker && (
-                      <Link href={`/stock/${encodeURIComponent(row.ticker)}`} onClick={(event) => event.stopPropagation()} className="ml-1 font-mono text-[10px] opacity-80 hover:underline" aria-label={`Research ${row.ticker} in Risk & Returns Lab`}>({row.ticker})</Link>
+                      <TickerOwnershipLink ticker={row.ticker} className="ml-1 font-mono text-[10px] opacity-80 hover:underline">({row.ticker})</TickerOwnershipLink>
                     )}
                   </span>
                 </td>
@@ -629,9 +630,7 @@ function PriceInfoDialog({
           <DialogTitle className="flex items-center gap-2 text-base font-semibold">
             <span className="truncate">{name}</span>
             {ticker && (
-              <span className="shrink-0 font-mono text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                {ticker}
-              </span>
+              <TickerOwnershipLink ticker={ticker} className="shrink-0 font-mono text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground hover:text-primary hover:underline" />
             )}
           </DialogTitle>
         </DialogHeader>

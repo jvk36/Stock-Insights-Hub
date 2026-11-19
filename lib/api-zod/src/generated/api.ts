@@ -1971,6 +1971,63 @@ export const Get13fSummaryResponse = zod.object({
 });
 
 /**
+ * @summary Latest-quarter tracked hedge fund ownership and activity for a ticker
+ */
+export const get13fTickerOwnershipPathTickerMax = 32;
+
+export const Get13fTickerOwnershipParams = zod.object({
+  ticker: zod.coerce.string().min(1).max(get13fTickerOwnershipPathTickerMax),
+});
+
+export const Get13fTickerOwnershipResponse = zod.object({
+  ticker: zod.string(),
+  quarter: zod.string().nullable(),
+  previousQuarter: zod.string().nullable(),
+  trackedFundCount: zod.number(),
+  reportingFundCount: zod.number(),
+  comparisonFundCount: zod.number(),
+  pendingFunds: zod.array(zod.string()),
+  positions: zod.array(
+    zod.object({
+      securityKey: zod.string(),
+      ticker: zod.string().nullable(),
+      name: zod.string(),
+      fundCik: zod.string(),
+      fundName: zod.string(),
+      fundSlug: zod.string(),
+      marketValue: zod
+        .number()
+        .describe("Current retained market value in USD; zero for exits"),
+      priorMarketValue: zod.number().nullable(),
+      portfolioPct: zod
+        .number()
+        .describe("Percent of full reported individual portfolio"),
+      buyPct: zod
+        .number()
+        .nullable()
+        .describe(
+          "Added shares valued at current quarter-end price divided by current full portfolio",
+        ),
+      sellPct: zod
+        .number()
+        .nullable()
+        .describe(
+          "Reduced shares valued at prior quarter-end price divided by prior full portfolio",
+        ),
+      activity: zod.enum([
+        "buy",
+        "increase",
+        "decrease",
+        "sell",
+        "unchanged",
+        "unavailable",
+      ]),
+    }),
+  ),
+  generatedAt: zod.string(),
+});
+
+/**
  * @summary List all tracked hedge funds
  */
 export const List13fFundsResponse = zod.object({

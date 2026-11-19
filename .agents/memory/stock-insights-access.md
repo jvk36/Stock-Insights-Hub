@@ -11,6 +11,12 @@ Portfolio Tools is the fourth Premium sibling sub-tab. Its Portfolio Analyzer, C
 
 Stock Watch is Free-tier but requires sign-in or sign-up. Signed-out visitors stay on the Stock Watch page and see an explanation with Sign in and Sign up options, not an automatic login redirect. Keep watchlists private to each signed-in user.
 
+Ticker links inside Hedge Fund Blueprint open the ticker's hedge-fund ownership/activity page, not Risk & Returns Lab. On an individual fund's comparative sheet, clicking the row must continue to open the existing price-range/current-price popup; clicking the ticker itself navigates separately.
+
+**Why:** The user requested ownership-focused ticker navigation within Blueprint while explicitly preserving the comparative-sheet price popup.
+
+**How to apply:** Keep the ticker as a normal link that stops row-click propagation. Do not change ticker navigation outside Blueprint.
+
 Macro Summary belongs at the end of the main tabs, after Stock Watch. Preserve the relative order of the remaining tabs.
 
 Algo-Portfolios is publicly accessible with all five sub-tabs. Free visitors see only a strategy introduction and a Premium notice; holdings, rankings, performance, ledgers and backtests remain Premium.

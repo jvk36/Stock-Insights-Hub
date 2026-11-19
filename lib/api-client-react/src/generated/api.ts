@@ -60,6 +60,7 @@ import type {
   ThirteenFHoldingsResponse,
   ThirteenFQuartersResponse,
   ThirteenFSummary,
+  ThirteenFTickerOwnership,
   TickerPerformance,
   WatchlistEntry,
   WatchlistMetrics,
@@ -3464,6 +3465,98 @@ export function useGet13fSummary<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGet13fSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Latest-quarter tracked hedge fund ownership and activity for a ticker
+ */
+export const getGet13fTickerOwnershipUrl = (ticker: string) => {
+  return `/api/13f/tickers/${ticker}`;
+};
+
+export const get13fTickerOwnership = async (
+  ticker: string,
+  options?: RequestInit,
+): Promise<ThirteenFTickerOwnership> => {
+  return customFetch<ThirteenFTickerOwnership>(
+    getGet13fTickerOwnershipUrl(ticker),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGet13fTickerOwnershipQueryKey = (ticker: string) => {
+  return [`/api/13f/tickers/${ticker}`] as const;
+};
+
+export const getGet13fTickerOwnershipQueryOptions = <
+  TData = Awaited<ReturnType<typeof get13fTickerOwnership>>,
+  TError = ErrorType<void>,
+>(
+  ticker: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof get13fTickerOwnership>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGet13fTickerOwnershipQueryKey(ticker);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof get13fTickerOwnership>>
+  > = ({ signal }) =>
+    get13fTickerOwnership(ticker, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!ticker,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof get13fTickerOwnership>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type Get13fTickerOwnershipQueryResult = NonNullable<
+  Awaited<ReturnType<typeof get13fTickerOwnership>>
+>;
+export type Get13fTickerOwnershipQueryError = ErrorType<void>;
+
+/**
+ * @summary Latest-quarter tracked hedge fund ownership and activity for a ticker
+ */
+
+export function useGet13fTickerOwnership<
+  TData = Awaited<ReturnType<typeof get13fTickerOwnership>>,
+  TError = ErrorType<void>,
+>(
+  ticker: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof get13fTickerOwnership>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGet13fTickerOwnershipQueryOptions(ticker, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

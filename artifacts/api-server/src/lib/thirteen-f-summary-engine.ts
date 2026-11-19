@@ -18,7 +18,7 @@ export function precedingQuarter(date: string): string {
 function quarterLabel(date: string): string {
   return `Q${Math.ceil(Number(date.slice(5, 7)) / 3)} ${date.slice(0, 4)}`;
 }
-function canonicalTicker(value: string | null): string | null {
+export function canonicalTicker(value: string | null): string | null {
   const ticker = value?.trim().toUpperCase();
   if (!ticker || ticker === "NOT_FOUND") return null;
   return ticker.replace(/^BRK[.-]([AB])$/, "BRK-$1");
@@ -32,6 +32,7 @@ function retained(holding: SummaryHolding): boolean {
 export function build13fSummary(
   funds: SummaryFund[], filings: SummaryFiling[], latestReportDate: string | null,
   generatedAt = new Date().toISOString(),
+  positionLimit = 100,
 ): ThirteenFSummary {
   const previousDate = latestReportDate ? precedingQuarter(latestReportDate) : null;
   const knownFunds = new Set(funds.map(f => f.cik));
@@ -61,9 +62,9 @@ export function build13fSummary(
   const snapshot = (filing: SummaryFiling) => {
     const securities = filing.holdings.filter(retained).sort((a, b) =>
       b.marketValue - a.marketValue || a.name.localeCompare(b.name) || a.cusip.localeCompare(b.cusip));
-    const complete = securities.length <= 100 && !filing.holdings.some(h => h.cusip === MISCELLANEOUS_CUSIP);
+    const complete = securities.length <= positionLimit && !filing.holdings.some(h => h.cusip === MISCELLANEOUS_CUSIP);
     const positions = new Map<string, SummaryHolding>();
-    for (const h of securities.slice(0, 100)) {
+    for (const h of securities.slice(0, positionLimit)) {
       const cusip = h.cusip.trim().toUpperCase();
       const candidates = tickersByCusip.get(cusip);
       const ticker = candidates?.size === 1 ? [...candidates][0]! : canonicalTicker(h.ticker);
@@ -74,7 +75,7 @@ export function build13fSummary(
         existing.marketValue += h.marketValue;
       } else positions.set(key, { ...h, ticker });
     }
-    return { positions, complete, retainedCount: Math.min(100, securities.length) };
+    return { positions, complete, retainedCount: Math.min(positionLimit, securities.length) };
   };
   const positions: ThirteenFSummaryPosition[] = [];
   let reportingFundCount = 0, comparisonFundCount = 0, retainedPositionCount = 0;

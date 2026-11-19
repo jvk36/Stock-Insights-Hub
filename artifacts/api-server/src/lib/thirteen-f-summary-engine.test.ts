@@ -151,3 +151,37 @@ test("previous quarter crosses the year boundary correctly", () => {
   assert.equal(precedingQuarter("2026-03-31"), "2025-12-31");
   assert.equal(precedingQuarter("2026-12-31"), "2026-09-30");
 });
+
+test("ticker ownership can include all stored legacy positions without changing summary top100", () => {
+  const current = Array.from({ length: 110 }, (_, i) => h(`S${i}`, i + 1, i === 0 ? 200 : 100));
+  const prior = Array.from({ length: 110 }, (_, i) => h(`S${i}`, i + 1, 100));
+  const filings = [f("1", current), f("1", prior, true)];
+  assert.equal(build(filings).positions.some(p => p.ticker === "S0"), false);
+  const all = build13fSummary(funds, filings, "2026-09-30", undefined, Infinity);
+  assert.equal(all.positions.length, 110);
+  const target = all.positions.find(p => p.ticker === "S0")!;
+  assert.equal(target.marketValue, 1);
+  assert.equal(target.activity, "increase");
+  assert.equal(target.portfolioPct, 0.1);
+  assert.equal(all.stocks.find(p => p.ticker === "S0")!.ownershipCount, 1);
+  assert.equal(build(filings).positions.length, 100);
+  assert.equal(current.length, 110);
+});
+
+test("full stored ownership still respects Miscellaneous and adjacent-quarter uncertainty", () => {
+  const filings = [
+    f("1", [h("HELD", 200), h(null, 800, 0, "__MISC__")]),
+    f("1", [h("UNKNOWN", 300)], true),
+    f("2", [h("SOLD", 300)], true),
+    f("2", [h("OTHER", 200)]),
+    f("3", [h("STALE", 100)], true),
+  ];
+  const all = build13fSummary(funds, filings, "2026-09-30", undefined, Infinity);
+  assert.equal(all.positions.some(p => p.securityKey.includes("__MISC__")), false);
+  assert.equal(all.positions.find(p => p.ticker === "UNKNOWN")!.activity, "unavailable");
+  assert.equal(all.positions.find(p => p.ticker === "UNKNOWN")!.marketValue, 0);
+  assert.equal(all.positions.find(p => p.ticker === "HELD")!.marketValue, 200);
+  assert.equal(all.positions.find(p => p.ticker === "SOLD")!.activity, "sell");
+  assert.equal(all.positions.some(p => p.ticker === "STALE"), false);
+  assert.deepEqual(all.pendingFunds, ["Missing latest"]);
+});

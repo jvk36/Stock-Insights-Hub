@@ -1,12 +1,16 @@
 import { db, hedgeFundsTable, sec13fFilingsTable, sec13fHoldingsTable } from "@workspace/db";
 import { and, eq, exists, inArray, sql } from "drizzle-orm";
-import type { ThirteenFSummary } from "@workspace/api-zod";
-import { build13fSummary, precedingQuarter, type SummaryFiling } from "./thirteen-f-summary-engine";
+import type { ThirteenFSummary, ThirteenFTickerOwnership } from "@workspace/api-zod";
+import { build13fSummary, canonicalTicker, precedingQuarter, type SummaryFiling } from "./thirteen-f-summary-engine";
 
-let cached: { at: number; data: ThirteenFSummary } | null = null;
-let pending: Promise<ThirteenFSummary> | null = null;
+type SnapshotCache = {
+  cached: { at: number; data: ThirteenFSummary } | null;
+  pending: Promise<ThirteenFSummary> | null;
+};
+const summaryCache: SnapshotCache = { cached: null, pending: null };
+const ownershipCache: SnapshotCache = { cached: null, pending: null };
 
-async function calculate(): Promise<ThirteenFSummary> {
+async function calculate(positionLimit: number): Promise<ThirteenFSummary> {
   // One consistent read snapshot while the background importer commits filings.
   return db.transaction(async tx => {
     const funds = await tx.select({
@@ -33,15 +37,33 @@ async function calculate(): Promise<ThirteenFSummary> {
       name: h.name, ticker: h.ticker, cusip: h.cusip, shares: h.shares,
       marketValue: h.marketValueThousands * 1000,
     });
-    return build13fSummary(funds, [...byFiling.values()], latestDate);
+    return build13fSummary(funds, [...byFiling.values()], latestDate, undefined, positionLimit);
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
-export async function get13fSummary(): Promise<ThirteenFSummary> {
-  if (cached && Date.now() - cached.at < 60_000) return cached.data;
-  if (!pending) pending = calculate().then(data => {
-    cached = { at: Date.now(), data };
+async function getSnapshot(cache: SnapshotCache, positionLimit: number): Promise<ThirteenFSummary> {
+  if (cache.cached && Date.now() - cache.cached.at < 60_000) return cache.cached.data;
+  if (!cache.pending) cache.pending = calculate(positionLimit).then(data => {
+    cache.cached = { at: Date.now(), data };
     return data;
-  }).finally(() => { pending = null; });
-  return pending;
+  }).finally(() => { cache.pending = null; });
+  return cache.pending;
+}
+
+export function get13fSummary(): Promise<ThirteenFSummary> {
+  return getSnapshot(summaryCache, 100);
+}
+
+export async function get13fTickerOwnership(ticker: string): Promise<ThirteenFTickerOwnership> {
+  // Unlike the summary rankings, a ticker drill-down must include positions
+  // below rank 100 when the original manager's full filing is stored.
+  // Import-time Miscellaneous limits still apply; those positions stay unknown.
+  const data = await getSnapshot(ownershipCache, Number.POSITIVE_INFINITY);
+  return {
+    ticker, quarter: data.quarter, previousQuarter: data.previousQuarter,
+    trackedFundCount: data.trackedFundCount, reportingFundCount: data.reportingFundCount,
+    comparisonFundCount: data.comparisonFundCount, pendingFunds: data.pendingFunds,
+    positions: data.positions.filter(p => canonicalTicker(p.ticker) === ticker),
+    generatedAt: data.generatedAt,
+  };
 }

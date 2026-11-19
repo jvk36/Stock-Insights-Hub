@@ -1614,6 +1614,20 @@ export interface ThirteenFSummary {
   generatedAt: string;
 }
 
+export interface ThirteenFTickerOwnership {
+  ticker: string;
+  /** @nullable */
+  quarter: string | null;
+  /** @nullable */
+  previousQuarter: string | null;
+  trackedFundCount: number;
+  reportingFundCount: number;
+  comparisonFundCount: number;
+  pendingFunds: string[];
+  positions: ThirteenFSummaryPosition[];
+  generatedAt: string;
+}
+
 export interface HedgeFundsResponse {
   funds: HedgeFund[];
 }

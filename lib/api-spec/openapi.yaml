@@ -904,6 +904,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /13f/tickers/{ticker}:
+    get:
+      operationId: get13fTickerOwnership
+      tags: [thirteen-f]
+      summary: Latest-quarter tracked hedge fund ownership and activity for a ticker
+      parameters:
+        - in: path
+          name: ticker
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 32 }
+      responses:
+        "200":
+          description: All stored individual positions for this ticker in the latest reporting quarter, plus known exits and comparison-unavailable prior holders. No older-quarter fallback.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ThirteenFTickerOwnership"
+        "400":
+          description: Invalid ticker
+        "500":
+          description: Ownership data could not be loaded
+
   /13f/funds:
     get:
       operationId: list13fFunds
@@ -3415,6 +3437,24 @@ components:
         stocks:
           type: array
           items: { $ref: "#/components/schemas/ThirteenFSummaryStock" }
+        generatedAt: { type: string }
+
+    ThirteenFTickerOwnership:
+      type: object
+      required: [ticker, quarter, previousQuarter, trackedFundCount, reportingFundCount, comparisonFundCount, pendingFunds, positions, generatedAt]
+      properties:
+        ticker: { type: string }
+        quarter: { type: ["string", "null"] }
+        previousQuarter: { type: ["string", "null"] }
+        trackedFundCount: { type: integer }
+        reportingFundCount: { type: integer }
+        comparisonFundCount: { type: integer }
+        pendingFunds:
+          type: array
+          items: { type: string }
+        positions:
+          type: array
+          items: { $ref: "#/components/schemas/ThirteenFSummaryPosition" }
         generatedAt: { type: string }
 
     HedgeFundsResponse:

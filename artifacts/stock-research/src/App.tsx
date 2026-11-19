@@ -16,6 +16,7 @@ import { StockWatchSignInNotice } from "@/components/stock-watch-sign-in-notice"
 import { FreeTierAds } from "@/components/free-tier-ads";
 
 import ThirteenFInsights from "@/pages/thirteen-f";
+import ThirteenFTicker from "@/pages/thirteen-f-ticker";
 import Pricing from "@/pages/pricing";
 import Account from "@/pages/account";
 import AdminMembers from "@/pages/admin-members";
@@ -129,6 +130,7 @@ function Routes() {
   return <Switch>
     <Route path="/"><Redirect to="/13f" /></Route>
     <Route path="/13f" component={ThirteenFInsights} />
+    <Route path="/13f/ticker/:ticker" component={ThirteenFTicker} />
     <Route path="/13f/:slug" component={ThirteenFInsights} />
     <Route path="/macro" component={MacroSummary} />
     <Route path="/pricing" component={Pricing} />

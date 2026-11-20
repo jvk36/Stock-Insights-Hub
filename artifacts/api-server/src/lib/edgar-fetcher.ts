@@ -19,10 +19,11 @@ import {
 import { logger } from "./logger";
 import YahooFinance from "yahoo-finance2";
 import { MISCELLANEOUS_CUSIP, TOP_100_FUND_CIKS, reportedValueMultiplier, retainTopPositions, tenYearReportCutoff } from "./thirteen-f-retention";
-import { STOCK_TICKER_CORRECTIONS, VERIFIED_SEARCH_SOURCE, isNonStockPosition, selectVerifiedStock, type SecurityQuote } from "./thirteen-f-security-policy";
-import { auditLegacy13fMappings } from "./thirteen-f-security-catalog";
 
 const _yf = new YahooFinance();
+
+// US exchange codes used by Yahoo Finance search results
+const US_EXCHANGES = new Set(["NYQ", "NMS", "PCX", "NGM", "NCM", "BTS", "NYSEArca"]);
 
 // Hardcoded overrides for CUSIPs whose SEC names are too ambiguous to search reliably
 const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
@@ -1377,10 +1378,6 @@ async function resolveWithYahooSearch(
   if (cusipNames.size === 0) return result;
 
   for (const [cusip, rawName] of cusipNames) {
-    if (isNonStockPosition({ cusip, name: rawName })) {
-      result.set(cusip, null);
-      continue;
-    }
     const name = normalizeSecName(rawName);
     try {
       // validateResult: false bypasses the stale yahoo-finance2 v3 schema that
@@ -1390,7 +1387,21 @@ async function resolveWithYahooSearch(
         { quotesCount: 10, newsCount: 0 },
         { validateResult: false },
       );
-      result.set(cusip, selectVerifiedStock(rawName, (resp?.quotes ?? []) as SecurityQuote[]));
+      const quotes = (resp?.quotes ?? []) as Array<{
+        symbol?: string;
+        quoteType?: string;
+        exchange?: string;
+      }>;
+      // Prefer: (1) US exchange, (2) symbol without dot (US tickers rarely have dots),
+      // (3) any equity — fallback for foreign listings
+      const usEquity = quotes.find(
+        (q) => q.quoteType === "EQUITY" && q.exchange && US_EXCHANGES.has(q.exchange),
+      );
+      const noSuffixEquity = quotes.find(
+        (q) => q.quoteType === "EQUITY" && q.symbol && !q.symbol.includes("."),
+      );
+      const anyEquity = quotes.find((q) => q.quoteType === "EQUITY");
+      result.set(cusip, (usEquity ?? noSuffixEquity ?? anyEquity)?.symbol ?? null);
     } catch {
       result.set(cusip, null);
     }
@@ -1407,19 +1418,10 @@ async function resolveCusips(
   const result = new Map<string, string | null>();
   if (allCusips.length === 0) return result;
 
-  const cached = await db
-    .select()
-    .from(cusipTickerMapTable)
-    .where(inArray(cusipTickerMapTable.cusip, allCusips));
-  const nonStockCusips = new Set(cached.filter(row => row.source === "non_stock_v2").map(row => row.cusip));
   // Apply hardcoded overrides first (for CUSIPs whose SEC names are unfixable)
   const overrideRows: Array<{ cusip: string; ticker: string; source: string }> = [];
   for (const cusip of allCusips) {
-    if (nonStockCusips.has(cusip) || isNonStockPosition({ cusip, name: cusipNames.get(cusip)! })) {
-      result.set(cusip, null);
-      continue;
-    }
-    const override = STOCK_TICKER_CORRECTIONS[cusip] ?? CUSIP_TICKER_OVERRIDES[cusip];
+    const override = CUSIP_TICKER_OVERRIDES[cusip];
     if (override) {
       result.set(cusip, override);
       overrideRows.push({ cusip, ticker: override, source: "override" });
@@ -1433,12 +1435,14 @@ async function resolveCusips(
     } catch { /* ignore */ }
   }
 
+  const cached = await db
+    .select()
+    .from(cusipTickerMapTable)
+    .where(inArray(cusipTickerMapTable.cusip, allCusips));
+
   // Only treat *positive* ticker hits as cached — null (not_found) entries are retried
   for (const row of cached) {
-    if (!result.has(row.cusip) && row.ticker !== null &&
-      ["override", "manual", "openfigi", VERIFIED_SEARCH_SOURCE].includes(row.source)) {
-      result.set(row.cusip, row.ticker);
-    }
+    if (row.ticker !== null) result.set(row.cusip, row.ticker);
   }
   const uncachedMap = new Map<string, string>();
   for (const c of allCusips) {
@@ -1450,7 +1454,7 @@ async function resolveCusips(
     const rows = [...resolved.entries()].map(([cusip, ticker]) => ({
       cusip,
       ticker: ticker ?? null,
-      source: ticker ? VERIFIED_SEARCH_SOURCE : "not_found",
+      source: ticker ? "yahoo_search" : "not_found",
     }));
     if (rows.length > 0) {
       for (const row of rows) {
@@ -1510,8 +1514,7 @@ export async function retryUnresolvedTickers(cik: string): Promise<void> {
     FROM cusip_ticker_map m
     WHERE sec_13f_holdings.cusip = m.cusip
       AND m.ticker IS NOT NULL
-      AND m.source IN ('override', 'manual', 'openfigi', ${VERIFIED_SEARCH_SOURCE})
-      AND sec_13f_holdings.ticker IS DISTINCT FROM m.ticker
+      AND (sec_13f_holdings.ticker IS NULL OR sec_13f_holdings.ticker LIKE '%.%')
   `);
   logger.info({ cik, updated: (result as { rowCount?: number }).rowCount ?? 0 }, "Ticker re-resolution complete");
 }
@@ -1537,11 +1540,7 @@ function parseInfoTable(xml: string, valueMultiplier?: number): { holdings: RawH
     const putCall = $(el).find("putCall").text().trim();
     if (shPrn !== "SH" || putCall !== "") return;
 
-    const issuer = $(el).find("nameOfIssuer").text().trim();
-    const title = $(el).find("titleOfClass").text().trim();
-    // Preserve instrument identity otherwise lost when only issuer names are stored.
-    const name = /\b(WARRANT|WTS?|RIGHT|UNIT|NOTE|BOND|PFD|PREFERRED)\b/i.test(title)
-      ? `${issuer} [NON-STOCK ${title}]` : issuer;
+    const name   = $(el).find("nameOfIssuer").text().trim();
     const cusip  = $(el).find("cusip").text().trim();
     const value  = parseInt($(el).find("value").text().trim() || "0", 10) * (valueMultiplier ?? 1);
     const shares = parseInt($(el).find("sshPrnamt").text().trim() || "0", 10);
@@ -2087,9 +2086,6 @@ const TRACKED_FUNDS = [
 ];
 
 export async function initEdgarFetcher(): Promise<void> {
-  // Existing filings receive the same safety policy as newly imported filings.
-  // Do not block health checks or filing ingestion on market-data availability.
-  auditLegacy13fMappings().catch(err => logger.error({ err }, "13F ticker audit failed"));
   // Upsert all tracked funds into the DB (name/slug may change but CIK is stable)
   for (const fund of TRACKED_FUNDS) {
     await db

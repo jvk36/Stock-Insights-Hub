@@ -167,7 +167,7 @@ function Methodology() {
     <details className="rounded-lg border border-border bg-card p-4 text-xs text-muted-foreground">
       <summary className="cursor-pointer text-sm font-medium text-foreground">Methodology</summary>
       <ul className="mt-3 list-disc pl-5 space-y-1.5">
-        <li>Rankings use up to 100 verified stock positions per manager. ETFs, warrants, other non-stock instruments, and unverified ticker matches are grouped under Miscellaneous and excluded here.</li>
+        <li>Only each manager's top 100 holdings are retained; Miscellaneous holdings are excluded.</li>
         <li>Biggest Bets weights use each fund's full reported portfolio value. The combined Summary Portfolio denominator is the sum of retained top-100 positions only.</li>
         <li>Buys as % = added shares valued at the current quarter-end per-share value, divided by the current full fund value, times 100.</li>
         <li>Sells as % = reduced shares valued at the prior quarter-end per-share value, divided by the prior full fund value, times 100.</li>

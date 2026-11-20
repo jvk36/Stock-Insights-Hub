@@ -6,8 +6,6 @@ import { get13fSummary, get13fTickerOwnership } from "../lib/thirteen-f-summary-
 import { canonicalTicker } from "../lib/thirteen-f-summary-engine";
 import { Get13fSummaryResponse, Get13fTickerOwnershipParams, Get13fTickerOwnershipResponse } from "@workspace/api-zod";
 import { MISCELLANEOUS_CUSIP, TOP_100_FUND_CIKS, tenYearReportCutoff } from "../lib/thirteen-f-retention";
-import { groupStockHoldings } from "../lib/thirteen-f-security-policy";
-import { get13fSecurityMappings } from "../lib/thirteen-f-security-catalog";
 import {
   hedgeFundsTable,
   sec13fFilingsTable,
@@ -193,21 +191,18 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
     }
 
     // Fetch holdings for both quarters
-    const currentHoldingsRaw = await db
+    const currentHoldings = await db
       .select()
       .from(sec13fHoldingsTable)
       .where(eq(sec13fHoldingsTable.filingId, currentFiling.id));
 
-    const priorStoredHoldings = priorFiling
+    const priorHoldingsRaw = priorFiling
       ? await db
           .select()
           .from(sec13fHoldingsTable)
           .where(eq(sec13fHoldingsTable.filingId, priorFiling.id))
       : [];
 
-    const mappings = await get13fSecurityMappings();
-    const currentHoldings = groupStockHoldings(currentHoldingsRaw, mappings);
-    const priorHoldingsRaw = groupStockHoldings(priorStoredHoldings, mappings);
     const currentMisc = currentHoldings.find(h => h.cusip === MISCELLANEOUS_CUSIP);
     const priorMisc = priorHoldingsRaw.find(h => h.cusip === MISCELLANEOUS_CUSIP);
     // Build lookup maps keyed by CUSIP (stable across quarters, unlike name strings)

@@ -3,6 +3,7 @@
 - [FRED API rate limiting on Replit](fred-rate-limit.md) — Akamai CDN burst-limits FRED requests; batched enrichment strategy
 - [EDGAR 13F value units](edgar-13f-value-units.md) — all tracked funds file raw dollars (not thousands); auto-detection + namespace parsing fix for ns1:-prefixed XML
 - [13F tracker fund roster](thirteen-f-fund-roster.md) — historical manager identity and ticker-resolution lessons; verify the current roster in code.
+- [13F security identity](thirteen-f-security-policy.md) — all ETFs, warrants and unverified tickers belong in Miscellaneous; never guess an issuer from the first search result.
 - [Large-manager 13F limits](thirteen-f-retention-policy.md) — both added manager groups use top 100 plus Miscellaneous; skip missing quarters without inventing trades.
 - [Hedge fund summary rules](hedge-fund-summary-rules.md) — individual-position rankings, latest-quarter-only coverage, and top-100 combined holdings.
 - [Performance return basis](performance-return-basis.md) — dividend-adjusted returns, SPY benchmark proxy, honest horizon coverage and listing-currency limitations.

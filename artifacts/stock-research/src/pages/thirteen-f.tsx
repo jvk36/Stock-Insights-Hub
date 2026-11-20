@@ -859,9 +859,15 @@ function FundHoldingsView({
       </div>
 
       {/* Holdings table */}
+      {holdingsData && (
+        <p className="text-xs text-muted-foreground">
+          Miscellaneous includes ETFs, warrants, other non-stock instruments, and positions without a verified stock ticker.
+          Their reported market values remain included in the portfolio total.
+        </p>
+      )}
       {holdingsData?.holdingsLimited && (
         <p className="text-xs text-muted-foreground">
-          Showing up to 100 positions ranked by market value. Miscellaneous combines all remaining equity positions.
+          Showing verified stocks from the top 100 retained positions ranked by market value. Miscellaneous also includes the remaining positions.
           Quarters without available filings are skipped. Missing prior top-100 positions are not labeled as new buys,
           and positions falling out of the top 100 are not labeled as sales.
         </p>

@@ -257,7 +257,7 @@ export default function ThirteenFTicker() {
               <summary className="cursor-pointer text-sm font-medium text-foreground">How to read this</summary>
               <ul className="mt-3 list-disc pl-5 space-y-1.5">
                 <li>Covers only the hedge funds tracked in the Blueprint, not all institutions. Values are reported quarter-end USD, not live prices.</li>
-                <li>Uses each manager's stored individual holdings. Where a fund's tail beyond its top 100 was imported only as an aggregated Miscellaneous line, those positions cannot be identified and are not shown.</li>
+                <li>Uses each manager's stored, verified stock holdings. ETFs, warrants, other non-stock instruments, and unverified ticker matches are grouped under Miscellaneous and excluded. Positions imported only within a fund's aggregated tail beyond its top 100 cannot be identified and are not shown.</li>
                 <li>Buy % and Sell % estimate shares added or reduced, valued at quarter-end, as a percentage of the fund's portfolio. They are not percentage changes in share count, verified execution prices or actual trading cash flows.</li>
                 <li>When the exact preceding quarter is missing or retention limits hide the prior position, activity shows as unknown rather than new or sold.</li>
               </ul>

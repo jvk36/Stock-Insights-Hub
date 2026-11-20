@@ -2,6 +2,8 @@ import { db, hedgeFundsTable, sec13fFilingsTable, sec13fHoldingsTable } from "@w
 import { and, eq, exists, inArray, sql } from "drizzle-orm";
 import type { ThirteenFSummary, ThirteenFTickerOwnership } from "@workspace/api-zod";
 import { build13fSummary, canonicalTicker, precedingQuarter, type SummaryFiling } from "./thirteen-f-summary-engine";
+import { groupStockHoldings } from "./thirteen-f-security-policy";
+import { get13fSecurityMappings } from "./thirteen-f-security-catalog";
 
 type SnapshotCache = {
   cached: { at: number; data: ThirteenFSummary } | null;
@@ -11,6 +13,7 @@ const summaryCache: SnapshotCache = { cached: null, pending: null };
 const ownershipCache: SnapshotCache = { cached: null, pending: null };
 
 async function calculate(positionLimit: number): Promise<ThirteenFSummary> {
+  const mappings = await get13fSecurityMappings();
   // One consistent read snapshot while the background importer commits filings.
   return db.transaction(async tx => {
     const funds = await tx.select({
@@ -33,7 +36,12 @@ async function calculate(positionLimit: number): Promise<ThirteenFSummary> {
       id: f.id, fundCik: f.fundCik, reportDate: f.reportDate,
       filingDate: f.filingDate, totalValue: f.totalValueThousands * 1000, holdings: [],
     });
-    for (const h of holdings) byFiling.get(h.filingId)?.holdings.push({
+    const grouped = new Map<number, typeof holdings>();
+    for (const h of holdings) {
+      const rows = grouped.get(h.filingId) ?? [];
+      rows.push(h); grouped.set(h.filingId, rows);
+    }
+    for (const rows of grouped.values()) for (const h of groupStockHoldings(rows, mappings)) byFiling.get(h.filingId)?.holdings.push({
       name: h.name, ticker: h.ticker, cusip: h.cusip, shares: h.shares,
       marketValue: h.marketValueThousands * 1000,
     });

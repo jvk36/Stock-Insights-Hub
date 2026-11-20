@@ -54,7 +54,7 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 - **Event-driven activist + massive SPAC exposure** — largest activist targets: Sotheby's (BID, $4.5B), IAA (IAA, $2.6B), Black Knight (BKI, $1.25B), Catalent (CTLT), Global Blue (GB), Kadmon (KDMN). SPAC positions dominated 2019–2022 (Far Point FPAC $3B+, Khosla, Go Acquisition, Compute Health, ION 3, JAWS, FinTech V, etc.).
 - **~138 total CUSIP overrides** applied across two SQL passes. Final null count: **0 / 1,789 holdings** (100%).
 - **Key CUSIP patterns**: H-prefix Swiss company (Global Blue: `GB`), N-prefix Dutch company (Frank's International: `FI`), G-prefix Cayman SPACs (~60 distinct SPACs), unit-class variants of SPACs share ticker with the base class.
-- **SPAC ticker convention**: multiple CUSIPs per SPAC (units `*U`, class A, warrants) all map to the pre-merger equity ticker. Applied consistently across all ~60 Third Point SPAC positions.
+- **SPAC instrument caution**: earlier data sometimes mapped units and warrants to the common-stock ticker. This is not the current display policy: non-stock instruments belong in Miscellaneous; see [security identity policy](thirteen-f-security-policy.md).
 - **Far Point vs Far Peak**: two distinct SPACs — Far Point Acquisition Corp (`FPAC`, CUSIP `30734W*`) and Far Peak Acquisition Corp (`FPAA`, CUSIP `G3312L*`). Do not confuse them.
 
 ## Duquesne Family Office-specific notes
@@ -106,15 +106,12 @@ description: All seeded funds, CIKs, proprietors, and patterns learned during ti
 
 5. **Acquired/delisted companies** — Tickers that no longer trade (Celgene, Aetna, Monsanto, Time Warner, Allergan, Whole Foods, etc.) return empty from Yahoo. Override to the last known US ticker for historical display.
 
-6. **SPACs** — Yahoo returns Indian/other companies for SPAC tickers (e.g., `AJAXENGG.BO` for Ajax Financial Acquisitions Corp `G0190X*` CUSIPs). Each SPAC class/warrant has a distinct CUSIP — override all variants. Baupost was an especially SPAC-heavy fund.
+6. **SPACs** — Yahoo returns unrelated foreign companies for SPAC searches. Common stock, units and warrants are different securities; never assign the common ticker to every variant.
 
-**Why:** The `CUSIP_TICKER_OVERRIDES` map in `edgar-fetcher.ts` is applied at fetch time. For existing DB rows, apply direct SQL UPDATEs grouped by `fund_cik` after each seed.
+**Why:** Name search alone has repeatedly produced incorrect identities. Current behavior must follow the [security identity policy](thirteen-f-security-policy.md), including existing filings.
 
-## Ticker-fix conventions
+## Ticker-fix principle
 
-- Always run the full audit SQL after a seed completes (filter on `ticker IS NULL OR ticker LIKE '%.%' OR ticker = 'not_found'`).
-- Also check recent quarters for active-stock mismatches (e.g., QBTS collision).
-- Add all fixes to both:
-  1. The DB (`UPDATE sec_13f_holdings ... WHERE UPPER(cusip) = UPPER(...)`)
-  2. The `cusip_ticker_map` table via upsert
-  3. The `CUSIP_TICKER_OVERRIDES` map in `edgar-fetcher.ts` (for future re-seeds)
+Correct the underlying CUSIP identity consistently across current displays, historical comparisons and future imports. Do not rely on manual per-fund database patches or the absence of foreign suffixes: a plausible US ticker can still be a different issuer.
+
+**Why:** Positive cache entries previously caused the same wrong ticker to reappear across managers.

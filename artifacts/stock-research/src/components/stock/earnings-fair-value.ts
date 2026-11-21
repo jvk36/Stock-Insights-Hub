@@ -1,7 +1,7 @@
 interface EarningsPoint { date: string; ttmEps?: number | null }
 const DAY = 86_400_000;
 
-/** Interpolate reported quarterly TTM observations without extrapolating or bridging missing quarters. */
+/** Interpolate quarterly TTM observations; carry only the latest non-stale report to today. */
 export function earningsFairValues(
   dates: string[], history: EarningsPoint[], pe: number,
 ): (number | null)[] {
@@ -14,13 +14,21 @@ export function earningsFairValues(
   const times = dates.map(Date.parse);
   if (times.some(t => !Number.isFinite(t))) return unavailable;
   const start = Math.min(...times), end = Math.max(...times);
+  const latest = nodes.at(-1);
+  // Quarter-end is not a forecast date: the last reported TTM remains the known
+  // earnings basis until the next report. Never fill older missing quarters.
+  if (latest && end > latest.t && end - latest.t <= 190 * DAY
+    && end <= Date.now() && latest.value != null && Number.isFinite(latest.value)) {
+    nodes.push({ t: end, value: latest.value });
+  }
   const left = nodes.findLastIndex(p => p.t <= start);
   const right = nodes.findIndex(p => p.t >= end);
   if (left < 0 || right < 0) return unavailable;
   const covered = nodes.slice(left, right + 1);
   if (covered.length < 2 || covered.some((p, i) =>
     p.value == null || !Number.isFinite(p.value) || p.value <= 0
-    || (i > 0 && (p.t - covered[i - 1].t) / DAY > 115),
+    || (i > 0 && (p.t - covered[i - 1].t) / DAY > 115
+      && covered[i - 1] !== latest),
   )) return unavailable;
   return times.map(t => {
     const i = covered.findIndex(p => p.t >= t);

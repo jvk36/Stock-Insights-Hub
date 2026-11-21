@@ -36,6 +36,38 @@ test("historical EPS is a four-quarter sum, not quarterly or partially annualize
   assert.equal(rows[15].fairValue, 34);
 });
 
+test("reported TTM fills unavailable quarterly windows and establishes UHAL-like historical growth", () => {
+  const quarters = [
+    { date: "2025-09-30", eps: 0.49 }, { date: "2025-12-31", eps: -0.23 },
+    { date: "2026-03-31", eps: -0.7 }, { date: "2026-06-30", eps: 0.58 },
+    { date: "2026-09-30", eps: 0.66 },
+  ];
+  const trailing = [
+    { date: "2023-09-30", eps: 3.76 }, { date: "2025-09-30", eps: 1 },
+    { date: "2025-12-31", eps: 0.47 }, { date: "2026-03-31", eps: 0.24 },
+    { date: "2026-06-30", eps: 0.14 }, { date: "2026-09-30", eps: 0.31 },
+  ];
+  const rows = intrinsicValuationHistory(quarters, { date: "2026-12-31", eps: 0.095 }, "2026-11-21", trailing);
+  assert.equal(rows[0].reportedTtmEps, 3.76);
+  assert.equal(rows.find(p => p.date === "2025-12-31").reportedTtmEps, 0.47);
+  const last = rows.at(-1);
+  closeTo(last.reportedTtmEps, 0.31);
+  closeTo(last.projectedTtmEps, 0.635);
+  closeTo(last.blendedEps, 0.4725);
+  assert.ok(last.growthPercent < 0);
+  assert.equal(last.targetPe, 15);
+  closeTo(last.fairValue, 0.4725 * 15);
+});
+
+test("reported TTM does not replace complete quarterly sums, accept future rows or invent quarters", () => {
+  const rows = intrinsicValuationHistory(flat, { date: "2025-03-31", eps: 2 }, "2025-02-01", [
+    { date: "2024-12-31", eps: 400 }, { date: "2023-03-31", eps: NaN },
+    { date: "2030-01-01", eps: 5 },
+  ]);
+  assert.equal(rows.find(p => p.date === "2024-12-31").reportedTtmEps, 4);
+  assert.ok(rows.every(p => p.date <= "2025-02-01"));
+});
+
 test("one CAGR between the first and last plotted EPS applies to every quarter", () => {
   const growing = dates.map((date, i) => ({ date, eps: 1.1 ** (i / 4) }));
   const rows = intrinsicValuationHistory(growing, null, "2025-01-15");

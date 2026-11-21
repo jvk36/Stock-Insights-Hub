@@ -56,6 +56,7 @@ export function intrinsicValuationHistory(
   quarters: QuarterlyEps[],
   estimate: { date: string; eps: number } | null,
   asOf: string,
+  reportedTtms: QuarterlyEps[] = [],
 ): IntrinsicValuationPoint[] {
   const unique = new Map(quarters.filter(q => finite(q.eps) && Number.isFinite(Date.parse(q.date)) && q.date <= asOf).map(q => [q.date, q]));
   const sorted = [...unique.values()].sort((a, b) => a.date.localeCompare(b.date));
@@ -63,13 +64,26 @@ export function intrinsicValuationHistory(
     const window = sorted.slice(Math.max(0, i - 3), i + 1);
     return { ...row, ttm: consecutive(window) ? window.reduce((sum, q) => sum + q.eps, 0) : null };
   });
-  const history: IntrinsicValuationPoint[] = ttms.map(row => {
+  let history: IntrinsicValuationPoint[] = ttms.map(row => {
     return {
       date: row.date, periodEnd: row.date, reportedTtmEps: row.ttm, projectedTtmEps: null,
       blendedEps: row.ttm, growthPercent: null, targetPe: null, fairValue: null,
       isBlended: false, unavailableReason: row.ttm == null ? "Four consecutive reported quarters are required for TTM EPS." : null,
     };
   });
+  // Reported trailing EPS is already a full-year figure. It can fill dates where
+  // the quarterly feed lacks the four inputs, without annualizing a partial year.
+  const byDate = new Map(history.map(p => [p.date, p]));
+  for (const row of reportedTtms) {
+    if (!finite(row.eps) || !Number.isFinite(Date.parse(row.date)) || row.date > asOf) continue;
+    if (byDate.get(row.date)?.reportedTtmEps != null) continue;
+    byDate.set(row.date, {
+      date: row.date, periodEnd: row.date, reportedTtmEps: row.eps,
+      projectedTtmEps: null, blendedEps: row.eps, growthPercent: null,
+      targetPe: null, fairValue: null, isBlended: false, unavailableReason: null,
+    });
+  }
+  history = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
   const latest = history.at(-1);
   if (!latest) return history;
   const lastFour = sorted.slice(-4);
@@ -77,7 +91,8 @@ export function intrinsicValuationHistory(
   const estimateIsNext = estimate && finite(estimate.eps)
     && Date.parse(estimate.date) - Date.parse(latest.periodEnd) >= 65 * DAY
     && Date.parse(estimate.date) - Date.parse(latest.periodEnd) <= 115 * DAY;
-  const projected = latest.reportedTtmEps != null && consecutive(lastFour) && estimateIsNext && !stale
+  const projected = latest.reportedTtmEps != null && consecutive(lastFour)
+    && lastFour.at(-1)?.date === latest.periodEnd && estimateIsNext && !stale
     ? latest.reportedTtmEps - lastFour[0].eps + estimate.eps
     : null;
   const blended = projected != null && latest.reportedTtmEps != null ? (latest.reportedTtmEps + projected) / 2 : null;

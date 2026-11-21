@@ -305,12 +305,12 @@ export default function PriceChart({ symbol }: { symbol: string }) {
 
         {showEarnings && hasFairValueData && (
           <p className="text-xs text-muted-foreground font-mono mt-2 pl-1">
-            Amber curve = split-adjusted TTM EPS × {peMultiple}x P/E, smoothly interpolated between quarterly observations. Retrospective illustration, not a point-in-time trading signal.
+            Amber curve = split-adjusted TTM EPS × {peMultiple}x P/E, smoothly interpolated between quarterly observations. The latest reported TTM is held through today (up to 190 days), not forecast. Retrospective illustration, not a point-in-time trading signal.
           </p>
         )}
         {showEarnings && !hasFairValueData && !isLoading && !isLoadingEarnings && (
           <p className="text-xs text-muted-foreground font-mono mt-2 pl-1">
-            Earnings Fair Value is hidden because continuous quarterly earnings data does not cover the entire selected timeframe. Missing periods are not extrapolated.
+            Earnings Fair Value is hidden because continuous quarterly earnings data does not cover the selected timeframe or the latest report is stale. Historical gaps are not filled.
           </p>
         )}
       </CardContent>

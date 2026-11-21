@@ -20,10 +20,10 @@ test("smooth quarterly interpolation preserves knots and differs from straight s
   assert.equal(earningsFairValues(dates, history, 30)[1], values[1]! * 2);
 });
 
-test("hide entire curve for missing beginning, missing end, quarter gaps or invalid EPS", () => {
+test("hide entire curve for missing beginning, stale end, quarter gaps or invalid EPS", () => {
   for (const dates of [
     ["2024-01-01", "2024-09-30"],
-    ["2024-03-31", "2024-11-01"],
+    ["2024-03-31", "2025-05-01"],
   ]) assert.deepEqual(earningsFairValues(dates, history, 15), [null, null]);
   const dates = ["2024-03-31", "2024-09-30"];
   for (const rows of [
@@ -31,6 +31,19 @@ test("hide entire curve for missing beginning, missing end, quarter gaps or inva
     history.map((p, i) => i === 1 ? { ...p, ttmEps: null } : p),
     history.map((p, i) => i === 1 ? { ...p, ttmEps: NaN } : p),
   ]) assert.deepEqual(earningsFairValues(dates, rows, 15), [null, null]);
+});
+
+test("carry latest known TTM to current sessions without requiring a future earnings report", () => {
+  const values = earningsFairValues(["2024-03-31", "2024-08-01", "2024-11-01"], history, 15);
+  assert.ok(values.every(v => v != null));
+  assert.equal(values.at(-1), 45);
+  // Short intraday windows wholly after the latest reported quarter also work.
+  assert.deepEqual(earningsFairValues(["2024-10-31", "2024-11-01"], history, 15), [45, 45]);
+});
+
+test("current reporting tail never hides a genuine historical hole", () => {
+  const dates = ["2024-03-31", "2024-11-01"];
+  assert.deepEqual(earningsFairValues(dates, history.filter(p => p.date !== "2024-06-30"), 15), [null, null]);
 });
 
 test("unused missing history outside a fully covered range does not suppress it", () => {

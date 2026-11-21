@@ -57,13 +57,20 @@ async function compile(symbol: string, cik: string | null): Promise<IntrinsicVal
     return date && finite(row.epsActual) && (!row.currency || row.currency === "USD") ? [{ date, eps: row.epsActual }] : [];
   });
   let quarters = secQuarterlyEps(facts, splits.events?.splits ?? []);
+  let reportedTtms: QuarterlyEps[] = [];
   let source = "SEC EDGAR diluted EPS (USD per listed share); Yahoo Finance prices and consensus";
   const reportingCurrency = resolveFinancialCurrency(quote.financialData, null);
   if (quarters.length < 16) {
     // Yahoo statement EPS is reporting-currency per ordinary share. Reconcile
     // overlapping observations before using it for a USD ADR or listed share.
     try {
-      const raw = await yf.fundamentalsTimeSeries(symbol, { type: "quarterly", module: "financials", period1: start });
+      const [raw, trailing] = await Promise.all([
+        yf.fundamentalsTimeSeries(symbol, { type: "quarterly", module: "financials", period1: start }),
+        // yahoo-finance2's schema excludes the legitimate TTM periodType.
+        // Validate the fields used below rather than rejecting reported TTM rows.
+        yf.fundamentalsTimeSeries(symbol, { type: "trailing", module: "financials", period1: start }, { validateResult: false })
+          .catch(() => { warnings.push("Reported trailing EPS history is unavailable; complete quarterly sums are still used."); return []; }),
+      ]);
       const statementRows: QuarterlyEps[] = raw.flatMap(row => {
         const r = row as unknown as Record<string, unknown>;
         const date = iso(r.date);
@@ -73,6 +80,17 @@ async function compile(symbol: string, cik: string | null): Promise<IntrinsicVal
       const currency = reportingCurrency ?? (raw[0] as unknown as { currencyCode?: string } | undefined)?.currencyCode;
       const rate = await getUsdRate(currency ?? null);
       const reconciled = rate != null ? reconciledListingEps(statementRows, listingEps, rate) : null;
+      const anchor = statementRows.findIndex(p => p.eps !== 0);
+      const factor = reconciled && anchor >= 0 ? reconciled[anchor].eps / statementRows[anchor].eps : null;
+      if (factor != null && finite(factor) && factor > 0) {
+        reportedTtms = trailing.flatMap((row: unknown) => {
+          const r = row as unknown as Record<string, unknown>;
+          const date = iso(r.date);
+          const eps = r.dilutedEPS ?? r.basicEPS;
+          return date && r.periodType === "TTM" && finite(eps)
+            ? [{ date, eps: eps * factor }] : [];
+        });
+      }
       if (reconciled && reconciled.length > quarters.length) {
         quarters = reconciled;
         source = "Yahoo Finance quarterly statement EPS reconciled to USD listing EPS; Yahoo prices and consensus";
@@ -113,14 +131,17 @@ async function compile(symbol: string, cik: string | null): Promise<IntrinsicVal
       ? [{ date, eps }] : [];
   }).sort((a, b) => a.date.localeCompare(b.date));
   const estimate = candidates[0] ?? null;
-  const history = intrinsicValuationHistory(quarters, estimate, asOf);
+  const history = intrinsicValuationHistory(quarters, estimate, asOf, reportedTtms);
+  if (reportedTtms.length) {
+    source += "; reported trailing EPS supplements missing quarterly windows";
+  }
   if (!history.some(p => p.fairValue != null)) {
     warnings.push("There are not enough comparable EPS observations to calculate endpoint CAGR. Negative earnings can still be valued at the specified 15× multiple.");
   }
   if (!estimate) warnings.push("The latest blended value requires consensus EPS for the immediately following fiscal quarter; no substitute estimate is used.");
   return {
     symbol, currency: "USD", generatedAt: new Date().toISOString(), source,
-    methodology: "Historical EPS uses four consecutive diluted EPS quarters. Latest projected TTM = reported TTM − oldest of those four quarters + next-quarter consensus EPS; blended TTM = (reported TTM + projected TTM) / 2. One growth rate applies across the selected chart range: g = MIN(30, ((last plotted EPS / first plotted EPS)^(1 / elapsed years) − 1) × 100), using actual dates and the latest blended EPS when available. At least one year between comparable EPS observations is required; short histories are not annualized. The 30% growth cap applies to every timeframe. Changing the range recalculates g and the entire curve. Negative g or negative EPS uses a 15× multiple; negative fair values are retained. Otherwise g below 5 uses MIN(15, 8.5 + 2g), 5 through 15 uses 15, and above 15 uses g, capped at 30. CAGR is undefined for a nonpositive starting EPS or negative ending EPS; negative earnings still use 15×. Historical facts may be restated; missing Q4 EPS is derived from annual minus nine-month EPS and can differ due to weighted shares/rounding. This is a retrospective valuation illustration, not a point-in-time backtest. Formula-based estimates have no statistical confidence interval.",
+    methodology: "Historical EPS uses four consecutive diluted EPS quarters, supplemented by explicitly reported trailing-twelve-month EPS on reconciled currency/share units where quarterly inputs are missing. A partial year is never annualized into TTM EPS. Latest projected TTM = reported TTM − oldest of four consecutive quarters + next-quarter consensus EPS; blended TTM = (reported TTM + projected TTM) / 2. One growth rate applies across the selected range: g = MIN(30, ((last plotted EPS / first plotted EPS)^(1 / elapsed years) − 1) × 100). At least one year between comparable EPS endpoints is required. The 30% cap applies to every timeframe. Changing the range recalculates g and the curve. Negative g or EPS uses 15× and negative fair values are retained. Otherwise g below 5 uses MIN(15, 8.5 + 2g), 5 through 15 uses 15, and above 15 uses g capped at 30. CAGR is undefined for nonpositive starting EPS or negative ending EPS; negative-EPS nodes still use 15×. Historical facts may be restated; missing Q4 EPS is derived from annual minus nine-month EPS and can differ due to weighted shares/rounding. This is a retrospective illustration, not a point-in-time backtest or a statistical confidence interval.",
     warnings, nextQuarterEnd: estimate?.date ?? null, nextQuarterEstimate: estimate?.eps ?? null,
     history: history.filter(p => p.date >= new Date(Date.now() - 10 * 365.25 * DAY).toISOString().slice(0, 10)),
   };

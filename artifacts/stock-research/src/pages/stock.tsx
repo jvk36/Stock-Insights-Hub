@@ -313,7 +313,6 @@ export default function StockDetail() {
             <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Analysis</TabsTrigger>
             <TabsTrigger value="models" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Models</TabsTrigger>
           </TabsList>
-          <p className="mt-2 text-xs text-muted-foreground">Overview is free. All other Valuation & Fundamentals sub-tabs require Premium.</p>
 
           <div className="mt-6">
             {/* Overview: chart + stats + all detail sections */}

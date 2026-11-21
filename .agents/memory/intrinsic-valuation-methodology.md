@@ -23,8 +23,12 @@ Require at least one elapsed year between comparable EPS endpoints before annual
 
 **Why:** A handful of recent quarterly observations can create extreme annualized growth without establishing historical growth. Showing unavailable is preferable to implying that the 30% cap makes an insufficient history reliable.
 
-The Overview Earnings Fair Value overlay must be smooth, based on quarterly earnings, and hidden entirely unless earnings cover the entire plotted timeframe.
+The Overview Earnings Fair Value overlay must be smooth, based on quarterly earnings, and hidden entirely unless earnings cover the historical plotted timeframe. The latest reported TTM remains valid through current sessions until stale; do not require a future earnings observation just to cover today's price.
 
-**Why:** The user explicitly requested a smooth curve rather than distinct segments and no partial-history plot.
+**Why:** The user requested a smooth curve and no partial-history plot, then flagged META and CSCO disappearing despite available earnings. Strictly requiring a quarter-end observation after today's date suppressed legitimate current-session overlays.
+
+Use explicitly reported TTM EPS to supplement missing quarterly inputs, preserving reconciled listing currency/share units and complete quarterly sums. Do not treat a provider's TTM period as a single quarter.
+
+**Why:** UHAL has reported trailing EPS history even when SEC's standard diluted-EPS concept is absent and the quarterly provider feed is short. Missing growth must not make available EPS disappear. Yahoo's trailing response uses the legitimate `TTM` period type omitted from yahoo-finance2's validation schema, so validate consumed fields locally.
 
 **How to apply:** Preserve other piecewise rules, with growth and resulting high-growth multiples capped at 30. Do not invent signed CAGR: nonpositive starting EPS or negative ending EPS cannot establish conventional growth, but negative-EPS nodes still receive 15×. Describe the curve as an earnings-based reference, not cash-flow valuation or guaranteed reversion. Historical illustrations use retrospective/restated information, not point-in-time backtests. Missing or unreconciled currency/share units remain unavailable, never guessed USD values.

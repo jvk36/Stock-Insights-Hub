@@ -667,107 +667,17 @@ router.get("/stock/:symbol/earnings-history", async (req, res): Promise<void> =>
   const PE_MULTIPLE = 15;
 
   try {
-    // 1. Fetch recent quarterly EPS from yahoo-finance earningsHistory (last ~4 quarters)
-    const [result, splitChart] = await Promise.all([
-      yahooFinance.quoteSummary(symbol, {
-        modules: ["earningsHistory", "price"],
-      }),
-      yahooFinance.chart(symbol, {
-        period1: new Date("1970-01-01"),
-        interval: "1mo",
-        events: "splits",
-      }),
-    ]);
-    const splitEvents = splitChart.events?.splits ?? [];
-
-    const earningsHistoryRaw = result.earningsHistory?.history ?? [];
-    // Note: fields are epsActual/epsEstimate on earningsHistory (not actual/estimate)
-    const recentEps = earningsHistoryRaw
-      .map((item) => ({
-        date: item.quarter instanceof Date ? item.quarter.toISOString().split("T")[0] : null,
-        epsActual: typeof item.epsActual === "number" ? item.epsActual : null,
-        epsEstimate: typeof item.epsEstimate === "number" ? item.epsEstimate : null,
-      }))
-      .filter((e): e is { date: string; epsActual: number; epsEstimate: number | null } =>
-        e.date !== null && e.epsActual !== null
-      );
-
-    // 2. Try SEC EDGAR for extended historical quarterly EPS (diluted EPS)
-    // Run Yahoo fetch and CIK lookup in parallel for speed
-    let secEps: { date: string; epsActual: number; epsEstimate: null }[] = [];
-    try {
-      const cik = await lookupCik(symbol);
-      if (cik) {
-        const factsUrl = `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik.padStart(10, "0")}/us-gaap/EarningsPerShareDiluted.json`;
-        const factsResp = await fetch(factsUrl, { signal: AbortSignal.timeout(8000) });
-        if (factsResp.ok) {
-          const factsData = await factsResp.json() as {
-            units?: {
-              "USD/shares"?: Array<{
-                end: string;
-                val: number;
-                form: string;
-                frame?: string;
-                accn: string;
-               filed?: string;
-              }>;
-            };
-          };
-          const sharesData = factsData?.units?.["USD/shares"] ?? [];
-          // Only take entries with a quarterly frame tag (CY2024Q1, CY2023Q3, etc.)
-          const quarterly = sharesData
-            .filter((e) => (e.form === "10-Q" || e.form === "10-K") && e.frame && /^CY\d{4}Q\d$/.test(e.frame))
-            .map((e) => {
-              // SEC comparative facts filed after a split are generally already
-              // restated. Using the filing date prevents adjusting those twice.
-              const adjustment = epsSplitAdjustmentForDate(
-                e.filed ?? e.end,
-                splitEvents,
-              );
-              return {
-                date: e.end,
-                epsActual: parseFloat((e.val * adjustment).toFixed(6)),
-                epsEstimate: null as null,
-              };
-            });
-
-          const qMap = new Map<string, { date: string; epsActual: number; epsEstimate: null }>();
-          for (const q of quarterly) {
-            qMap.set(q.date, q);
-          }
-          secEps = Array.from(qMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-        }
-      }
-    } catch {
-      // SEC EDGAR lookup is best-effort; proceed with Yahoo data only
-    }
-
-    // 3. Merge: SEC EDGAR provides the base; Yahoo earningsHistory overrides recent quarters
-    const dateMap = new Map<string, { date: string; epsActual: number; epsEstimate: number | null }>();
-    for (const e of [...secEps, ...recentEps]) {
-      dateMap.set(e.date, e);
-    }
-
-    const sorted = Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-
-    // 4. Compute TTM EPS (trailing twelve months = rolling sum of last 4 quarters)
-    const history = sorted.map((item, idx) => {
-      const windowItems = sorted.slice(Math.max(0, idx - 3), idx + 1);
-      const complete = windowItems.length === 4 && windowItems.every((q, i) => {
-        if (!i) return true;
-        const days = (Date.parse(q.date) - Date.parse(windowItems[i - 1].date)) / 86_400_000;
-        return days >= 65 && days <= 115;
-      });
-      const ttmEps = complete
-        ? parseFloat(windowItems.reduce((sum, q) => sum + q.epsActual, 0).toFixed(4))
-        : null;
-      return {
-        date: item.date,
-        epsActual: item.epsActual,
-        epsEstimate: item.epsEstimate,
-        ttmEps,
-      };
-    });
+    // Share the fiscal-quarter, Q4 recovery, split/currency and reported-TTM
+    // handling with Intrinsic Valuation. Calendar-date merges duplicated CSCO
+    // quarters and frame-only SEC parsing omitted META's fourth quarters.
+    const cik = await lookupCik(symbol).catch(() => null);
+    const valuation = await getIntrinsicValuation(symbol, cik);
+    const history = valuation.history.filter(p => !p.isBlended).map(p => ({
+      date: p.periodEnd,
+      epsActual: null,
+      epsEstimate: null,
+      ttmEps: p.reportedTtmEps,
+    }));
 
     res.json({ symbol, peMultiple: PE_MULTIPLE, history });
   } catch (err: unknown) {

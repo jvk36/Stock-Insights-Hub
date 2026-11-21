@@ -55,7 +55,7 @@ function IntrinsicValuationIntro() {
             This is an earnings-based estimate, not a direct cash-flow (DCF) valuation.
           </p>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Historical quarterly points use reported TTM EPS. The latest point blends reported TTM EPS with projected TTM EPS
+            Historical quarterly points use reported TTM EPS or four consecutive quarterly EPS observations. The latest point blends reported TTM EPS with projected TTM EPS
             incorporating next quarter’s consensus. Growth is the CAGR between the first and last available EPS points in the selected
             chart range, including the latest blended point when available. At least one year of comparable EPS history is required. Growth used by the model is capped at 30% for every timeframe. This one growth rate applies to every node; changing the range recalculates the curve.
           </p>
@@ -193,9 +193,10 @@ export default function IntrinsicValuation({ symbol }: { symbol: string }) {
       <IntrinsicValuationIntro />
 
       {/* Summary */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
         {[
           { k: "Latest estimate", v: usd(latest?.fairValue), id: "fair" },
+          { k: "Reported TTM EPS", v: usd(latest?.reportedTtmEps), id: "ttm-eps" },
           { k: "Last close", v: usd(lastClose), id: "close" },
           { k: "Price vs curve", v: gap == null ? "—" : `${gap > 0 ? "+" : ""}${gap.toFixed(1)}%`, id: "gap" },
           { k: "Target P/E", v: latest?.targetPe != null ? `${latest.targetPe.toFixed(1)}x` : "—", id: "pe" },

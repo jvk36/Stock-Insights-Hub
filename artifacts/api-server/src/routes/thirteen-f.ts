@@ -4,6 +4,8 @@ import { db } from "@workspace/db";
 import YahooFinance from "yahoo-finance2";
 import { get13fSummary, get13fTickerOwnership } from "../lib/thirteen-f-summary-service";
 import { canonicalTicker } from "../lib/thirteen-f-summary-engine";
+import { project13fHoldings } from "../lib/cusip-resolution-policy";
+import { loadTickerMappings } from "../lib/cusip-ticker-store";
 import { Get13fSummaryResponse, Get13fTickerOwnershipParams, Get13fTickerOwnershipResponse } from "@workspace/api-zod";
 import { MISCELLANEOUS_CUSIP, TOP_100_FUND_CIKS, tenYearReportCutoff } from "../lib/thirteen-f-retention";
 import {
@@ -191,18 +193,21 @@ router.get("/13f/funds/:cik/holdings", async (req: Request, res: Response) => {
     }
 
     // Fetch holdings for both quarters
-    const currentHoldings = await db
+    const currentStored = await db
       .select()
       .from(sec13fHoldingsTable)
       .where(eq(sec13fHoldingsTable.filingId, currentFiling.id));
 
-    const priorHoldingsRaw = priorFiling
+    const priorStored = priorFiling
       ? await db
           .select()
           .from(sec13fHoldingsTable)
           .where(eq(sec13fHoldingsTable.filingId, priorFiling.id))
       : [];
 
+    const mappings = await loadTickerMappings([...currentStored, ...priorStored].map(h => h.cusip));
+    const currentHoldings = project13fHoldings(currentStored, mappings);
+    const priorHoldingsRaw = project13fHoldings(priorStored, mappings);
     const currentMisc = currentHoldings.find(h => h.cusip === MISCELLANEOUS_CUSIP);
     const priorMisc = priorHoldingsRaw.find(h => h.cusip === MISCELLANEOUS_CUSIP);
     // Build lookup maps keyed by CUSIP (stable across quarters, unlike name strings)

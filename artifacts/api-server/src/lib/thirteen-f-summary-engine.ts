@@ -42,7 +42,8 @@ export function build13fSummary(
   // substitute for holdings, and previous-quarter snapshots cannot leak forward.
   const selected = new Map<string, SummaryFiling>();
   for (const filing of relevant) {
-    if (!filing.holdings.some(retained)) continue;
+    if (!filing.holdings.some(retained) && !filing.holdings.some(h =>
+      h.cusip === MISCELLANEOUS_CUSIP && Number.isFinite(h.marketValue) && h.marketValue > 0)) continue;
     const key = `${filing.fundCik}:${filing.reportDate}`;
     const existing = selected.get(key);
     if (!existing || filing.filingDate > existing.filingDate

@@ -27,6 +27,13 @@ test("latest quarter only; a stale manager never substitutes for a missing curre
   assert.equal(r.positions.some(p => p.ticker === "STALE"), false);
 });
 
+test("a reported filing consolidated entirely into Miscellaneous still counts as reported", () => {
+  const r = build([f("1", [h(null, 1000, 0, "__MISC__")])]);
+  assert.equal(r.reportingFundCount, 1);
+  assert.equal(r.pendingFunds.includes("First"), false);
+  assert.equal(r.positions.length, 0);
+});
+
 test("Biggest Bets keeps individual fund weights; combined weights use only retained positions", () => {
   const r = build([f("1", [h("A", 300), h("B", 100)]), f("2", [h("A", 500)], false, 2000)]);
   assert.deepEqual(r.positions.filter(p => p.ticker === "A").map(p => p.portfolioPct), [30, 25]);

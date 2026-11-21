@@ -14,16 +14,11 @@ import {
   hedgeFundsTable,
   sec13fFilingsTable,
   sec13fHoldingsTable,
-  cusipTickerMapTable,
 } from "@workspace/db";
 import { logger } from "./logger";
-import YahooFinance from "yahoo-finance2";
+import { resolveStoredCusips, syncTickerMappings } from "./cusip-ticker-store";
+import { VERIFIED_CUSIP_TICKERS } from "./cusip-resolution-policy";
 import { MISCELLANEOUS_CUSIP, TOP_100_FUND_CIKS, reportedValueMultiplier, retainTopPositions, tenYearReportCutoff } from "./thirteen-f-retention";
-
-const _yf = new YahooFinance();
-
-// US exchange codes used by Yahoo Finance search results
-const US_EXCHANGES = new Set(["NYQ", "NMS", "PCX", "NGM", "NCM", "BTS", "NYSEArca"]);
 
 // Hardcoded overrides for CUSIPs whose SEC names are too ambiguous to search reliably
 const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
@@ -1307,49 +1302,6 @@ const CUSIP_TICKER_OVERRIDES: Record<string, string> = {
   // ── End Egerton Capital-sourced fixes ─────────────────────────────────────────────────
 };
 
-/**
- * Normalise an SEC 13F company name for better Yahoo Finance search matching.
- * Expands common abbreviations and strips geographic/class suffixes.
- */
-function normalizeSecName(name: string): string {
-  const abbrevs: Array<[RegExp, string]> = [
-    [/\bFINL\b/gi,   "Financial"],
-    [/\bPETE\b/gi,   "Petroleum"],
-    [/\bHLDGS\b/gi,  "Holdings"],
-    [/\bHLDG\b/gi,   "Holding"],
-    [/\bAMER\b/gi,   "American"],
-    [/\bINTL\b/gi,   "International"],
-    [/\bCENTY\b/gi,  "Century"],
-    [/\bCOMM\b/gi,   "Communications"],
-    [/\bSVCS\b/gi,   "Services"],
-    [/\bTECH\b/gi,   "Technologies"],
-    [/\bGRP\b/gi,    "Group"],
-    [/\bSYS\b/gi,    "Systems"],
-    [/\bMGMT\b/gi,   "Management"],
-    [/\bMFG\b/gi,    "Manufacturing"],
-    [/\bENTMT\b/gi,  "Entertainment"],
-    [/\bENT\b/gi,    "Entertainment"],
-    [/\bINS\b/gi,    "Insurance"],
-    [/\bBK\b/gi,     "Bank"],
-  ];
-
-  let result = name;
-  for (const [pattern, replacement] of abbrevs) {
-    result = result.replace(pattern, replacement);
-  }
-
-  // Strip trailing geographic indicators, bond descriptors, and share-class suffixes
-  result = result
-    .replace(/\s+(SWITZ|DEL|NJ|NY|DE|IRL|CAYMAN)\s*$/i, "")
-    .replace(/\s+MTN\s+BE\s*$/i, "")
-    .replace(/\s+\bBE\b\s*$/i, "")
-    .replace(/\s+NEW\s*$/i, "")       // "HEICO CORP NEW" → "HEICO CORP" (new share class)
-    .replace(/\s+\b[A-Z]\s*$/,  "")  // "CHARTER INC N" → "CHARTER INC" (single-letter class)
-    .trim();
-
-  return result;
-}
-
 // ─── SEC EDGAR headers (required by SEC fair-access policy) ──────────────────
 
 const SEC_HEADERS = {
@@ -1369,119 +1321,12 @@ export function reportDateToQuarter(reportDate: string): string {
   return `Q${q} ${year}`;
 }
 
-// ─── CUSIP → Ticker via Yahoo Finance name search ────────────────────────────
-
-async function resolveWithYahooSearch(
-  cusipNames: Map<string, string>,
-): Promise<Map<string, string | null>> {
-  const result = new Map<string, string | null>();
-  if (cusipNames.size === 0) return result;
-
-  for (const [cusip, rawName] of cusipNames) {
-    const name = normalizeSecName(rawName);
-    try {
-      // validateResult: false bypasses the stale yahoo-finance2 v3 schema that
-      // rejects 'Equity' typeDisp (expects lowercase 'equity') — data is correct
-      const resp = await (_yf as any).search(
-        name,
-        { quotesCount: 10, newsCount: 0 },
-        { validateResult: false },
-      );
-      const quotes = (resp?.quotes ?? []) as Array<{
-        symbol?: string;
-        quoteType?: string;
-        exchange?: string;
-      }>;
-      // Prefer: (1) US exchange, (2) symbol without dot (US tickers rarely have dots),
-      // (3) any equity — fallback for foreign listings
-      const usEquity = quotes.find(
-        (q) => q.quoteType === "EQUITY" && q.exchange && US_EXCHANGES.has(q.exchange),
-      );
-      const noSuffixEquity = quotes.find(
-        (q) => q.quoteType === "EQUITY" && q.symbol && !q.symbol.includes("."),
-      );
-      const anyEquity = quotes.find((q) => q.quoteType === "EQUITY");
-      result.set(cusip, (usEquity ?? noSuffixEquity ?? anyEquity)?.symbol ?? null);
-    } catch {
-      result.set(cusip, null);
-    }
-    await sleep(250); // ~4 req/sec — polite to Yahoo Finance
-  }
-
-  return result;
-}
+// ─── Exact CUSIP → US ticker mapping (never generic issuer-name guesses) ────
 
 async function resolveCusips(
   cusipNames: Map<string, string>,
 ): Promise<Map<string, string | null>> {
-  const allCusips = [...cusipNames.keys()];
-  const result = new Map<string, string | null>();
-  if (allCusips.length === 0) return result;
-
-  // Apply hardcoded overrides first (for CUSIPs whose SEC names are unfixable)
-  const overrideRows: Array<{ cusip: string; ticker: string; source: string }> = [];
-  for (const cusip of allCusips) {
-    const override = CUSIP_TICKER_OVERRIDES[cusip];
-    if (override) {
-      result.set(cusip, override);
-      overrideRows.push({ cusip, ticker: override, source: "override" });
-    }
-  }
-  for (const row of overrideRows) {
-    try {
-      await db.insert(cusipTickerMapTable)
-        .values({ cusip: row.cusip, ticker: row.ticker, source: row.source })
-        .onConflictDoUpdate({ target: cusipTickerMapTable.cusip, set: { ticker: row.ticker, source: row.source } });
-    } catch { /* ignore */ }
-  }
-
-  const cached = await db
-    .select()
-    .from(cusipTickerMapTable)
-    .where(inArray(cusipTickerMapTable.cusip, allCusips));
-
-  // Only treat *positive* ticker hits as cached — null (not_found) entries are retried
-  for (const row of cached) {
-    if (row.ticker !== null) result.set(row.cusip, row.ticker);
-  }
-  const uncachedMap = new Map<string, string>();
-  for (const c of allCusips) {
-    if (!result.has(c)) uncachedMap.set(c, cusipNames.get(c)!);
-  }
-
-  if (uncachedMap.size > 0) {
-    const resolved = await resolveWithYahooSearch(uncachedMap);
-    const rows = [...resolved.entries()].map(([cusip, ticker]) => ({
-      cusip,
-      ticker: ticker ?? null,
-      source: ticker ? "yahoo_search" : "not_found",
-    }));
-    if (rows.length > 0) {
-      for (const row of rows) {
-        try {
-          if (row.ticker) {
-            // Positive result: upsert, overwriting any previous not_found entry
-            await db
-              .insert(cusipTickerMapTable)
-              .values({ cusip: row.cusip, ticker: row.ticker, source: row.source })
-              .onConflictDoUpdate({
-                target: cusipTickerMapTable.cusip,
-                set: { ticker: row.ticker, source: row.source },
-              });
-          } else {
-            // Null result: only insert if not already there (never overwrite a good ticker)
-            await db
-              .insert(cusipTickerMapTable)
-              .values({ cusip: row.cusip, ticker: null, source: "not_found" })
-              .onConflictDoNothing();
-          }
-        } catch { /* ignore */ }
-      }
-    }
-    resolved.forEach((ticker, cusip) => result.set(cusip, ticker));
-  }
-
-  return result;
+  return resolveStoredCusips(cusipNames, CUSIP_TICKER_OVERRIDES);
 }
 
 // ─── Retry unresolved tickers for existing holdings ──────────────────────────
@@ -1503,20 +1348,34 @@ export async function retryUnresolvedTickers(cik: string): Promise<void> {
 
   logger.info({ cik, total: cusipNames.size }, "Retrying ticker resolution for existing holdings");
 
-  // resolveCusips: uses positive-ticker cache hits, calls Yahoo Finance search for the rest
+  // Exact CUSIP verification repairs old Yahoo guesses as well as missing tickers.
   await resolveCusips(cusipNames);
 
-  // Push resolved tickers from cusip_ticker_map back into sec_13f_holdings.
-  // Also fixes previously stored foreign tickers (containing '.') that were later overridden.
+  const updated = await syncTickerMappings({ cik });
+  logger.info({ cik, updated }, "Ticker re-resolution complete");
+}
+
+async function auditLatestSuspectTickers(): Promise<void> {
+  // Prioritize today's visible gaps/foreign guesses across ALL managers before
+  // queuing the much longer ten-year cache audit. Skip empty filing stubs.
   const result = await db.execute(sql`
-    UPDATE sec_13f_holdings
-    SET ticker = m.ticker
-    FROM cusip_ticker_map m
-    WHERE sec_13f_holdings.cusip = m.cusip
-      AND m.ticker IS NOT NULL
-      AND (sec_13f_holdings.ticker IS NULL OR sec_13f_holdings.ticker LIKE '%.%')
+    SELECT DISTINCT upper(h.cusip) AS cusip, h.name
+    FROM sec_13f_holdings h JOIN sec_13f_filings f ON f.id = h.filing_id
+    WHERE h.cusip <> ${MISCELLANEOUS_CUSIP}
+      AND (h.ticker IS NULL OR h.ticker LIKE '%.%')
+      AND f.report_date = (
+        SELECT max(p.report_date) FROM sec_13f_filings p
+        WHERE p.fund_cik = f.fund_cik AND EXISTS (
+          SELECT 1 FROM sec_13f_holdings ph WHERE ph.filing_id = p.id
+        )
+      )
   `);
-  logger.info({ cik, updated: (result as { rowCount?: number }).rowCount ?? 0 }, "Ticker re-resolution complete");
+  const names = new Map((result.rows as { cusip: string; name: string }[]).map(r => [r.cusip, r.name]));
+  if (!names.size) return;
+  logger.info({ count: names.size }, "Prioritizing latest-quarter missing and suspect ticker mappings");
+  await resolveCusips(names);
+  const updated = await syncTickerMappings({ cusips: [...names.keys()] });
+  logger.info({ updated }, "Latest-quarter exact CUSIP ticker audit completed");
 }
 
 // ─── EDGAR XML parsing ────────────────────────────────────────────────────────
@@ -2096,6 +1955,14 @@ export async function initEdgarFetcher(): Promise<void> {
         set: { name: fund.name, slug: fund.slug, proprietor: fund.proprietor },
       });
   }
+
+  // Repair the four verified CUSIPs immediately, independently of the long
+  // historical import queue. No holdings, shares or values are removed.
+  await resolveCusips(new Map(Object.keys(VERIFIED_CUSIP_TICKERS).map(c => [c, ""])));
+  await syncTickerMappings({ cusips: Object.keys(VERIFIED_CUSIP_TICKERS) });
+  auditLatestSuspectTickers().catch(err =>
+    logger.error({ err }, "Latest-quarter ticker audit failed; original holdings preserved"),
+  );
 
   // Build a lookup of primary CIK → linked CIKs for funds that changed legal entity over time
   const linkedCikMap = new Map<string, string[]>();

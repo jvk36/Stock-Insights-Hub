@@ -1,7 +1,19 @@
 ---
 name: Stock access tiers
-description: User-defined Free versus Premium boundaries for stock pages, screens and portfolios.
+description: Temporary free research period, retained Premium defaults, privacy and navigation rules.
 ---
+
+## Current free-access period
+
+Keep all research features free “until readership catches up,” while retaining the paywall code so the user can later specify which tabs/sub-tabs are Premium. Do not change actual subscription status to grant research access.
+
+**Why:** The user explicitly requested taking out all app paywalls temporarily, keeping the code for later selective reactivation.
+
+**How to apply:** Use the shared access policy for both UI gates/data fetching and API checks. Leave paywalls disabled until the user asks to reactivate them. Stock Watch still requires sign-in and remains private; admin features remain authorized separately. Actual paid status continues to determine paid members' ad-free eligibility. Do not modify existing memberships, billing or renewals as a side effect.
+
+## Retained defaults and other standing rules
+
+The Premium restrictions below are retained restoration defaults, **not active restrictions during the free-access period**. The navigation, privacy and advertising rules still apply.
 
 Risk & Returns Lab (formerly Stock Insights) is Free-tier. Its default sub-tab is Valuation & Fundamentals, which contains the existing research interface: the entire Overview sub-sub-tab is Free-tier, and every other research sub-sub-tab remains Premium.
 

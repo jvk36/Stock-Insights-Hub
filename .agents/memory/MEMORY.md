@@ -22,6 +22,6 @@
 - [Cloning strategy](cloning-strategy.md) — fourth tab; confirmed ranking, deduplication, closing-price calendar and historical-source constraints
 - [Magic Formula strategy](magic-formula-strategy.md) — fifth tab; standard Greenblatt ROC, annual frozen rankings and four staggered groups with dividend reinvestment
 - [Portfolio price refresh](portfolio-price-refresh.md) — intraday marks do not trade; reads wake refreshes and recovered feeds must clear old warnings.
-- [Stock access tiers](stock-insights-access.md) — Free Overview, portfolio intros and sector screens; Stock Watch requires sign-in; Macro Summary appears last.
+- [Stock access tiers](stock-insights-access.md) — research is temporarily free; retain selective Premium controls; Stock Watch still requires sign-in and paid members stay ad-free.
 - [Intrinsic valuation](intrinsic-valuation-methodology.md) — TTM EPS, selected-range endpoint CAGR, annual-basis latest consensus blend; negative growth/earnings use 15×.
 - [Database pool resilience](database-pool-resilience.md) — handle idle-pool errors without crashing; active query failures must still reject.

@@ -8,8 +8,12 @@ export type PremiumMembership = {
   deletionStartedAt: Date | null;
 };
 
-export function createRequirePremium(resolveMembership: (req: Request) => Promise<PremiumMembership | null>) {
+export function createRequirePremium(
+  resolveMembership: (req: Request) => Promise<PremiumMembership | null>,
+  shouldEnforce: (req: Request) => boolean = () => true,
+) {
   return async function requirePremiumMiddleware(req: Request, res: Response, next: NextFunction) {
+    if (!shouldEnforce(req)) return next();
     try {
       const membership = await resolveMembership(req);
       if (!membership) return res.status(401).json({ error: "Sign in required" });

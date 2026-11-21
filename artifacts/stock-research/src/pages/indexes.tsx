@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { canAccessFeature } from "@workspace/api-zod/access-policy";
 import { useLocation, Link } from "wouter";
 import { Search, TrendingUp, BarChart2, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -269,7 +270,7 @@ function IndexTabContent({
   source,
 }: IndexTabContentProps) {
   const { membership, loading, authState } = useMembership();
-  const isPremium = !loading && authState !== "unknown" && membership?.premium === true;
+  const isPremium = canAccessFeature(`screens.${indexId}.advanced`, !loading && authState !== "unknown" && membership?.premium === true);
   const [filterText, setFilterText]     = useState("");
   const [activeSector, setActiveSector] = useState<string | null>(null);
   const [showSectors, setShowSectors]   = useState(false);

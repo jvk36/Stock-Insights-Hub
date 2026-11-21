@@ -1,6 +1,7 @@
 import { useParams, Link, useSearch, useLocation } from "wouter";
 import { Lock, Search, TrendingUp } from "lucide-react";
 import { useMembership } from "@/lib/membership";
+import { isPremiumFeature } from "@workspace/api-zod/access-policy";
 import { useState } from "react";
 import Seo from "@/components/Seo";
 import TickerSearch from "@/components/stock/TickerSearch";
@@ -42,8 +43,10 @@ function SectionDivider({ children }: { children: React.ReactNode }) {
   );
 }
 
-function PremiumStockContent({ children, feature = "Valuation & Fundamentals research" }: { children: React.ReactNode; feature?: string }) {
+function PremiumStockContent({ children, feature = "Valuation & Fundamentals research", featureKey }: { children: React.ReactNode; feature?: string; featureKey?: string }) {
   const { membership, loading, authState } = useMembership();
+  const key = featureKey ?? (feature === "Performance" ? "lab.performance" : feature === "Risk Analysis" ? "lab.risk" : feature === "Portfolio Tools" ? "lab.portfolio" : "lab.valuation");
+  if (!isPremiumFeature(key)) return children;
   const description = feature === "Performance"
     ? "Explore a ticker’s annualized returns (CAGR), the historical growth of a $10,000 investment compared with the S&P 500 using SPY, monthly and annual return heat maps, and rolling returns across different investment horizons."
     : feature === "Risk Analysis"
@@ -76,9 +79,9 @@ function LabTabs({ value, onChange, performance, risk, portfolio, children }: { 
         <p className="pt-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary" data-testid="text-lab-title">Risk & Returns Lab</p>
         <TabsList className="mt-1 h-auto max-w-full flex-wrap justify-start bg-transparent p-0">
           <TabsTrigger value="valuation" data-testid="tab-valuation-fundamentals" className={trig}>Valuation & Fundamentals</TabsTrigger>
-          <TabsTrigger value="performance" data-testid="tab-performance" className={trig}>Performance <Lock className="ml-1.5 h-3 w-3" aria-label="Premium" /></TabsTrigger>
-          <TabsTrigger value="risk" data-testid="tab-risk-analysis" className={trig}>Risk Analysis <Lock className="ml-1.5 h-3 w-3" aria-label="Premium" /></TabsTrigger>
-          <TabsTrigger value="portfolio" data-testid="tab-portfolio-tools" className={trig}>Portfolio Tools <Lock className="ml-1.5 h-3 w-3" aria-label="Premium" /></TabsTrigger>
+          <TabsTrigger value="performance" data-testid="tab-performance" className={trig}>Performance {isPremiumFeature("lab.performance") && <Lock className="ml-1.5 h-3 w-3" aria-label="Premium" />}</TabsTrigger>
+          <TabsTrigger value="risk" data-testid="tab-risk-analysis" className={trig}>Risk Analysis {isPremiumFeature("lab.risk") && <Lock className="ml-1.5 h-3 w-3" aria-label="Premium" />}</TabsTrigger>
+          <TabsTrigger value="portfolio" data-testid="tab-portfolio-tools" className={trig}>Portfolio Tools {isPremiumFeature("lab.portfolio") && <Lock className="ml-1.5 h-3 w-3" aria-label="Premium" />}</TabsTrigger>
         </TabsList>
       </div>
       <TabsContent value="valuation" className="mt-0">{children}</TabsContent>
@@ -351,35 +354,35 @@ export default function StockDetail() {
             </TabsContent>
 
             <TabsContent value="intrinsic-valuation" className="mt-0">
-              <PremiumStockContent><IntrinsicValuation symbol={symbol!} /></PremiumStockContent>
+              <PremiumStockContent featureKey="lab.valuation.intrinsic-valuation"><IntrinsicValuation symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
 
             <TabsContent value="indicators" className="mt-0">
-              <PremiumStockContent><FundamentalSummary symbol={symbol!} /></PremiumStockContent>
+              <PremiumStockContent featureKey="lab.valuation.indicators"><FundamentalSummary symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
 
             <TabsContent value="screener" className="mt-0">
-              <PremiumStockContent><ScreenerRatings symbol={symbol!} /></PremiumStockContent>
+              <PremiumStockContent featureKey="lab.valuation.ratings"><ScreenerRatings symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
 
             <TabsContent value="board-leadership" className="mt-0">
-              <PremiumStockContent><BoardLeadershipTab symbol={symbol!} /></PremiumStockContent>
+              <PremiumStockContent featureKey="lab.valuation.board-leadership"><BoardLeadershipTab symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
 
             <TabsContent value="buybacks" className="mt-0">
-              <PremiumStockContent><BuybacksTab symbol={symbol!} /></PremiumStockContent>
+              <PremiumStockContent featureKey="lab.valuation.buybacks"><BuybacksTab symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
 
             <TabsContent value="insider-activity" className="mt-0">
-              <PremiumStockContent><InsiderActivityTab symbol={symbol!} /></PremiumStockContent>
+              <PremiumStockContent featureKey="lab.valuation.insider-activity"><InsiderActivityTab symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
 
             <TabsContent value="analysis" className="mt-0">
-              <PremiumStockContent><AnalysisTab symbol={symbol!} /></PremiumStockContent>
+              <PremiumStockContent featureKey="lab.valuation.analysis"><AnalysisTab symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
 
             <TabsContent value="models" className="mt-0">
-              <PremiumStockContent><ModelsTab symbol={symbol!} /></PremiumStockContent>
+              <PremiumStockContent featureKey="lab.valuation.models"><ModelsTab symbol={symbol!} /></PremiumStockContent>
             </TabsContent>
           </div>
         </Tabs>

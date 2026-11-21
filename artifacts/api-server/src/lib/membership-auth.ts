@@ -1,4 +1,5 @@
 import type { Request } from "express";
+import { apiRequiresPremium } from "@workspace/api-zod/access-policy";
 import { clerkClient, getAuth } from "@clerk/express";
 import { db, membershipDeletionsTable, membershipsTable } from "@workspace/db";
 import { and, eq, isNull, ne, sql } from "drizzle-orm";
@@ -69,4 +70,5 @@ export function hasPremiumAccess(membership: Awaited<ReturnType<typeof getMember
   return hasStoredPremiumAccess(membership);
 }
 
-export const requirePremium = createRequirePremium(getMembership);
+// Feature access is independent of actual subscription/account status.
+export const requirePremium = createRequirePremium(getMembership, req => apiRequiresPremium(req.originalUrl));

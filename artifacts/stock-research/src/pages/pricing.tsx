@@ -4,6 +4,7 @@ import { useAuth } from "@clerk/react";
 import { useState } from "react";
 import { postMembership, useMembership } from "@/lib/membership";
 import Seo from "@/components/Seo";
+import { accessPolicy } from "@workspace/api-zod/access-policy";
 
 const features = ["Stock screens across major indexes", "Complete company research and filings", "Valuation models and analyst insights", "Board, buyback, and insider intelligence"];
 
@@ -27,6 +28,26 @@ export default function Pricing() {
       setBusy(undefined);
     }
   }
+
+  if (!accessPolicy.paywallsEnabled) return (
+    <div className="min-h-screen bg-background text-foreground">
+      <Seo title="Free Stock Research Access" description="All DIY Absolute Returns research features are currently free. Explore stock screens, valuation models, portfolio strategies, performance and risk tools without a subscription." path="/pricing" />
+      <main className="mx-auto max-w-3xl px-4 py-16">
+        <Link href="/13f" className="text-sm font-medium text-primary">← Back to research</Link>
+        <section className="mt-8 rounded-2xl border bg-card p-8 text-center shadow-sm">
+          <Check className="mx-auto h-10 w-10 text-primary" />
+          <h1 className="mt-4 text-3xl font-bold">All research is currently free</h1>
+          <p className="mt-4 text-muted-foreground">Explore every research tab, valuation model, stock screen, portfolio strategy, and performance and risk tool without a Premium subscription.</p>
+          <p className="mt-3 text-sm text-muted-foreground">Sign in only for personal features such as your private Stock Watch list.</p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link href="/stock" className="rounded-md bg-primary px-5 py-2.5 font-semibold text-primary-foreground">Explore the research tools</Link>
+            <Link href={isSignedIn ? "/account" : "/sign-up"} className="rounded-md border px-5 py-2.5 font-semibold">{isSignedIn ? "Your account" : "Create a free account"}</Link>
+          </div>
+          {membership?.premium && <p className="mt-5 text-sm text-muted-foreground">Your membership has not been changed. You can review its status from your account.</p>}
+        </section>
+      </main>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background text-foreground">

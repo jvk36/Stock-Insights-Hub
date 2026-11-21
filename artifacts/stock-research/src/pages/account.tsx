@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { useEffect, useState } from "react";
 import { UserButton } from "@clerk/react";
 import { postMembership, useMembership } from "@/lib/membership";
+import { accessPolicy } from "@workspace/api-zod/access-policy";
 
 export default function Account() {
   const { membership, loading, refresh } = useMembership();
@@ -36,12 +37,13 @@ export default function Account() {
           <h1 className="mt-3 text-3xl font-bold">Your account</h1>
           <p className="mt-1 text-muted-foreground">{membership?.email}</p>
           {activating && !membership?.premium && <p className="mt-4 rounded-lg bg-primary/10 px-4 py-3 text-sm font-medium text-primary">Activating your Premium membership…</p>}
-          {!activating && membership?.role === "free" && <p className="mt-4 rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">Your account is Free. Premium activates only after Stripe confirms a successful subscription.</p>}
+          {!accessPolicy.paywallsEnabled && <p className="mt-4 rounded-lg border bg-primary/5 px-4 py-3 text-sm text-muted-foreground">All research features are currently free. Existing memberships and subscription records are unchanged.</p>}
+          {accessPolicy.paywallsEnabled && !activating && membership?.role === "free" && <p className="mt-4 rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">Your account is Free. Premium activates only after Stripe confirms a successful subscription.</p>}
           {membership?.billingUnavailable && membership.premium && <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-foreground">Premium access is using your last verified subscription because billing is temporarily unavailable.</p>}
           {membership?.billingUnavailable && !membership.premium && <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-foreground">We could not verify your subscription renewal. If you have already paid, please retry shortly or contact the site administrator. You do not need to subscribe again.</p>}
           {billingError && <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{billingError}</p>}
           <div className="mt-6 grid gap-4 rounded-xl bg-muted/50 p-5 sm:grid-cols-2">
-            <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Access</p><p className="mt-1 font-semibold">{membership?.role === "admin" ? "Admin · Premium" : membership?.premium ? "Paid · Premium" : "Free"}</p></div>
+            <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Access</p><p className="mt-1 font-semibold">{membership?.role === "admin" ? "Admin · Full access" : !accessPolicy.paywallsEnabled ? "All research · Free access" : membership?.premium ? "Paid · Premium" : "Free"}</p></div>
             <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Plan</p><p className="mt-1 font-semibold capitalize">{membership?.plan ?? (membership?.role === "admin" ? "Owner access" : "Free")}</p></div>
             {membership?.currentPeriodEnd && <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Paid through</p><p className="mt-1 font-semibold">{new Date(membership.currentPeriodEnd).toLocaleDateString()}</p></div>}
             {membership?.subscriptionStatus && <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Status</p><p className="mt-1 font-semibold capitalize">{membership.subscriptionStatus}</p></div>}
@@ -62,7 +64,7 @@ export default function Account() {
                 setBusy(false);
               }
             }} className="mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 font-semibold text-primary-foreground"><CreditCard className="h-4 w-4" />{busy ? "Opening…" : "Manage billing"}</button>
-          ) : activating ? null : <Link href="/pricing" className="mt-6 inline-flex rounded-md bg-primary px-4 py-2.5 font-semibold text-primary-foreground">Upgrade to Premium</Link>}
+          ) : activating || !accessPolicy.paywallsEnabled ? null : <Link href="/pricing" className="mt-6 inline-flex rounded-md bg-primary px-4 py-2.5 font-semibold text-primary-foreground">Upgrade to Premium</Link>}
         </section>
       </div>
     </div>

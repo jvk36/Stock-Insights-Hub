@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { selectCloningPicks, reviewDates, filingDeadline, nextCloningDate, canonicalTicker, type CloneFiling, type CloneReview } from "./cloning-selection";
+import { selectCloningPicks, reviewDates, rebalanceDate, nextCloningDate, canonicalTicker, type CloneFiling, type CloneReview } from "./cloning-selection";
 import { runCloning } from "./cloning-engine";
 import type { MomentumMarket } from "./momentum-engine";
 
@@ -21,22 +21,31 @@ function market(dates = ["2026-08-17", "2026-08-18", "2026-11-16"]): MomentumMar
 function review(date = "2026-08-17", scheduledDate = "2026-08-15"): CloneReview {
   return { date, scheduledDate, reportDate: "2026-06-30", ...selectCloningPicks(pair(), "2026-06-30", date) };
 }
-test("quarter deadlines are literal 45 calendar days, not quarter-start anniversaries", () => {
-  assert.equal(filingDeadline("2026-06-30"), "2026-08-14");
-  assert.equal(filingDeadline("2026-09-30"), "2026-11-14");
-  assert.equal(filingDeadline("2026-12-31"), "2027-02-14");
-  assert.equal(filingDeadline("2027-03-31"), "2027-05-15");
-  assert.equal(nextCloningDate("2026-10-27"), "2026-11-14");
+test("quarter reviews wait 50 calendar days, not just the 45-day disclosure window", () => {
+  assert.equal(rebalanceDate("2026-06-30"), "2026-08-19");
+  assert.equal(rebalanceDate("2026-09-30"), "2026-11-19");
+  assert.equal(rebalanceDate("2026-12-31"), "2027-02-19");
+  assert.equal(rebalanceDate("2027-03-31"), "2027-05-20");
+  assert.equal(rebalanceDate("2023-12-31"), "2024-02-19", "leap-year calendar");
+  assert.equal(nextCloningDate("2026-11-16"), "2026-11-19");
+  assert.equal(nextCloningDate("2026-11-19"), "2027-02-19");
 });
 test("requested Saturday inception moves to Monday; later review remains quarter anchored", () => {
-  const r = reviewDates("2026-08-15", "2026-12-01", ["2026-08-17", "2026-11-16"]);
-  assert.deepEqual(r.map((x) => [x.scheduledDate, x.date]), [["2026-08-15", "2026-08-17"], ["2026-11-14", "2026-11-16"]]);
+  const r = reviewDates("2026-08-15", "2026-12-01", ["2026-08-17", "2026-11-16", "2026-11-19"]);
+  assert.deepEqual(r.map((x) => [x.scheduledDate, x.date]), [["2026-08-15", "2026-08-17"], ["2026-11-19", "2026-11-19"]]);
 });
-test("the exact decade includes its final August 14 deadline before Saturday inception", () => {
+test("50-day reviews execute next trading close on holidays or weekends", () => {
+  const r = reviewDates("2026-08-15", "2027-08-01", ["2026-08-17", "2026-11-20", "2027-02-22", "2027-05-21"]);
+  assert.deepEqual(r.slice(1).map(x => [x.scheduledDate, x.date]), [
+    ["2026-11-19", "2026-11-20"], ["2027-02-19", "2027-02-22"], ["2027-05-20", "2027-05-21"],
+  ]);
+  assert.equal(reviewDates("2026-08-15", "2026-11-20", ["2026-08-17"]).at(-1)?.date, null, "never invent an unavailable execution session");
+});
+test("the exact decade excludes the final 50-day review after its inception boundary", () => {
   const sessions = Array.from({ length: 3660 }, (_, i) => new Date(Date.parse("2016-08-15") + i * 864e5))
     .filter((d) => ![0, 6].includes(d.getUTCDay())).map((d) => d.toISOString().slice(0, 10));
   const r = reviewDates("2016-08-15", "2026-08-15", sessions);
-  assert.equal(r.length, 41);
+  assert.equal(r.length, 40);
   assert.equal(r[0].date, "2016-08-15");
   assert.ok(r.every((d) => d.date! < "2026-08-15"));
 });
@@ -48,6 +57,25 @@ test("rank added share value relative to the current portfolio, not total positi
   assert.equal(picks[0].ticker, "OLD");
   assert.equal(picks[0].addedWeight, 10);
   assert.equal(picks[0].activity, "increase");
+});
+test("the five-day buffer admits later filings without changing the original inception allocation", () => {
+  const f = pair();
+  const q3 = { ...f[1], reportDate: "2026-09-30", filingDate: "2026-11-17", holdings: [holding("AAA", 200, 400)] };
+  const filings = [...f, q3];
+  assert.equal(selectCloningPicks(filings, "2026-09-30", "2026-11-16").picks.length, 0);
+  assert.equal(selectCloningPicks(filings, "2026-09-30", "2026-11-19").picks[0]?.ticker, "AAA");
+  const m = market(["2026-08-17", "2026-08-18", "2026-11-16", "2026-11-19"]);
+  const old = runCloning(m, [review(), review("2026-11-16", "2026-11-14")], "2026-08-15", "2026-11-20");
+  const reviews = reviewDates("2026-08-15", "2026-11-20", Object.keys(m.prices.SPY)).map(r => ({
+    ...r, date: r.date!, ...selectCloningPicks(filings, r.reportDate, r.date!),
+  }));
+  const migrated = runCloning(m, reviews, "2026-08-15", "2026-11-20", old.allocations);
+  assert.deepEqual(migrated.allocations[0], old.allocations[0]);
+  assert.equal(migrated.allocations[1]?.scheduledDate, "2026-11-19");
+  assert.equal(migrated.allocations[1]?.date, "2026-11-19");
+  assert.equal(migrated.ledger?.some(event => event.date === "2026-11-16"), false);
+  assert.equal(migrated.ledger?.filter(event => event.date === "2026-11-19" && event.type === "sell").length, 1);
+  assert.equal(migrated.ledger?.filter(event => event.date === "2026-11-19" && event.type === "buy").length, 1);
 });
 test("only one winner per manager; deduplicate across managers and continue to ten distinct stocks", () => {
   const f = Array.from({ length: 12 }, (_, i) => pair(String(i + 1), i < 2 ? "SAME" : `T${i}`, 500 - i)).flat();

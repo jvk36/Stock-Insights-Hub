@@ -9,8 +9,10 @@ export const VERIFIED_CUSIP_TICKERS: Record<string, string> = {
   "19762B202": "XCEM",
 };
 export const FIGI_MATCHED = "openfigi_us_v1";
-export const FIGI_UNMATCHED = "openfigi_no_match_v1";
-export const FIGI_AMBIGUOUS = "openfigi_ambiguous_v1";
+// Retry old negative results: v1 incorrectly queried CINS as ID_CUSIP.
+export const FIGI_UNMATCHED = "openfigi_no_match_v2";
+// v3 also retries ambiguity caused by obsolete/unlisted ticker aliases.
+export const FIGI_AMBIGUOUS = "openfigi_ambiguous_v3";
 export interface TickerMapping { cusip: string; ticker: string | null; source: string; updatedAt?: Date }
 export interface FigiResolution {
   status: "matched" | "unmatched" | "ambiguous" | "temporary";
@@ -33,6 +35,15 @@ export function isTerminalUnmatched(mapping: TickerMapping | undefined): boolean
 }
 export function isTrustedMapping(mapping: TickerMapping): boolean {
   return !!mapping.ticker && ["manual", "override", "openfigi", FIGI_MATCHED].includes(mapping.source);
+}
+/** Resolve identity without grouping or dropping constituents. Strategy
+ * comparisons must retain unmatched shares and values to avoid fictitious buys.
+ */
+export function resolved13fTicker(cusip: string, storedTicker: string | null, mappings: Map<string, TickerMapping>): string | null {
+  const key = cusip.trim().toUpperCase();
+  const mapping = mappings.get(key);
+  return VERIFIED_CUSIP_TICKERS[key] ?? (mapping && isTrustedMapping(mapping)
+    ? mapping.ticker : isTerminalUnmatched(mapping) ? null : usTicker(storedTicker));
 }
 export function parseFigiResolution(job: unknown): FigiResolution {
   if (!job || typeof job !== "object") return { status: "temporary", ticker: null, reason: "Invalid mapping response." };
@@ -72,10 +83,9 @@ export function project13fHoldings<T extends Position>(rows: T[], mappings: Map<
       else misc.marketValueThousands += raw.marketValueThousands;
       continue;
     }
-    const candidate = verified ?? (mapping?.ticker && isTrustedMapping(mapping) ? mapping.ticker : raw.ticker);
     // Curated historical mappings remain authoritative, including legitimate
     // non-US listings. Unverified Yahoo suffixes do not become tradable symbols.
-    const ticker = verified ?? (mapping && isTrustedMapping(mapping) ? mapping.ticker : usTicker(candidate));
+    const ticker = resolved13fTicker(cusip, raw.ticker, mappings);
     kept.push({ ...raw, ticker });
   }
   if (misc) kept.push(misc);

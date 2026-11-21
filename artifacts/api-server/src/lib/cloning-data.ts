@@ -1,6 +1,8 @@
 import { db, hedgeFundsTable, sec13fFilingsTable, sec13fHoldingsTable } from "@workspace/db";
 import { eq, gte, inArray } from "drizzle-orm";
 import { canonicalTicker, type CloneFiling } from "./cloning-selection";
+import { loadTickerMappings, resolveStoredCusips } from "./cusip-ticker-store";
+import { resolved13fTicker } from "./cusip-resolution-policy";
 
 export async function loadCloningFilings(periods?: string[]): Promise<CloneFiling[]> {
   const filings = await db.select({
@@ -16,9 +18,15 @@ export async function loadCloningFilings(periods?: string[]): Promise<CloneFilin
     shares: sec13fHoldingsTable.shares, value: sec13fHoldingsTable.marketValueThousands,
   }).from(sec13fHoldingsTable).innerJoin(sec13fFilingsTable, eq(sec13fFilingsTable.id, sec13fHoldingsTable.filingId))
     .where(periods ? inArray(sec13fFilingsTable.reportDate, periods) : gte(sec13fFilingsTable.reportDate, "2016-03-31"));
+  const names = new Map(rows.map(row => [row.cusip, row.name]));
+  // Use the same exact-identifier evidence as fund views. Refresh unresolved
+  // identifiers before ranking rather than depending on a later background audit.
+  await resolveStoredCusips(names, {});
+  const mappings = await loadTickerMappings([...names.keys()]);
   const byId = new Map<number, CloneFiling>(filings.map((f) => [f.id, { ...f, holdings: [] }]));
   for (const row of rows) {
-    byId.get(row.filingId)?.holdings.push({ ...row, ticker: row.ticker ? canonicalTicker(row.ticker) : null });
+    const ticker = resolved13fTicker(row.cusip, row.ticker, mappings);
+    byId.get(row.filingId)?.holdings.push({ ...row, ticker: ticker ? canonicalTicker(ticker) : null });
   }
   return [...byId.values()];
 }

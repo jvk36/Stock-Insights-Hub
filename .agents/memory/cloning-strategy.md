@@ -17,15 +17,23 @@ Use the managers tracked in Hedge Fund Blueprint. Take each manager's largest ne
 
 Each quarterly rebalance sells all remaining holdings, then buys the new strategy selections with all available cash at equal weights. A stock selected again must still have separate sell and buy entries in the Transaction Ledger.
 
-**Why:** The user explicitly described the rebalance as “we sell everything and buy the new ones filtered by the strategy 45 days after every quarter.”
+**Why:** The user explicitly described selling everything and buying the newly filtered selections each quarter. They subsequently changed the rebuild delay to around 50 days to allow filings to arrive.
 
 **How to apply:** Do not net trades in retained names or interpret the quarterly process as buying only new entrants. Include cash distributions and verified corporate actions in the ledger so cash remains reconcilable.
 
-Requested inception is August 15, 2026; because that is Saturday, execute at August 17's close. Later dates are exactly 45 calendar days after quarter end, moved to the next trading close if needed, rather than three-month anniversaries of delayed fills. September 30, 2026 + 45 days is November 14, so execution is November 16.
+Requested inception remains August 15, 2026; because that is Saturday, execute at August 17's close. Later quarterly rebuilds are **50 calendar days after quarter end**, moved to the next trading close if needed, rather than three-month anniversaries of delayed fills. September 30, 2026 + 50 days is November 19.
 
-**Why:** The user's explicit inception date differs from June 30 + 45 days (August 14). Keep the requested inception while retaining literal quarter-end arithmetic afterward; this distinction was explained during implementation.
+**Why:** The user changed the quarterly rebuild timing from 45 to around 50 days so more filings are available. Their original inception request remains unchanged.
 
-**How to apply:** Historical window starts August 15, 2016 and ends strictly before August 15, 2026. It includes the August 14, 2026 review before that Saturday boundary; do not force an assumed count of forty reviews at the expense of the actual calendar.
+**How to apply:** Preserve the original inception allocation when changing the calendar; recompute later model allocations on the new dates. Do not preserve stale 45-day allocations under a 50-day label. This is not a change to the legal SEC deadline. If historical backtesting is requested again, use the actual calendar and an exclusive end boundary.
+
+## Coverage and notice presentation
+
+Keep the activity/status and ticker/filing coverage notices at the bottom of WhaleShadow behind an arrow button, collapsed by default. Preserve their information rather than hiding data-quality problems permanently.
+
+**Why:** The user asked to remove the yellow boxes from the main working area and show them only on demand at the bottom.
+
+**How to apply:** Keep unavailable values honest in the portfolio itself and leave the detailed explanations accessible by keyboard and assistive technology.
 
 ## Historical-source constraints
 

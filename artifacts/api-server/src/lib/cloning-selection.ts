@@ -18,9 +18,10 @@ export const canonicalTicker = (ticker: string) => ticker.trim().toUpperCase()
   .replace(/^BRK[.-]([AB])$/, "BRK-$1").replace(/^AJG\.MX$/, "AJG").replace(/^YNDX$/, "NBIS");
 const nameKey = (name: string) => name.toUpperCase().replace(/[^A-Z0-9]/g, "").replace(/(INCORPORATED|CORPORATION|CORP|INC|COM|LTD|PLC)$/g, "");
 
-// Literal 45 calendar days, not a three-month anniversary of a delayed fill.
-export function filingDeadline(reportDate: string): string {
-  return iso(new Date(Date.parse(`${reportDate}T12:00:00Z`) + 45 * day));
+// Five calendar days after the usual 45-day disclosure window. This is the
+// strategy review date, not the legal filing deadline.
+export function rebalanceDate(reportDate: string): string {
+  return iso(new Date(Date.parse(`${reportDate}T12:00:00Z`) + 50 * day));
 }
 export function quarterEnds(startYear: number, endYear: number): string[] {
   return Array.from({ length: endYear - startYear + 1 }, (_, i) => startYear + i)
@@ -28,7 +29,7 @@ export function quarterEnds(startYear: number, endYear: number): string[] {
 }
 export function nextCloningDate(after: string): string {
   return quarterEnds(Number(after.slice(0, 4)) - 1, Number(after.slice(0, 4)) + 2)
-    .map(filingDeadline).find((date) => date > after)!;
+    .map(rebalanceDate).find((date) => date > after)!;
 }
 export function previousQuarter(reportDate: string): string {
   const all = quarterEnds(Number(reportDate.slice(0, 4)) - 1, Number(reportDate.slice(0, 4)));
@@ -38,7 +39,7 @@ export function reviewDates(start: string, endExclusive: string, sessions: strin
   return quarterEnds(Number(start.slice(0, 4)) - 1, Number(endExclusive.slice(0, 4)))
     .map((reportDate) => ({
       reportDate,
-      scheduledDate: reportDate === `${start.slice(0, 4)}-06-30` ? start : filingDeadline(reportDate),
+      scheduledDate: reportDate === `${start.slice(0, 4)}-06-30` ? start : rebalanceDate(reportDate),
     }))
     .filter((r) => r.scheduledDate >= start && r.scheduledDate < endExclusive)
     .map((r) => ({ ...r, date: sessions.find((d) => d >= r.scheduledDate && d < endExclusive) ?? null }));

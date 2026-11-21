@@ -18,8 +18,7 @@ export function createOpenFigiMapper(deps: Dependencies = {}) {
   const recent = new Map<string, { until: number; resolution: FigiResolution }>();
   const temporary = (reason: string): FigiResolution => ({ status: "temporary", ticker: null, reason });
 
-  function request(cusips: string[]): Promise<FigiResolution[]> {
-    const work = queue.then(async () => {
+  async function performRequest(cusips: string[], includeUnlistedEquities: boolean): Promise<FigiResolution[]> {
       const delay = nextAt - now();
       if (delay > 0) await wait(delay);
       nextAt = now() + interval;
@@ -27,8 +26,10 @@ export function createOpenFigiMapper(deps: Dependencies = {}) {
         const response = await fetcher("https://api.openfigi.com/v3/mapping", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(cusips.map(cusip => ({
-            idType: "ID_CUSIP", idValue: cusip, exchCode: "US",
-            marketSecDes: "Equity", includeUnlistedEquities: true,
+            // International securities use letter-prefixed CINS identifiers.
+            // Sending them as ID_CUSIP produces a false "No identifier found".
+            idType: /^[A-Z]/.test(cusip) ? "ID_CINS" : "ID_CUSIP", idValue: cusip, exchCode: "US",
+            marketSecDes: "Equity", includeUnlistedEquities,
           }))),
           signal: AbortSignal.timeout(20_000),
         });
@@ -49,6 +50,23 @@ export function createOpenFigiMapper(deps: Dependencies = {}) {
       } catch {
         return cusips.map(() => temporary("OpenFIGI request failed or timed out; retry later."));
       }
+  }
+
+  function request(cusips: string[]): Promise<FigiResolution[]> {
+    const work = queue.then(async () => {
+      const results = await performRequest(cusips, true);
+      // Historical/unlisted aliases can share a CINS with the currently listed
+      // share (e.g. Ferrari's obsolete RACE-W and RACE). Ask for listed equity
+      // only; never select a preferred-looking symbol from an ambiguous list.
+      const ambiguous = cusips.filter((_, i) => results[i]?.status === "ambiguous");
+      if (!ambiguous.length) return results;
+      const listed = new Map((await performRequest(ambiguous, false)).map((resolution, i) => [ambiguous[i]!, resolution]));
+      return results.map((original, i) => {
+        const refined = listed.get(cusips[i]!);
+        // An outage while disambiguating is pending evidence, not grounds for
+        // consolidation. Keep the retry path open.
+        return refined?.status === "matched" || refined?.status === "temporary" ? refined : original;
+      });
     });
     queue = work.then(() => undefined, () => undefined);
     return work;

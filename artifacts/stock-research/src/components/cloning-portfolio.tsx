@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
-import { AlertTriangle, Clock, RefreshCw } from "lucide-react";
+import { AlertTriangle, ChevronDown, Clock, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useGetCloningPortfolio,
@@ -28,6 +28,28 @@ function StatusNote({ b, id }: { b: ModelPortfolioBacktest; id: string }) {
     <div className={`mb-4 flex gap-2 rounded-lg border p-3 text-sm ${b.status === "complete" ? "border-border bg-muted/40" : "border-amber-300 bg-amber-50 text-amber-900"}`} data-testid={`text-${id}-status`}>
       <Clock className="w-4 h-4 mt-0.5 shrink-0" />
       <span><span className="font-semibold uppercase text-xs mr-1.5" data-testid={`status-${id}`}>{b.status}</span>{b.message ?? (b.status === "partial" ? "Only part of the period could be valued with available data (for example, missing prices for delisted stocks). Figures cover the actual dates shown only." : b.status === "unavailable" ? "Data is not available for this period." : "")}</span>
+    </div>
+  );
+}
+
+function ActivityNotes({ p }: { p: CloningPortfolio }) {
+  const [expanded, setExpanded] = useState(false);
+  if (p.result.status === "complete" && !p.result.message && !p.coverage.length) return null;
+  return (
+    <div className="border-t border-border pt-4">
+      <button type="button" className={`${btn} h-auto min-h-8 py-2`} onClick={() => setExpanded(value => !value)}
+        aria-expanded={expanded} aria-controls="cloning-activity-notes" data-testid="button-cloning-activity-notes">
+        <ChevronDown aria-hidden="true" className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`} />
+        Activity and data coverage notes
+      </button>
+      <div id="cloning-activity-notes" hidden={!expanded} className="mt-3" data-testid="cloning-activity-notes">
+        <StatusNote b={p.result} id="cloning-live" />
+        {p.coverage.length > 0 && (
+          <ul className="space-y-1 text-xs text-amber-900 rounded-lg border border-amber-300 bg-amber-50 p-3" data-testid="list-cloning-coverage">
+            {p.coverage.map((s, i) => <li key={i}>{s}</li>)}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
@@ -109,7 +131,7 @@ function Intro({ p, loading }: { p?: CloningPortfolio; loading: boolean }) {
           <h3 className="font-semibold text-foreground">Exact rules</h3>
           <ul className="space-y-1.5 text-xs text-muted-foreground border-l-2 border-primary/40 pl-3">
             <li>Starting capital {usd(30000, 0)}. Scheduled inception August 15, 2026, executed at the next trading close (August 17, 2026).</li>
-            <li>Thereafter rebalances are scheduled 45 calendar days after each quarter end and executed at the close of that day, or the next trading day if the market is closed. Example: September 30 plus 45 days is Saturday, November 14, so execution is Monday, November 16.</li>
+            <li>Thereafter rebalances are scheduled 50 calendar days after each quarter end, allowing five extra days after the usual filing window, and executed at that day's close or the next trading close if the market is closed. Example: September 30 plus 50 days is November 19, 2026. The original inception allocation is preserved.</li>
             <li>For each tracked manager, the candidate is its single largest new or increased common-share purchase ranked by added portfolio weight = (current shares minus split-normalized prior shares) x quarter-end unit value / current total portfolio value x 100. Weight changes caused only by price moves do not count.</li>
             <li>Manager winners are ranked by added weight, descending. Duplicate tickers keep only the largest entry. The top ten unique stocks are bought in equal dollar amounts; fewer than ten are split equally among those available; none means the portfolio holds cash.</li>
             <li>At each quarterly rebalance, all remaining holdings are sold at the execution close before the new selections are purchased with all available cash. Stocks selected again are sold and repurchased as well. The transaction ledger records each sale and purchase separately.</li>
@@ -131,7 +153,7 @@ function Intro({ p, loading }: { p?: CloningPortfolio; loading: boolean }) {
                 <tbody>
                   {picks.map((c) => (
                     <tr key={`${c.fundCik}-${c.ticker}`} className={`border-t border-border ${c.selected ? "bg-primary/[0.07]" : ""}`} data-testid={`row-cloning-candidate-${c.fundCik}-${c.ticker}`}>
-                      <td className={td}><Link href={`/stock/${c.ticker}`} className="font-mono font-semibold hover:text-primary">{c.ticker}</Link>{c.selected && <span className="ml-1 text-[10px] font-semibold text-primary">PICK</span>}<div className="text-xs text-muted-foreground max-w-[160px] truncate" title={c.name}>{c.name}</div></td>
+                      <td className={td}>{c.ticker ? <Link href={`/stock/${c.ticker}`} className="font-mono font-semibold hover:text-primary">{c.ticker}</Link> : <span className="text-xs text-muted-foreground">Ticker unverified</span>}{c.selected && <span className="ml-1 text-[10px] font-semibold text-primary">PICK</span>}<div className="text-xs text-muted-foreground max-w-[160px] truncate" title={c.name}>{c.name}</div></td>
                       <td className={`${td} text-xs max-w-[180px] truncate`} title={`${c.manager} (CIK ${c.fundCik})`}>{c.manager}</td>
                       <td className={`${tdr} font-semibold`}>{num(c.addedWeight, 2)}%</td>
                       <td className={`${td} text-xs capitalize`}>{c.activity}</td>
@@ -142,11 +164,6 @@ function Intro({ p, loading }: { p?: CloningPortfolio; loading: boolean }) {
                 </tbody>
               </table>
             </div>
-          )}
-          {p && p.coverage.length > 0 && (
-            <ul className="mt-3 space-y-1 text-xs text-amber-900 rounded-lg border border-amber-300 bg-amber-50 p-3" data-testid="list-cloning-coverage">
-              {p.coverage.map((s, i) => <li key={i}>{s}</li>)}
-            </ul>
           )}
         </div>
       </div>
@@ -161,7 +178,6 @@ function Live({ p }: { p: CloningPortfolio }) {
   const cashW = r.finalValue && cash != null ? (cash / r.finalValue) * 100 : null;
   return (
     <>
-      <StatusNote b={r} id="cloning-live" />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6 mb-5">
         <Stat id="cloning-inception" k="Inception" v={date(p.inceptionDate)} sub={`first trade ${date(r.actualStartDate)}`} />
         <Stat id="cloning-value" k="Current total" v={r.finalValue == null ? "Unavailable" : usd(r.finalValue)} sub={`as of ${date(r.actualEndDate)}`} />
@@ -232,6 +248,7 @@ export function CloningView({ enabled }: { enabled: boolean }) {
           : q.isError || !p ? <ErrorBox what="the live WhaleShadow portfolio" onRetry={() => q.refetch()} id="cloning" />
           : <Live p={p} />}
       </section>
+      {p && <ActivityNotes p={p} />}
       <p className="text-xs leading-5 text-muted-foreground border-t border-border pt-4">Hypothetical, concentrated equity model for education only. Not investment advice. No outperformance or absolute return is promised. 13F data is delayed and incomplete. Excludes taxes, commissions, and slippage.</p>
     </>
   );

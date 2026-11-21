@@ -1,7 +1,7 @@
 import { db, modelPortfoliosTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { GetCloningPortfolioResponse, GetModelPortfolioBacktestResponse,
-  type CloningPortfolio, type ModelPortfolioBacktest } from "@workspace/api-zod";
+  type BacktestAllocation, type CloningPortfolio, type ModelPortfolioBacktest } from "@workspace/api-zod";
 import { loadCloningFilings } from "./cloning-data";
 import { addCloningSymbols, compatibleIssuer, emptyCloningMarket } from "./cloning-market";
 import { CLONING_HISTORY, CLONING_INCEPTION, nextCloningDate, previousQuarter, reviewDates, selectCloningPicks, type CloneReview } from "./cloning-selection";
@@ -9,15 +9,15 @@ import { runCloning } from "./cloning-engine";
 import { completedThrough } from "./model-portfolio-market";
 import { logger } from "./logger";
 
-const VERSION = 4;
+const VERSION = 6;
 const REFRESH_MS = 15 * 60_000;
 const pending = new Map<string, Promise<unknown>>();
 type Stored = { version: number; portfolio?: CloningPortfolio; backtest?: ModelPortfolioBacktest };
 const nextDay = (date: string) => new Date(Date.parse(date) + 864e5).toISOString().slice(0, 10);
 
-async function prepare(start: string, end: string) {
+async function prepare(start: string, end: string, locked: BacktestAllocation[] = []) {
   const market = emptyCloningMarket();
-  await addCloningSymbols(market, ["SPY"]);
+  await addCloningSymbols(market, ["SPY", ...locked.flatMap(a => a.positions.map(p => p.ticker))]);
   const calendar = Object.keys(market.prices.SPY ?? {}).sort();
   const dates = reviewDates(start, end, calendar).filter((r): r is typeof r & { date: string } => r.date != null && r.date <= market.targetDate);
   const reviews: CloneReview[] = [];
@@ -51,7 +51,9 @@ async function prepare(start: string, end: string) {
 async function read(slug: string): Promise<Stored | undefined> {
   const [row] = await db.select().from(modelPortfoliosTable).where(eq(modelPortfoliosTable.slug, slug));
   const data = row?.state as Stored | undefined;
-  return data?.version === VERSION ? data : undefined;
+  // Retain the original inception execution when migrating the old calendar.
+  // Later 45-day allocations do not match the new scheduled review dates.
+  return data?.version === VERSION || (slug === "cloning" && data && [4, 5].includes(data.version)) ? data : undefined;
 }
 function recent(result?: ModelPortfolioBacktest) {
   return result && Date.now() - Date.parse(result.refreshedAt) < REFRESH_MS
@@ -73,12 +75,13 @@ export function getCloningPortfolio(): Promise<CloningPortfolio> {
   return dedupe("cloning", async () => {
     const old = await read("cloning");
     const previous = old?.portfolio ? GetCloningPortfolioResponse.parse(old.portfolio) : undefined;
-    // Rebuild older snapshots once to add the ledger, preserving sealed allocations.
-    if (previous?.result.ledger && recent(previous.result)) return previous;
+    const currentPolicy = old?.version === VERSION;
+    if (currentPolicy && previous?.result.ledger && recent(previous.result)) return previous;
     try {
       const end = nextDay(completedThrough());
-      const { market, reviews } = await prepare(CLONING_INCEPTION, end);
-      const result = GetModelPortfolioBacktestResponse.parse(runCloning(market, reviews, CLONING_INCEPTION, end, previous?.result.allocations));
+      const locked = (previous?.result.allocations ?? []).filter(a => old?.version !== 4 || a.scheduledDate === CLONING_INCEPTION);
+      const { market, reviews } = await prepare(CLONING_INCEPTION, end, locked);
+      const result = GetModelPortfolioBacktestResponse.parse(runCloning(market, reviews, CLONING_INCEPTION, end, locked));
       const last = result.performance.at(-1);
       const allocation = result.allocations.at(-1);
       const review = reviews.find((r) => r.date === allocation?.date) ?? reviews[0];
@@ -110,7 +113,7 @@ export function getCloningPortfolio(): Promise<CloningPortfolio> {
         const concurrent = currentState?.version === VERSION ? currentState.portfolio : undefined;
         const baseline = previous?.result.refreshedAt;
         if (concurrent && concurrent.result.refreshedAt !== baseline) return GetCloningPortfolioResponse.parse(concurrent);
-        if (previous?.result.performance.length && result.performance.length < previous.result.performance.length) {
+        if (currentPolicy && previous?.result.performance.length && result.performance.length < previous.result.performance.length) {
           return { ...previous, result: { ...previous.result, status: "partial", message: "Refresh coverage is incomplete. The last verified portfolio is preserved; data timestamp is unchanged." } };
         }
         const state: Stored = { version: VERSION, portfolio };

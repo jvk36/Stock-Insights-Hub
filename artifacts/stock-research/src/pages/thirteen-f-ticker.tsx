@@ -101,9 +101,9 @@ export default function ThirteenFTicker() {
           </div>
           <nav className="flex items-center gap-1 min-w-0 overflow-x-auto [scrollbar-width:none]">
             <Link href="/13f" className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md whitespace-nowrap">Hedge Fund Blueprint</Link>
-            <Link href="/model-portfolios" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md whitespace-nowrap">Algo-Portfolios</Link>
-            <Link href="/indexes" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md whitespace-nowrap">Stock Screens</Link>
             <Link href="/stock" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md whitespace-nowrap">Risk &amp; Returns Lab</Link>
+            <Link href="/indexes" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md whitespace-nowrap">Stock Screens</Link>
+            <Link href="/model-portfolios" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md whitespace-nowrap">Algo-Portfolios</Link>
             <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md whitespace-nowrap">Stock Watch</Link>
             <Link href="/macro" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md whitespace-nowrap">Macro Summary</Link>
           </nav>

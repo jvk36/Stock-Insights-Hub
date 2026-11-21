@@ -13,9 +13,9 @@ export function StockWatchSignInNotice() {
           <nav className="order-3 flex w-full items-center gap-1 overflow-x-auto md:order-none md:w-auto">
             {[
               ["/13f", "Hedge Fund Blueprint"],
-              ["/model-portfolios", "Algo-Portfolios"],
-              ["/indexes", "Stock Screens"],
               ["/stock", "Risk & Returns Lab"],
+              ["/indexes", "Stock Screens"],
+              ["/model-portfolios", "Algo-Portfolios"],
             ].map(([href, title]) => (
               <Link key={href} href={href} className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">{title}</Link>
             ))}

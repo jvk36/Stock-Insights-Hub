@@ -38,7 +38,7 @@ function Header() {
           <span className="font-bold text-foreground tracking-tight">Terminal</span>
         </div>
         <nav className="flex items-center gap-1 min-w-0 overflow-x-auto [scrollbar-width:none]">
-          {[["/13f", "Hedge Fund Blueprint"], ["/model-portfolios", "Algo-Portfolios"], ["/indexes", "Stock Screens"], ["/stock", "Risk & Returns Lab"], ["/watchlist", "Stock Watch"], ["/macro", "Macro Summary"]].map(([h, t]) => (
+          {[["/13f", "Hedge Fund Blueprint"], ["/stock", "Risk & Returns Lab"], ["/indexes", "Stock Screens"], ["/model-portfolios", "Algo-Portfolios"], ["/watchlist", "Stock Watch"], ["/macro", "Macro Summary"]].map(([h, t]) => (
             h === "/model-portfolios"
               ? <span key={h} className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap shrink-0">{t}</span>
               : <Link key={h} href={h} className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap shrink-0">{t}</Link>

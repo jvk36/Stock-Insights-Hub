@@ -177,20 +177,14 @@ export default function StockDetail() {
               >
                 Hedge Fund Blueprint
               </Link>
-              <Link
-                href="/model-portfolios"
-                data-testid="link-nav-model-portfolios"
-                className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap shrink-0"
-              >
-                Algo-Portfolios
-              </Link>
+              <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap">Risk & Returns Lab</span>
               <Link
                 href="/indexes"
                 className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
               >
                 Stock Screens
               </Link>
-              <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap">Risk & Returns Lab</span>
+              <Link href="/model-portfolios" data-testid="link-nav-model-portfolios" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap shrink-0">Algo-Portfolios</Link>
               <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Watch</Link>
               <Link href="/macro" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Macro Summary</Link>
             </nav>
@@ -252,20 +246,14 @@ export default function StockDetail() {
             >
               Hedge Fund Blueprint
             </Link>
-            <Link
-              href="/model-portfolios"
-              data-testid="link-nav-model-portfolios"
-              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap shrink-0"
-            >
-              Algo-Portfolios
-            </Link>
+            <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap">Risk & Returns Lab</span>
             <Link
               href="/indexes"
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
             >
               Stock Screens
             </Link>
-            <span className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md cursor-default select-none whitespace-nowrap">Risk & Returns Lab</span>
+            <Link href="/model-portfolios" data-testid="link-nav-model-portfolios" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap shrink-0">Algo-Portfolios</Link>
             <Link href="/watchlist" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Stock Watch</Link>
             <Link href="/macro" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap">Macro Summary</Link>
           </nav>

@@ -753,12 +753,14 @@ router.get("/stock/:symbol/earnings-history", async (req, res): Promise<void> =>
     // 4. Compute TTM EPS (trailing twelve months = rolling sum of last 4 quarters)
     const history = sorted.map((item, idx) => {
       const windowItems = sorted.slice(Math.max(0, idx - 3), idx + 1);
-      const ttmEps = windowItems.length === 4
+      const complete = windowItems.length === 4 && windowItems.every((q, i) => {
+        if (!i) return true;
+        const days = (Date.parse(q.date) - Date.parse(windowItems[i - 1].date)) / 86_400_000;
+        return days >= 65 && days <= 115;
+      });
+      const ttmEps = complete
         ? parseFloat(windowItems.reduce((sum, q) => sum + q.epsActual, 0).toFixed(4))
-        : windowItems.length > 0
-          // Partial TTM: annualize what we have (useful for early history)
-          ? parseFloat((windowItems.reduce((sum, q) => sum + q.epsActual, 0) * (4 / windowItems.length)).toFixed(4))
-          : null;
+        : null;
       return {
         date: item.date,
         epsActual: item.epsActual,

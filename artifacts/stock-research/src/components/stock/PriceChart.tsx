@@ -19,6 +19,7 @@ import {
   getGetEarningsHistoryQueryKey,
 } from "@workspace/api-client-react";
 import type { GetStockChartRange } from "@workspace/api-client-react";
+import { earningsFairValues } from "./earnings-fair-value";
 
 const RANGE_OPTIONS: { label: string; value: GetStockChartRange }[] = [
   { label: "1D", value: "1d" },
@@ -63,45 +64,11 @@ export default function PriceChart({ symbol }: { symbol: string }) {
   const mergedData = useMemo<ChartPoint[]>(() => {
     if (!chartData?.data) return [];
 
-    const earnings = earningsData?.history ?? [];
-    const sortedEarnings = [...earnings]
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .map((earning) => ({
-        time: Date.parse(earning.date),
-        fairValue:
-          earning.ttmEps != null && earning.ttmEps > 0
-            ? parseFloat((earning.ttmEps * peMultiple).toFixed(2))
-            : null,
-      }))
-      .filter((earning) => Number.isFinite(earning.time));
-
-    const fairValueAt = (date: string): number | null => {
-      const time = Date.parse(date);
-      if (!Number.isFinite(time) || sortedEarnings.length === 0) return null;
-
-      const nextIndex = sortedEarnings.findIndex((earning) => earning.time >= time);
-      if (nextIndex === 0) {
-        return sortedEarnings[0].time === time
-          ? sortedEarnings[0].fairValue
-          : null;
-      }
-
-      if (nextIndex === -1) {
-        return sortedEarnings.at(-1)?.fairValue ?? null;
-      }
-
-      const previous = sortedEarnings[nextIndex - 1];
-      const next = sortedEarnings[nextIndex];
-      if (previous.fairValue == null || next.fairValue == null) return null;
-
-      const progress = (time - previous.time) / (next.time - previous.time);
-      return parseFloat(
-        (previous.fairValue + (next.fairValue - previous.fairValue) * progress).toFixed(2),
-      );
-    };
-
-    return chartData.data.map((point) => {
-      const fairValue = showEarnings ? fairValueAt(point.date) : null;
+    const values = earningsFairValues(
+      chartData.data.map(p => p.date), earningsData?.history ?? [], peMultiple,
+    );
+    return chartData.data.map((point, i) => {
+      const fairValue = showEarnings ? values[i] : null;
 
       return {
         ...point,
@@ -319,7 +286,7 @@ export default function PriceChart({ symbol }: { symbol: string }) {
                   activeDot={{ r: 3, strokeWidth: 0, fill: priceColor }}
                 />
 
-                {showEarnings && (
+                {showEarnings && hasFairValueData && (
                   <Line
                     type="monotone"
                     dataKey="fairValue"
@@ -338,12 +305,12 @@ export default function PriceChart({ symbol }: { symbol: string }) {
 
         {showEarnings && hasFairValueData && (
           <p className="text-xs text-muted-foreground font-mono mt-2 pl-1">
-            Amber line = split-adjusted TTM EPS × {peMultiple}x P/E fair value. Price above line = potentially overvalued; below = potentially undervalued.
+            Amber curve = split-adjusted TTM EPS × {peMultiple}x P/E, smoothly interpolated between quarterly observations. Retrospective illustration, not a point-in-time trading signal.
           </p>
         )}
-        {showEarnings && !hasFairValueData && !isLoading && (
+        {showEarnings && !hasFairValueData && !isLoading && !isLoadingEarnings && (
           <p className="text-xs text-muted-foreground font-mono mt-2 pl-1">
-            Earnings fair value line unavailable for this symbol or time range.
+            Earnings Fair Value is hidden because continuous quarterly earnings data does not cover the entire selected timeframe. Missing periods are not extrapolated.
           </p>
         )}
       </CardContent>

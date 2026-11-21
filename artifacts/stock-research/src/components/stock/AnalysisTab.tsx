@@ -41,8 +41,14 @@ export default function AnalysisTab({ symbol }: Props) {
   }
 
   return (
-    <Tabs defaultValue="dcf" className="w-full">
+    <Tabs defaultValue="moat" className="w-full">
       <TabsList className="bg-card border border-border h-auto p-1 mb-6">
+        <TabsTrigger
+          value="moat"
+          className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm"
+        >
+          Moat Analysis
+        </TabsTrigger>
         <TabsTrigger
           value="dcf"
           className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm"
@@ -54,12 +60,6 @@ export default function AnalysisTab({ symbol }: Props) {
           className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm"
         >
           Reverse DCF
-        </TabsTrigger>
-        <TabsTrigger
-          value="moat"
-          className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm"
-        >
-          MOAT Analysis
         </TabsTrigger>
       </TabsList>
 

@@ -11,13 +11,15 @@ const dates = Array.from({ length: 20 }, (_, i) => {
 const flat = dates.map(date => ({ date, eps: 1 }));
 const closeTo = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
 
-test("exact piecewise rules use percentage points and do not globally cap high growth", () => {
+test("exact piecewise rules use percentage points and cap high growth at 30", () => {
   assert.equal(intrinsicTargetPe(0), 8.5);
   assert.equal(intrinsicTargetPe(2), 12.5);
   assert.equal(intrinsicTargetPe(4.99), 15);
   assert.equal(intrinsicTargetPe(5), 15);
   assert.equal(intrinsicTargetPe(15), 15);
   assert.equal(intrinsicTargetPe(20), 20);
+  assert.equal(intrinsicTargetPe(30), 30);
+  assert.equal(intrinsicTargetPe(2087), 30);
   assert.equal(intrinsicTargetPe(-5), 15);
   assert.equal(intrinsicTargetPe(null), null);
   assert.equal(intrinsicTargetPe(NaN), null);
@@ -111,15 +113,32 @@ test("changing chart windows recalculates CAGR and valuations without mutating c
   const quarters = flat.map((q, i) => ({ ...q, eps: i < 12 ? 1 : (i - 7) / 4 }));
   const all = intrinsicValuationHistory(quarters, { date: "2025-03-31", eps: 4 }, "2025-02-01");
   const snapshot = JSON.stringify(all);
-  const range = intrinsicValuationWindow(all, "2024-01-01");
-  assert.equal(range[0].date, "2024-03-31");
+  const range = intrinsicValuationWindow(all, "2023-01-01");
+  assert.equal(range[0].date, "2023-03-31");
   assert.notEqual(range[0].growthPercent, all[3].growthPercent);
   const first = range[0], last = range.at(-1);
   const years = (Date.parse(last.date) - Date.parse(first.date)) / (365.25 * 86400000);
-  closeTo(last.growthPercent, ((last.blendedEps / first.blendedEps) ** (1 / years) - 1) * 100);
+  closeTo(last.growthPercent, Math.min(30, ((last.blendedEps / first.blendedEps) ** (1 / years) - 1) * 100));
   closeTo(last.fairValue, last.blendedEps * intrinsicTargetPe(last.growthPercent));
   assert.equal(JSON.stringify(all), snapshot);
   assert.deepEqual(intrinsicValuationWindow(all, "2030-01-01"), []);
+});
+
+test("extreme growth is capped in every range and short EPS histories stay unavailable", () => {
+  const history = intrinsicValuationHistory(
+    flat.map((p, i) => ({ ...p, eps: i < 12 ? 0.01 : 50 })),
+    { date: "2025-03-31", eps: 100 }, "2025-02-01",
+  );
+  for (const start of ["", "2022-01-01", "2023-01-01"]) {
+    const rows = intrinsicValuationWindow(history, start);
+    assert.equal(rows.at(-1).growthPercent, 30);
+    assert.equal(rows.at(-1).targetPe, 30);
+    closeTo(rows.at(-1).fairValue, rows.at(-1).blendedEps * 30);
+  }
+  const short = intrinsicValuationWindow(history, "2024-06-01");
+  assert.equal(short.at(-1).growthPercent, null);
+  assert.equal(short.at(-1).fairValue, null);
+  assert.match(short.at(-1).unavailableReason, /at least one year/);
 });
 
 test("a single EPS endpoint cannot establish CAGR; zero ending EPS supports -100% growth", () => {

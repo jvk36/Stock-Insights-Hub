@@ -11,7 +11,7 @@ const finite = (v: unknown): v is number => typeof v === "number" && Number.isFi
 /** g is in percentage points: 20 means 20%, not 0.20. */
 export function intrinsicTargetPe(g: number | null): number | null {
   if (g == null || !finite(g)) return null;
-  const pe = g < 0 ? 15 : g < 5 ? Math.min(15, 8.5 + 2 * g) : g <= 15 ? 15 : g;
+  const pe = g < 0 ? 15 : g < 5 ? Math.min(15, 8.5 + 2 * g) : g <= 15 ? 15 : Math.min(g, 30);
   return pe > 0 && finite(pe) ? pe : null;
 }
 
@@ -26,15 +26,15 @@ export function intrinsicValuationWindow(
   const years = first && last ? (Date.parse(last.date) - Date.parse(first.date)) / (365.25 * DAY) : 0;
   // A signed/zero starting EPS or negative ending EPS has no conventional
   // earnings CAGR. Loss-making nodes still receive the explicit 15x override.
-  const growth = years > 0 && first?.blendedEps != null && first.blendedEps > 0
+  const growth = years >= 1 && first?.blendedEps != null && first.blendedEps > 0
     && last?.blendedEps != null && last.blendedEps >= 0
     ? ((last.blendedEps / first.blendedEps) ** (1 / years) - 1) * 100 : null;
-  const g = growth != null && finite(growth) ? growth : null;
+  const g = growth != null && !Number.isNaN(growth) ? Math.min(growth, 30) : null;
   return rows.map(p => {
     const eps = p.blendedEps;
     const pe = eps != null && eps < 0 ? 15 : intrinsicTargetPe(g);
     const reason = eps == null ? p.unavailableReason
-      : pe == null ? "Endpoint EPS CAGR requires two dated observations, a positive starting EPS and a nonnegative ending EPS."
+      : pe == null ? "Endpoint EPS CAGR requires at least one year between comparable observations, a positive starting EPS and a nonnegative ending EPS."
       : null;
     return {
       ...p, growthPercent: g, targetPe: pe,

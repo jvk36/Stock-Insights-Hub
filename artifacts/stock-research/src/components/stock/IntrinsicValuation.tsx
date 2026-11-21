@@ -57,7 +57,7 @@ function IntrinsicValuationIntro() {
           <p className="text-xs text-muted-foreground leading-relaxed">
             Historical quarterly points use reported TTM EPS. The latest point blends reported TTM EPS with projected TTM EPS
             incorporating next quarter’s consensus. Growth is the CAGR between the first and last available EPS points in the selected
-            chart range, including the latest blended point when available. This one growth rate applies to every node; changing the range recalculates the curve.
+            chart range, including the latest blended point when available. At least one year of comparable EPS history is required. Growth used by the model is capped at 30% for every timeframe. This one growth rate applies to every node; changing the range recalculates the curve.
           </p>
         </div>
         <div className="rounded-lg border border-border bg-muted/30 p-4 font-mono text-xs space-y-1.5" data-testid="text-formula">
@@ -65,7 +65,7 @@ function IntrinsicValuationIntro() {
           <p>g &lt; 0 or EPS &lt; 0 → 15</p>
           <p>0 ≤ g &lt; 5 &nbsp;&nbsp;→ MIN(15, 8.5 + 2g)</p>
           <p>5 ≤ g ≤ 15 &nbsp;&nbsp;→ 15</p>
-          <p>g &gt; 15 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ g &nbsp;(not capped)</p>
+          <p>g &gt; 15 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ MIN(g, 30)</p>
           <p className="pt-1 border-t border-border">Fair value = EPS × target P/E</p>
           <p className="text-muted-foreground">Negative EPS × 15 → negative fair value</p>
           <p className="text-muted-foreground">Undefined CAGR leaves positive-EPS nodes unavailable.</p>

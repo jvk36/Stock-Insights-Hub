@@ -84,7 +84,7 @@ export default function DcfAnalysis({ dcfInputs }: Props) {
   const result = useMemo<DcfResult | null>(() => {
     if (discount <= termG || mortgageBlocked) return null;
     if (isAffo && affoPerShare <= 0) return null;
-    if (!isAffo && (!fcf || !shares)) return null;
+    if (!isAffo && (fcf <= 0 || shares <= 0)) return null;
     try {
       return calculateDcf({
         g1, g2, g3, termG, discount,
@@ -367,7 +367,7 @@ export default function DcfAnalysis({ dcfInputs }: Props) {
                    ? "AFFO DCF is unavailable for mortgage REITs."
                    : isAffo && affoPerShare <= 0
                      ? "Enter a positive AFFO per share assumption to calculate a valuation. FCF is not used as a fallback."
-                     : "Enter valid inputs (discount rate must exceed terminal growth rate) to see the DCF valuation."}
+                     : "Enter valid inputs to see the DCF valuation: the discount rate must exceed the terminal growth rate, and FCF cannot be negative (a positive FCF and share count are required)."}
               </CardContent>
             </Card>
           )}

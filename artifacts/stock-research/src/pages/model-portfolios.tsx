@@ -172,7 +172,10 @@ function ModelPortfolio({ p }: { p: BlindTrustPortfolio }) {
 export default function ModelPortfolios() {
   const [location] = useLocation();
   const { membership, loading, authState } = useMembership();
-  const tab = location.startsWith("/model-portfolios/magic-formula") ? "magic-formula" : location.startsWith("/model-portfolios/cloning") ? "cloning" : location.startsWith("/model-portfolios/blind-trust") ? "blind-trust" : location.startsWith("/model-portfolios/lazy") ? "lazy" : "momentum";
+  const tab = location.startsWith("/model-portfolios/magic-formula") ? "magic-formula"
+    : location.startsWith("/model-portfolios/blind-trust") ? "blind-trust"
+    : location.startsWith("/model-portfolios/lazy") ? "lazy"
+    : location.startsWith("/model-portfolios/momentum") ? "momentum" : "cloning";
   const isPremium = canAccessFeature(`portfolios.${tab}`, !loading && authState !== "unknown" && membership?.premium === true);
   const live = { staleTime: 60_000, refetchInterval: 5 * 60_000, refetchIntervalInBackground: false, refetchOnMount: "always" as const, refetchOnWindowFocus: "always" as const };
   const q = useGetBlindTrustPortfolio({ query: { queryKey: getGetBlindTrustPortfolioQueryKey(), enabled: isPremium && tab === "blind-trust", ...live } });

@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowLeft, ChevronDown, RefreshCw, TrendingUp } from "lu
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import Seo from "@/components/Seo";
+import { TickerOwnershipLookup } from "@/components/thirteen-f/ticker-lookup";
 import { fmtUsd, fmtP } from "@/components/thirteen-f/summary-tabs";
 import {
   useGet13fTickerOwnership,
@@ -125,6 +126,8 @@ export default function ThirteenFTicker() {
             Positions as of each manager's reported {data?.quarter ?? "latest"} quarter-end. 13F filings are delayed up to 45 days and are not live ownership.
           </p>
         </motion.div>
+
+        <TickerOwnershipLookup key={ticker} initialTicker={ticker} />
 
         {!valid ? (
           <Empty text={`"${params.ticker ?? ""}" is not a valid ticker symbol. Return to the Blueprint and choose a security from the tables.`} />

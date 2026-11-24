@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { motion } from "framer-motion";
 import Seo from "@/components/Seo";
 import { TickerOwnershipLink } from "@/components/thirteen-f/ticker-link";
-import { BiggestBetsTab, TopBuysTab, SummaryStatsTab, SummaryPortfolioTab } from "@/components/thirteen-f/summary-tabs";
+import { BiggestBetsTab, TopBuysTab, TopSellsTab, SummaryStatsTab, SummaryPortfolioTab } from "@/components/thirteen-f/summary-tabs";
+import { TickerOwnershipLookup } from "@/components/thirteen-f/ticker-lookup";
 import {
   useList13fFunds,
   getList13fFundsQueryKey,
@@ -1000,7 +1001,7 @@ export default function ThirteenFInsights() {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const requestedView = new URLSearchParams(search).get("view") ?? "activity";
-  const activeView = ["activity", "bets", "buys", "stats", "portfolio"].includes(requestedView) ? requestedView : "activity";
+  const activeView = ["activity", "bets", "buys", "sells", "stats", "portfolio"].includes(requestedView) ? requestedView : "activity";
   const { slug } = useParams<{ slug?: string }>();
   const [selectedFund, setSelectedFund] = useState<HedgeFund | null>(null);
 
@@ -1093,6 +1094,8 @@ export default function ThirteenFInsights() {
           </p>
         </motion.div>
 
+        <TickerOwnershipLookup />
+
         {/* Tabs */}
         <Tabs value={activeView} onValueChange={(view) => setLocation(view === "activity" ? "/13f" : `/13f?view=${view}`)} className="w-full">
           <TabsList className="bg-card border border-border h-auto p-1 flex-wrap justify-start">
@@ -1104,6 +1107,7 @@ export default function ThirteenFInsights() {
             </TabsTrigger>
             <TabsTrigger value="bets" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm">Biggest Bets</TabsTrigger>
             <TabsTrigger value="buys" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm">Top Buys (%)</TabsTrigger>
+            <TabsTrigger value="sells" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm">Top Sells (%)</TabsTrigger>
             <TabsTrigger value="stats" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm">Summary Stats</TabsTrigger>
             <TabsTrigger value="portfolio" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm">Summary Portfolio</TabsTrigger>
           </TabsList>
@@ -1128,6 +1132,7 @@ export default function ThirteenFInsights() {
             </TabsContent>
             <TabsContent value="bets" className="mt-0"><BiggestBetsTab /></TabsContent>
             <TabsContent value="buys" className="mt-0"><TopBuysTab /></TabsContent>
+            <TabsContent value="sells" className="mt-0"><TopSellsTab /></TabsContent>
             <TabsContent value="stats" className="mt-0"><SummaryStatsTab /></TabsContent>
             <TabsContent value="portfolio" className="mt-0"><SummaryPortfolioTab /></TabsContent>
           </div>

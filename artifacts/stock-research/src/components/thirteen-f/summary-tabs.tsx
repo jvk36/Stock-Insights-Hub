@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { TickerOwnershipLink } from "@/components/thirteen-f/ticker-link";
+import { rankPositions, type PositionRankingMode } from "./position-ranking";
 import { AlertTriangle, ChevronDown, RefreshCw, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -237,15 +238,9 @@ function FundLink({ p }: { p: ThirteenFSummaryPosition }) {
 const th = "px-3 py-2 text-left text-[11px] uppercase tracking-wider font-medium text-muted-foreground";
 const td = "px-3 py-2 align-top";
 
-// ─── Position ranking tabs (Biggest Bets / Top Buys) ──────────────────────────
-function PositionRanking({ ctx, mode }: { ctx: Ctx; mode: "bets" | "buys" }) {
-  const rows = useMemo(() => {
-    const base = ctx.data.positions.filter((p) =>
-      mode === "bets" ? p.activity !== "sell" && p.marketValue > 0 : p.buyPct != null && p.buyPct > 0,
-    );
-    const val = (p: ThirteenFSummaryPosition) => (mode === "bets" ? p.portfolioPct : p.buyPct ?? 0);
-    return [...base].sort((a, b) => val(b) - val(a) || tieKey(a).localeCompare(tieKey(b)) || a.fundName.localeCompare(b.fundName));
-  }, [ctx.data.positions, mode]);
+// ─── Individual-position rankings ──────────────────────────────────────────
+function PositionRanking({ ctx, mode }: { ctx: Ctx; mode: PositionRankingMode }) {
+  const rows = useMemo(() => rankPositions(ctx.data.positions, mode), [ctx.data.positions, mode]);
   const textFn = useMemo(() => (p: ThirteenFSummaryPosition) => `${p.ticker ?? ""} ${p.name} ${p.fundName} ${p.securityKey}`, []);
   const t = useSearchPaged(rows, textFn);
   return (
@@ -253,11 +248,13 @@ function PositionRanking({ ctx, mode }: { ctx: Ctx; mode: "bets" | "buys" }) {
       <p className="text-sm text-muted-foreground">
         {mode === "bets"
           ? "Individual fund positions ranked by weight in that fund's full reported portfolio."
-          : "Individual fund purchases ranked by estimated buy size as a share of that fund's current portfolio."}
+          : mode === "buys"
+            ? "Individual fund purchases ranked by estimated buy size as a share of that fund's current portfolio."
+            : "Individual fund trims and full exits ranked by estimated sale size as a share of that fund's prior-quarter portfolio."}
       </p>
       <SearchBox value={t.q} onChange={t.setQ} placeholder="Search ticker, company or fund" />
       {t.filtered.length === 0 ? (
-        <EmptyState text={rows.length === 0 ? (mode === "buys" ? "No measurable buys this quarter." : "No current positions.") : "No matches for that search."} />
+        <EmptyState text={rows.length === 0 ? (mode === "buys" ? "No measurable buys this quarter." : mode === "sells" ? "No measurable sells this quarter." : "No current positions.") : "No matches for that search."} />
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-sm">
@@ -266,8 +263,8 @@ function PositionRanking({ ctx, mode }: { ctx: Ctx; mode: "bets" | "buys" }) {
                 <th className={th}>#</th>
                 <th className={th}>Security</th>
                 <th className={th}>Fund</th>
-                <th className={`${th} text-right`}>{mode === "bets" ? "% of portfolio" : "Buy as % of portfolio"}</th>
-                <th className={`${th} text-right hidden sm:table-cell`}>{mode === "bets" ? "Value" : "% of portfolio"}</th>
+                <th className={`${th} text-right`}>{mode === "bets" ? "% of portfolio" : mode === "buys" ? "Buy as % of portfolio" : "Sell as % of prior portfolio"}</th>
+                <th className={`${th} text-right hidden sm:table-cell`}>{mode === "bets" ? "Value" : "Current % of portfolio"}</th>
                 <th className={`${th} hidden md:table-cell`}>Activity</th>
               </tr>
             </thead>
@@ -277,7 +274,7 @@ function PositionRanking({ ctx, mode }: { ctx: Ctx; mode: "bets" | "buys" }) {
                   <td className={`${td} text-muted-foreground font-mono text-xs`}>{i + 1}</td>
                   <td className={td}><TickerButton s={p} onOpen={ctx.openTicker} /></td>
                   <td className={td}><FundLink p={p} /></td>
-                  <td className={`${td} text-right font-mono tabular-nums font-semibold`}>{fmtP(mode === "bets" ? p.portfolioPct : p.buyPct)}</td>
+                  <td className={`${td} text-right font-mono tabular-nums font-semibold`}>{fmtP(mode === "bets" ? p.portfolioPct : mode === "buys" ? p.buyPct : p.sellPct)}</td>
                   <td className={`${td} text-right font-mono tabular-nums hidden sm:table-cell`}>{mode === "bets" ? fmtUsd(p.marketValue) : fmtP(p.portfolioPct)}</td>
                   <td className={`${td} hidden md:table-cell`}><ActivityBadge a={p.activity} /></td>
                 </tr>
@@ -500,6 +497,9 @@ export function BiggestBetsTab() {
 }
 export function TopBuysTab() {
   return <SummaryShell>{(ctx) => <PositionRanking ctx={ctx} mode="buys" />}</SummaryShell>;
+}
+export function TopSellsTab() {
+  return <SummaryShell>{(ctx) => <PositionRanking ctx={ctx} mode="sells" />}</SummaryShell>;
 }
 export function SummaryStatsTab() {
   return <SummaryShell>{(ctx) => <SummaryStats ctx={ctx} />}</SummaryShell>;

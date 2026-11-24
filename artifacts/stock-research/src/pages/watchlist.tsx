@@ -12,11 +12,11 @@ import { useToast } from "@/hooks/use-toast";
 import { ChartModal } from "../components/watchlist/ChartModal";
 import { Link } from "wouter";
 import { useAuth } from "@clerk/react";
-import { TrendingUp, Search } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import TickerSearch from "@/components/stock/TickerSearch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Trash2, Plus, Loader2 } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 import {
   getPeColor, getEpsGrowthColor, getDebtEquityColor, getMaColor,
   getRsiColor, getShortInterestColor, getPutCallColor,
@@ -58,10 +58,9 @@ export default function Watchlist() {
     }
   });
 
-  const handleAdd = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!newTicker.trim()) return;
-    addMutation.mutate({ data: { ticker: newTicker.toUpperCase() } });
+  const handleAdd = (ticker: string) => {
+    if (!ticker.trim() || addMutation.isPending) return;
+    addMutation.mutate({ data: { ticker: ticker.trim().toUpperCase() } });
   };
 
   const isLoading = loadingWatchlist || loadingMetrics;
@@ -102,24 +101,20 @@ export default function Watchlist() {
 
           <div className="hidden flex-1 md:block" />
 
-          <form onSubmit={handleAdd} className="relative ml-auto w-36 md:w-44 flex items-center">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
+          <div className="ml-auto w-full md:w-80 md:shrink-0">
+            <TickerSearch
+              size="sm"
               value={newTicker}
-              onChange={(e) => setNewTicker(e.target.value)}
-              placeholder="Add Ticker..."
-              className="w-full pl-9 bg-background border-border font-mono h-9 uppercase text-sm pr-10"
-              data-testid="input-ticker"
+              onValueChange={setNewTicker}
+              onSelect={handleAdd}
+              clearOnSelect={false}
+              disabled={addMutation.isPending}
+              placeholder="Ticker or company"
+              buttonLabel={addMutation.isPending ? "Adding…" : "Add"}
+              inputTestId="input-ticker"
+              buttonTestId="button-add"
             />
-            <button 
-              type="submit" 
-              disabled={addMutation.isPending || !newTicker.trim()}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
-              data-testid="button-add"
-            >
-              {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            </button>
-          </form>
+          </div>
         </div>
       </header>
 

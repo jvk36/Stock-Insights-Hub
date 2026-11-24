@@ -30,7 +30,7 @@ function useConstituentSuggestions() {
   return { all, failed, loading, total: qs.length };
 }
 
-export default function TickerSearch({ size = "lg", autoFocus = false, onNavigate, onSelect, buttonLabel = "View Insights", placeholder = "Ticker or company, e.g. AAPL or Apple" }: {
+export default function TickerSearch({ size = "lg", autoFocus = false, onNavigate, onSelect, buttonLabel = "View Insights", placeholder = "Ticker or company, e.g. AAPL or Apple", initialValue = "", value: controlledValue, onValueChange, disabled = false, clearOnSelect = true, inputTestId = "input-ticker-search", buttonTestId = "button-view-insights" }: {
   size?: "lg" | "sm";
   autoFocus?: boolean;
   onNavigate?: (symbol: string) => void;
@@ -38,9 +38,21 @@ export default function TickerSearch({ size = "lg", autoFocus = false, onNavigat
   onSelect?: (symbol: string) => void;
   buttonLabel?: string;
   placeholder?: string;
+  initialValue?: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
+  disabled?: boolean;
+  clearOnSelect?: boolean;
+  inputTestId?: string;
+  buttonTestId?: string;
 }) {
   const [, setLocation] = useLocation();
-  const [value, setValue] = useState("");
+  const [internalValue, setInternalValue] = useState(initialValue);
+  const value = controlledValue ?? internalValue;
+  const setValue = (next: string) => {
+    setInternalValue(next);
+    onValueChange?.(next);
+  };
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -51,16 +63,18 @@ export default function TickerSearch({ size = "lg", autoFocus = false, onNavigat
   const showList = open && value.trim().length > 0 && results.length > 0;
 
   const go = (raw: string) => {
+    if (disabled) return;
     const path = tickerPath(raw);
     if (!path) return;
+    if (clearOnSelect) setValue("");
+    else setValue(raw.trim().toUpperCase());
+    setOpen(false);
+    setActive(-1);
     if (onSelect) onSelect(raw.trim().toUpperCase());
     else {
       setLocation(path);
       onNavigate?.(raw.trim().toUpperCase());
     }
-    setValue("");
-    setOpen(false);
-    setActive(-1);
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -100,6 +114,7 @@ export default function TickerSearch({ size = "lg", autoFocus = false, onNavigat
             id={`${id}-input`}
             autoFocus={autoFocus}
             autoComplete="off"
+            disabled={disabled}
             role="combobox"
             aria-expanded={showList}
             aria-controls={listId}
@@ -111,7 +126,7 @@ export default function TickerSearch({ size = "lg", autoFocus = false, onNavigat
             onBlur={() => setTimeout(() => setOpen(false), 120)}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            data-testid="input-ticker-search"
+            data-testid={inputTestId}
             className={`w-full border-2 border-primary/30 bg-card font-mono shadow-sm focus-visible:border-primary focus-visible:ring-primary/20 ${lg ? "h-14 pl-12 text-lg" : "h-10 pl-10 text-sm"}`}
           />
           {showList && (
@@ -137,8 +152,9 @@ export default function TickerSearch({ size = "lg", autoFocus = false, onNavigat
         </div>
         <button
           type="submit"
-          data-testid="button-view-insights"
-          className={`inline-flex items-center justify-center gap-2 rounded-md bg-primary font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${lg ? "h-14 px-6 text-base" : "h-10 px-4 text-sm whitespace-nowrap"}`}
+          data-testid={buttonTestId}
+          disabled={disabled || !value.trim()}
+          className={`inline-flex items-center justify-center gap-2 rounded-md bg-primary font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${lg ? "h-14 px-6 text-base" : "h-10 px-4 text-sm whitespace-nowrap"}`}
         >
           {buttonLabel}
           <ArrowRight className={lg ? "h-5 w-5" : "h-4 w-4"} />
